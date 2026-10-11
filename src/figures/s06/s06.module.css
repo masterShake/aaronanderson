@@ -1,0 +1,254 @@
+/*
+ * S-06 on --p (pages-drawings §6.6): the CAD plan draws on to p .15 (the hand-off frame), the
+ * iso print fades in to p .22, then from p .40 every .15 bolts on a month (its instrument on the
+ * plan and the print, its tick and its label). The inspection sweeps are time loops under
+ * [data-mech] (set by the controller from S06.motionFromP): three, then idle.
+ */
+
+.s06 {
+  --m1: calc(var(--s06-month-from-p) + var(--s06-month-step-p));
+  --m2: calc(var(--s06-month-from-p) + 2 * var(--s06-month-step-p));
+  --m3: calc(var(--s06-month-from-p) + 3 * var(--s06-month-step-p));
+  --print: clamp(
+    0,
+    (var(--p, 1) - var(--s06-print-from-p)) / (var(--s06-print-to-p) - var(--s06-print-from-p)),
+    1
+  );
+}
+
+/* Whole-pixel art box (3:2 wide, 4:5 tall), so the Stage's canvas lands on the SVG's pixels. */
+.s06 :global(.box) {
+  inline-size: round(down, 100%, 3px);
+  margin-inline: auto;
+}
+
+@container fig (width < 440px) {
+  .s06 :global(.box) {
+    inline-size: round(down, 100%, 4px);
+  }
+}
+
+/* WebGL carries the inspection light itself */
+.s06[data-medium='webgl'] .band {
+  display: none;
+}
+
+/* Fills: figures.css's `:not([fill]) { fill: none }` outranks the f-* classes. */
+.s06.s06 :global(.box) :global(.f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+
+.s06.s06 :global(.box) :global(.f-orange) {
+  fill: var(--c-orange);
+}
+
+.s06.s06 :global(.box) :global(.f-orange-dark) {
+  fill: color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt));
+}
+
+.s06.s06 :global(.box) :global(.f-alu-100) {
+  fill: var(--c-alu-100);
+}
+
+.s06.s06 :global(.box) :global(.f-alu-300) {
+  fill: var(--c-alu-300);
+}
+
+.s06.s06 :global(.box) :global(.f-alu-500) {
+  fill: var(--c-alu-500);
+}
+
+/* The plan draws on, in order, before the hand-off. */
+.s06 :global(.drawing .l-cad path.draw) {
+  --lp: clamp(0, (var(--p, 1) - var(--i, 0) * 0.0015) / 0.05, 1);
+  stroke-dashoffset: calc(1 - var(--lp));
+}
+
+.s06 :global(.drawing .l-cad) {
+  opacity: calc(1 - var(--print));
+}
+
+.s06 :global(.drawing .l-iso) {
+  opacity: var(--print);
+}
+
+/* Month instruments, on the plan and on the print. */
+.s06 :global(.drawing) :global([data-part^='m1']) {
+  opacity: clamp(0, (var(--p, 1) - var(--m1)) * 40, 1);
+}
+
+.s06 :global(.drawing) :global([data-part^='m2']) {
+  opacity: clamp(0, (var(--p, 1) - var(--m2)) * 40, 1);
+}
+
+.s06 :global(.drawing) :global([data-part^='m3']) {
+  opacity: clamp(0, (var(--p, 1) - var(--m3)) * 40, 1);
+}
+
+/* ── Labels on the print ─────────────────────────────────────────────────────────── */
+.s06.s06 .lab {
+  translate: -50% -50%;
+  padding: 0 4px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  font-size: clamp(9px, 1.15cqi, 11px);
+}
+
+/* tall: the print is small; the month strip and the card carry the months */
+@container fig (width < 440px) {
+  .s06.s06 :is(.add, .gauge) {
+    display: none;
+  }
+}
+
+.gauge {
+  opacity: var(--print);
+}
+
+.add {
+  border: 1px solid var(--c-orange);
+  opacity: clamp(0, (var(--p, 1) - var(--a, 0)) * 40, 1);
+}
+
+.fixed {
+  border: 1px solid var(--c-orange);
+  visibility: hidden;
+}
+
+@keyframes sweep {
+  from {
+    left: -16%;
+    opacity: 1;
+  }
+  to {
+    left: 100%;
+    opacity: 1;
+  }
+}
+
+/* one value filled forwards: visibility never interpolates */
+@keyframes show {
+  from,
+  to {
+    visibility: visible;
+  }
+}
+
+/* the inspection light: a translucent band, three sweeps */
+.band {
+  inset-block: 0;
+  inline-size: 16%;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0),
+    rgb(255 255 255 / 0.2) 50%,
+    rgb(255 255 255 / 0)
+  );
+  pointer-events: none;
+}
+
+.bandTag {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  padding: 0 4px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  font-size: clamp(9px, 1.1cqi, 11px);
+}
+
+.s06[data-mech] .band {
+  animation: sweep var(--s06-band-ms) var(--ease-machine) 0s var(--s06-loops);
+}
+
+/* the flange is FIXED halfway through the last sweep, and stays */
+.s06[data-mech] .fixed {
+  animation: show 1ms linear calc(var(--s06-band-ms) * (var(--s06-loops) - 0.5)) forwards;
+}
+
+/* ── Health card and the month strip (HTML, labels only) ─────────────────────────── */
+.health {
+  position: absolute;
+  inset-block-start: 3%;
+  inset-inline-end: 2%;
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--c-cyan-dim);
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  font-family: var(--ff-mono);
+  font-size: clamp(9px, 1.1cqi, 11px);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  opacity: clamp(0, (var(--p, 1) - var(--s06-motion-from-p)) * 20, 1);
+  pointer-events: none;
+}
+
+.health p {
+  margin: 0;
+}
+
+.healthTitle {
+  color: var(--c-cyan);
+}
+
+.months {
+  position: absolute;
+  inset-inline: 3%;
+  inset-block-end: 3%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--c-label-on-deep);
+  font-family: var(--ff-mono);
+  font-size: clamp(9px, 1.1cqi, 11px);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  opacity: max(var(--print), 0);
+  pointer-events: none;
+}
+
+.ticks {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.tick {
+  inline-size: 6px;
+  block-size: 12px;
+  border: 1px solid var(--c-cyan-dim);
+  background: color-mix(
+    in srgb,
+    var(--c-orange) calc(clamp(0, (var(--p, 1) - var(--a, 2)) * 40, 1) * 100%),
+    transparent
+  );
+}
+
+.month {
+  opacity: calc(
+    clamp(0, (var(--p, 1) - var(--a, 0)) * 40, 1) * clamp(0, (var(--b, 2) - var(--p, 1)) * 40, 1)
+  );
+}
+
+.monthNow {
+  display: inline-grid;
+}
+
+.monthNow > .month {
+  grid-area: 1 / 1;
+}
+
+/* ── Still tier: the print image, every month added, the flange FIXED ────────────── */
+:global(html[data-tier='still']) .s06.s06:not([data-user-play]),
+.s06.s06[data-phase='still']:not([data-user-play]) {
+  --p: 1 !important;
+}
+
+:global(html[data-tier='still']) .s06.s06:not([data-user-play]) .fixed,
+.s06.s06[data-phase='still']:not([data-user-play]) .fixed {
+  visibility: visible;
+}

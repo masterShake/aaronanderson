@@ -20,26 +20,64 @@ import type { Quality } from '../../types'
 
 export const TUNING = {
   aluminum: {
-    physical: { metalness: 1, roughness: 0.34, anisotropy: 0.75, envMapIntensity: 1 },
-    standard: { metalness: 1, roughness: 0.4, envMapIntensity: 1 },
+    physical: {
+      color: COLOR.alu500,
+      metalness: 1,
+      roughness: 0.4,
+      anisotropy: 0.85,
+      envMapIntensity: 0.8,
+    },
+    standard: { color: COLOR.alu500, metalness: 1, roughness: 0.44, envMapIntensity: 0.8 },
   },
   orange: {
     physical: {
       metalness: 0,
-      roughness: 0.55,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.4,
-      envMapIntensity: 0.9,
+      roughness: 0.7,
+      specularIntensity: 0.15,
+      clearcoat: 0,
+      clearcoatRoughness: 0.6,
+      envMapIntensity: 0.55,
     },
-    standard: { metalness: 0, roughness: 0.5, envMapIntensity: 0.9 },
+    standard: { metalness: 0, roughness: 0.85, envMapIntensity: 0.55 },
   },
   glass: { roughness: 0.06, opacity: 0.32, envMapIntensity: 1.4 },
   slot: { roughness: 0.8 },
   /** Key light: no decay, infinite range, NW and above the model centre (× span). */
-  keyLight: { intensity: 2.2, offset: [-0.6, 0.75, -0.6] as const },
+  keyLight: { intensity: 1.4, offset: [-0.6, 0.75, -0.6] as const },
 } as const
 
 const shared = new Map<string, Material>()
+
+/**
+ * three ignores material.envMapIntensity for scene.environment (it uses
+ * scene.environmentIntensity, one value for every material). So the lit
+ * materials here carry the session's PMREM as their own envMap, set by
+ * buildEnv (./env.ts) through bindEnv, and TUNING's per-material env
+ * intensities apply: brushed aluminum short of white, orange that stays orange.
+ */
+let envTex: Texture | null = null
+const lit = new Set<MeshStandardMaterial>()
+
+function track<M extends Material>(m: M): M {
+  if ((m as unknown as MeshStandardMaterial).isMeshStandardMaterial) {
+    const s = m as unknown as MeshStandardMaterial
+    lit.add(s)
+    if (envTex && s.envMap !== envTex) {
+      s.envMap = envTex
+      s.needsUpdate = true
+    }
+  }
+  return m
+}
+
+/** The session environment for every lit kit material (called by buildEnv; null on destroy). */
+export function bindEnv(tex: Texture | null): void {
+  envTex = tex
+  for (const m of lit) {
+    m.envMap = tex
+    m.needsUpdate = true
+  }
+}
 
 function share<M extends Material>(key: string, make: () => M): M {
   let m = shared.get(key) as M | undefined
@@ -48,7 +86,7 @@ function share<M extends Material>(key: string, make: () => M): M {
     m.userData.shared = true
     shared.set(key, m)
   }
-  return m
+  return track(m)
 }
 
 const OFFSET = { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 } as const
@@ -57,12 +95,11 @@ export function aluminum(q: Quality): MeshStandardMaterial {
   return share(`alu:${q}`, () =>
     q === 'physical'
       ? new MeshPhysicalMaterial({
-          color: COLOR.alu300,
           ...TUNING.aluminum.physical,
           anisotropyRotation: 0,
           ...OFFSET,
         })
-      : new MeshStandardMaterial({ color: COLOR.alu300, ...TUNING.aluminum.standard, ...OFFSET }),
+      : new MeshStandardMaterial({ ...TUNING.aluminum.standard, ...OFFSET }),
   )
 }
 
@@ -133,11 +170,14 @@ export function withFlatMix<M extends MeshStandardMaterial>(
       )
   }
   m.customProgramCacheKey = () => 'flat1'
-  return Object.assign(m, { uFlat })
+  m.addEventListener('dispose', () => lit.delete(m))
+  return Object.assign(track(m), { uFlat })
 }
 
 /** Disposes the session-scoped materials (Stage destroy only). */
 export function disposeShared(): void {
   for (const m of shared.values()) m.dispose()
   shared.clear()
+  lit.clear()
+  envTex = null
 }

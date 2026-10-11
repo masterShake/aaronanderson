@@ -59,8 +59,11 @@ export const heroFigure = {
     pause: 'Pause motion',
   },
   ui: {
-    idle: 'BATCH DONE · WAITING FOR PAPERWORK',
+    /** Read after the REV 3 chip ("REV 3 · BATCH DONE"), on the idle drawing. */
+    idle: 'Waiting for paperwork',
     inset: 'AS FOUND',
+    leader: 'Rewired →',
     approved: 'APPROVED',
+    runAgainHint: 'Runs the example machine for three more batches.',
   },
 } satisfies FigureCopy
