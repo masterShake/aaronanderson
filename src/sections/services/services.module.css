@@ -38,6 +38,60 @@
   }
 }
 
+/* The week scale on the length column head: the unit at the end of the label line, then
+   0 2 4 6 8 spread over a light tick for each. Head and body cells share the column's width
+   and padding, so the ticks sit over the bars' 0, 2, 4, 6 and 8 week marks. It is drawing,
+   not text: the generated content has an empty alt, so the head still reads as its label.
+   The values come from the section (--week-ticks, --week-unit). Below 640 px the head is
+   hidden and each row shows its own label. */
+@media (min-width: 640px) {
+  .schedule :global(thead th:nth-child(3)) {
+    background-image:
+      linear-gradient(var(--c-pencil) 0 0), linear-gradient(var(--c-pencil) 0 0),
+      linear-gradient(var(--c-pencil) 0 0), linear-gradient(var(--c-pencil) 0 0),
+      linear-gradient(var(--c-pencil) 0 0);
+    background-origin: content-box;
+    background-position:
+      0 100%,
+      25% 100%,
+      50% 100%,
+      75% 100%,
+      100% 100%;
+    background-size: 1px 5px;
+    background-repeat: no-repeat;
+  }
+
+  .schedule :global(thead th:nth-child(3))::before,
+  .schedule :global(thead th:nth-child(3))::after {
+    font-family: var(--ff-mono);
+    font-size: var(--fs-label);
+    font-weight: 400;
+    line-height: var(--lh-label);
+    color: var(--c-graphite);
+  }
+
+  .schedule :global(thead th:nth-child(3))::before {
+    content: var(--week-unit) / '';
+    float: inline-end;
+    margin-inline-start: var(--s-2);
+    letter-spacing: var(--tr-label);
+  }
+
+  /* Justified, so 0 starts at the left edge and 8 ends at the right; the half-digit
+     overhang on each side (mono digits are about 0.8em wide) centers each number on its tick. */
+  .schedule :global(thead th:nth-child(3))::after {
+    content: var(--week-ticks) / '';
+    display: block;
+    clear: both;
+    margin-block-start: var(--s-1);
+    margin-inline: -0.4em;
+    padding-block-end: 7px;
+    letter-spacing: 0;
+    text-align: justify;
+    text-align-last: justify;
+  }
+}
+
 .schedule :global(td) {
   overflow-wrap: anywhere;
 }

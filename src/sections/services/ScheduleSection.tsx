@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Service } from '@/content/types'
 import { servicesPage } from '@/content/pages/services'
 import { services } from '@/content/services'
@@ -29,14 +30,29 @@ export function LengthChart({ service }: { service: Service }) {
         label={c.monthly}
       />
     )
-  return <DimensionLine scale={WEEKS} span={span.weeks} label={service.lengthLabel} />
+  // Solid from week 0 to the shortest length, dashed on to the longest (S-01: solid 0–2).
+  const [lo, hi] = span.weeks
+  return <DimensionLine scale={WEEKS} span={[0, lo]} extendTo={hi} label={service.lengthLabel} />
 }
+
+/** The week scale on the length column head (0 2 4 6 8), generated from WEEKS. */
+const WEEK_TICKS = Array.from({ length: WEEKS[1] / 2 + 1 }, (_, i) => WEEKS[0] + i * 2).join(' ')
 
 /** The schedule, before the details: a real table merged with the 0–8 week chart. */
 export function ScheduleSection() {
   const c = servicesPage.schedule
   return (
-    <section id={c.id} aria-labelledby={`${c.id}-title`} className={`wrap ${s.schedule}`}>
+    <section
+      id={c.id}
+      aria-labelledby={`${c.id}-title`}
+      className={`wrap ${s.schedule}`}
+      style={
+        {
+          '--week-ticks': JSON.stringify(WEEK_TICKS),
+          '--week-unit': JSON.stringify(c.chart.unit),
+        } as CSSProperties
+      }
+    >
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
       <Schedule
         caption={c.caption}
