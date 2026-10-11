@@ -1,0 +1,455 @@
+/*
+ * S-03, the reading machine (owner: scenes-b). The figure root carries this
+ * module's .root plus the FigureFrame contract. Every window reads --p and the
+ * S03 timing vars (--s03-*-p, --s03-*-ms from src/motion/timing/s03.ts); every
+ * distance is design units × --u (the family scale), so one rule fits both
+ * families. The drawing's markup is injected, so its selectors are :global.
+ *
+ *   p: sketch (pencil) → section line A–A → scan to blueprint → details → .38 hand-off
+ *   data-batch: run | held   data-doc: 0–2   data-step: feed | read | out | gate | drop
+ *   data-cards: 0–2          data-rev: approved (the visitor approved the batch)
+ */
+
+.root {
+  --u: 1.2;
+  --s03-scan: calc(
+    clamp(
+        0,
+        (var(--p, 1) - var(--s03-scan-from-p)) / (var(--s03-scan-to-p) - var(--s03-scan-from-p)),
+        1
+      ) *
+      100%
+  );
+}
+
+.root:global([data-family='tall']) {
+  --u: 0.5;
+}
+
+/* Fills by class. The global `.fig .box :is(path…):not([fill]) { fill: none }` outranks the
+   frame's `.box .f-*` rules, so they are restated here with enough weight (see issues). */
+.root.root :global(.drawing path.f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+
+.root.root :global(.drawing path.f-paper) {
+  fill: var(--c-paper);
+}
+
+.root.root :global(.drawing path.f-cyan) {
+  fill: var(--c-cyan);
+}
+
+.root.root :global(.drawing path.f-orange) {
+  fill: var(--c-orange);
+}
+
+/* ── 2D phases on --p ─────────────────────────────────────────────────── */
+
+/* Pencil: draws on in the sketch window, staggered per element, erased by the scan. */
+.root :global(g[data-rev='sketch'] .pv) {
+  --a: calc(var(--s03-sketch-from-p) + var(--i, 0) * var(--s03-sketch-stagger-p));
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root :global(g[data-rev='cut'] .pv) {
+  --a: var(--s03-cut-from-p);
+  --b: var(--s03-cut-to-p);
+}
+
+.root :global(svg.l-pencil) {
+  clip-path: inset(0 0 0 var(--s03-scan));
+}
+
+/* The panel, the pencil ghost and the section are revealed left to right by the scan. */
+.root :global(:is(svg.l-panel, svg.l-ghost, svg.l-cad)) {
+  clip-path: inset(0 calc(100% - var(--s03-scan)) 0 0);
+}
+
+.root :global(.drawing svg.l-ghost) {
+  opacity: var(--pencil-ghost, 0.22);
+}
+
+/* Section lines are drawn when the scan reveals them; the internals then draw on. */
+.root :global(g[data-rev='section'] .pv) {
+  --a: 0;
+  --b: 0.001;
+}
+
+.root :global(g[data-rev='section'] :is([data-part^='roller'], [data-part^='spoke']).pv) {
+  --a: var(--s03-detail-from-p);
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root
+  :global(
+    g[data-rev='section'] :is([data-part='head'], [data-part='head-mount'], [data-part='path']).pv
+  ) {
+  --a: calc(var(--s03-detail-from-p) + var(--s03-detail-stagger-p));
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root
+  :global(
+    g[data-rev='section'] :is([data-part^='dial'], [data-part^='band'], [data-part='needle']).pv
+  ) {
+  --a: calc(var(--s03-detail-from-p) + var(--s03-detail-stagger-p) * 2);
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root :global(g[data-rev='section'] :is([data-part='gate'], [data-part^='chute']).pv) {
+  --a: calc(var(--s03-detail-from-p) + var(--s03-detail-stagger-p) * 3);
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root :global(g[data-rev='section'] :is([data-part^='person'], [data-part^='leg']).pv) {
+  --a: calc(var(--s03-detail-from-p) + var(--s03-detail-stagger-p) * 4);
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root
+  :global(
+    g[data-rev='section']
+      :is(
+        [data-part='tray'],
+        [data-part='tray-lip'],
+        [data-part='desk'],
+        [data-part='sign-tray']
+      ).pv
+  ) {
+  --a: calc(var(--s03-detail-from-p) + var(--s03-detail-stagger-p) * 5);
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+/* The scan bar is shown only while it sweeps. */
+.root :global(.box > .scan-bar) {
+  --scan: calc(
+    clamp(
+        0,
+        (var(--p, 1) - var(--s03-scan-from-p)) / (var(--s03-scan-to-p) - var(--s03-scan-from-p)),
+        1
+      ) *
+      110%
+  );
+  inline-size: 100%;
+  inset-inline-start: 0;
+  background: none;
+  opacity: calc(
+    clamp(0, (var(--p, 1) - var(--s03-scan-from-p)) * 1000, 1) *
+      clamp(0, (var(--s03-scan-to-p) - var(--p, 1)) * 1000, 1)
+  );
+}
+
+/* ── The batch (svg tier) ─────────────────────────────────────────────── */
+
+/* The batch layer exists only from motionFromP. */
+.root :global(svg.l-pkt) {
+  opacity: clamp(0, (var(--p, 1) - var(--s03-motion-from-p)) * 1000 + 1, 1);
+}
+
+.root :global(g[data-part^='doc.']),
+.root :global(g[data-part^='card.']),
+.root :global([data-part='lamp-on']),
+.root :global([data-part='stamp']) {
+  opacity: 0;
+}
+
+.root :global(g[data-part^='doc.']) {
+  translate: 0 calc(var(--u) * var(--s03-at-drop) * 1px);
+}
+
+@keyframes feed {
+  0% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * var(--s03-at-drop) * 1px);
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    translate: 0 0;
+  }
+  100% {
+    opacity: 1;
+    translate: calc(var(--u) * var(--s03-at-read) * 1px) 0;
+  }
+}
+
+.root:global([data-doc='0'][data-step='feed']) :global(g[data-part='doc.0']),
+.root:global([data-doc='1'][data-step='feed']) :global(g[data-part='doc.1']),
+.root:global([data-doc='2'][data-step='feed']) :global(g[data-part='doc.2']) {
+  animation: feed var(--s03-feed-ms) var(--ease-machine, ease) both;
+}
+
+.root:global([data-doc='0'][data-step='read']) :global(g[data-part='doc.0']),
+.root:global([data-doc='1'][data-step='read']) :global(g[data-part='doc.1']),
+.root:global([data-doc='2'][data-step='read']) :global(g[data-part='doc.2']) {
+  opacity: 1;
+  translate: calc(var(--u) * var(--s03-at-read) * 1px) 0;
+}
+
+.root:global([data-doc='0'][data-step='out']) :global(g[data-part='doc.0']),
+.root:global([data-doc='1'][data-step='out']) :global(g[data-part='doc.1']) {
+  opacity: 0;
+  translate: calc(var(--u) * var(--s03-at-out) * 1px) 0;
+  transition:
+    translate var(--s03-out-ms) linear,
+    opacity var(--s03-out-ms) step-end;
+}
+
+.root:global([data-doc='2'][data-step='gate']) :global(g[data-part='doc.2']) {
+  opacity: 1;
+  translate: calc(var(--u) * var(--s03-at-gate) * 1px) 0;
+  transition: translate var(--s03-gate-ms) linear;
+}
+
+.root:global([data-doc='2'][data-step='drop']) :global(g[data-part='doc.2']),
+.root:global([data-batch='held']) :global(g[data-part='doc.2']) {
+  opacity: 1;
+  translate: calc(var(--u) * var(--s03-at-held-x) * 1px) calc(var(--u) * var(--s03-at-held-y) * 1px);
+  transition: translate var(--s03-drop-ms) var(--ease-machine, ease);
+}
+
+/* Data cards slide out onto the tray. */
+.root :global(g[data-part^='card.']) {
+  translate: calc(var(--u) * var(--s03-at-card) * 1px) 0;
+  transition:
+    translate var(--s03-out-ms) var(--ease-settle, ease),
+    opacity var(--s03-out-ms) linear;
+}
+
+.root:global(:is([data-cards='1'], [data-cards='2'], [data-cards='3']))
+  :global(g[data-part='card.0']),
+.root:global(:is([data-cards='2'], [data-cards='3'])) :global(g[data-part='card.1']),
+.root:global([data-cards='3']) :global(g[data-part='card.2']) {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.root:global([data-rev='approved'][data-batch='held']) :global(g[data-part='card.2']) {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: var(--s03-stamp-ms);
+}
+
+/* Rollers turn while a document feeds; the lens flashes while it reads. */
+@keyframes spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+.root :global([data-part^='spoke']) {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.root:global([data-step='feed']) :global([data-part^='spoke']) {
+  animation: spin calc(var(--s03-feed-ms) / 2) linear infinite;
+}
+
+@keyframes flash {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.root:global([data-step='read']) :global([data-part='lens']) {
+  animation: flash var(--s03-read-ms) linear;
+}
+
+/* The tolerance needle: in tolerance for documents 1 and 2, CHECK for the third. */
+.root :global([data-part='needle']) {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: rotate var(--s03-read-ms) var(--ease-settle, ease);
+}
+
+.root:global(:is([data-doc='0'], [data-doc='1'])[data-step='read']) :global([data-part='needle']),
+.root:global(:is([data-doc='0'], [data-doc='1'])[data-step='out']) :global([data-part='needle']) {
+  rotate: var(--s03-ok-deg);
+}
+
+.root:global([data-doc='2']:is([data-step='read'], [data-step='gate'], [data-step='drop']))
+  :global([data-part='needle']),
+.root:global([data-batch='held']:not([data-rev='approved'])) :global([data-part='needle']) {
+  rotate: var(--s03-check-deg);
+}
+
+/* The sorting gate turns down to send the document to a person. */
+.root :global([data-part='gate']) {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  transition: rotate var(--s03-gate-ms) var(--ease-machine, ease);
+}
+
+.root:global([data-doc='2']:is([data-step='gate'], [data-step='drop'])) :global([data-part='gate']),
+.root:global([data-batch='held']:not([data-rev='approved'])) :global([data-part='gate']) {
+  rotate: var(--s03-gate-deg);
+}
+
+/* Held: the lamp is on, steady. Approved: the stamp lands and the lamp goes off. */
+.root:global([data-batch='held']:not([data-rev='approved'])) :global([data-part='lamp-on']) {
+  opacity: 1;
+}
+
+.root:global([data-batch='held'][data-rev='approved']) :global([data-part='stamp']) {
+  opacity: 1;
+  animation: stamp var(--s03-stamp-ms) var(--ease-machine, ease) both;
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--u) * var(--s03-at-stamp) * 1px);
+  }
+}
+
+/* ── Labels ───────────────────────────────────────────────────────────── */
+
+.label {
+  box-sizing: border-box;
+  min-inline-size: 104px;
+  min-block-size: 36px;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--c-blueprint-deep) 88%, transparent);
+  color: var(--c-label-on-deep);
+  opacity: clamp(0, (var(--p, 1) - var(--s03-labels-from-p)) * 30, 1);
+}
+
+.sub {
+  display: block;
+  text-transform: none;
+  color: var(--c-cyan-dim);
+}
+
+/* Labels that show only while the batch runs: the current document and the data card. */
+.root :global(.labels > [data-anchor^='doc.']),
+.root :global(.labels > [data-anchor='card']) {
+  visibility: hidden;
+}
+
+.root:global([data-batch='run'][data-doc='0']) :global(.labels > [data-anchor='doc.invoice']),
+.root:global([data-batch='run'][data-doc='1']) :global(.labels > [data-anchor='doc.ticket']),
+.root:global([data-batch]:is([data-doc='2'], [data-batch='held']))
+  :global(.labels > [data-anchor='doc.submittal']),
+.root:global(:is([data-cards='1'], [data-cards='2'], [data-cards='3'], [data-batch='held']))
+  :global(.labels > [data-anchor='card']) {
+  visibility: visible;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  align-items: center;
+  inline-size: 132px;
+  border: 1px solid var(--c-cyan);
+}
+
+.cardTag {
+  grid-column: 1 / -1;
+  color: var(--c-cyan-dim);
+}
+
+.bar {
+  display: block;
+  block-size: 6px;
+  inline-size: var(--w, 60%);
+  background: var(--c-cyan);
+}
+
+/* ── Strip: status chip, Approve and the waiting note ─────────────────── */
+
+.chip {
+  display: none;
+  padding: 2px var(--s-2);
+  border: 1px solid currentColor;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  white-space: nowrap;
+}
+
+.chip > span {
+  display: none;
+}
+
+.root:global([data-batch]) .chip {
+  display: inline-block;
+}
+
+.root:global([data-batch='run']) .chip > [data-when='running'],
+.root:global([data-batch='held']:not([data-rev='approved'])) .chip > [data-when='held'],
+.root:global([data-batch='held'][data-rev='approved']) .chip > [data-when='approved'] {
+  display: inline;
+}
+
+.root:global([data-batch='held']:not([data-rev='approved'])) .chip {
+  border-color: var(--c-orange);
+  box-shadow: inset 4px 0 0 var(--c-orange);
+}
+
+.approve {
+  min-block-size: 32px;
+  min-inline-size: 44px;
+}
+
+.approve[aria-disabled='true'] {
+  border-style: dashed;
+  color: var(--c-graphite);
+  cursor: not-allowed;
+}
+
+.approve > span {
+  display: none;
+}
+
+.root:not(:global([data-rev='approved'])) .approve > [data-when='approve'],
+.root:global([data-rev='approved']) .approve > [data-when='again'] {
+  display: inline;
+}
+
+.wait {
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
+
+.root:global([data-batch='held']) .wait {
+  display: none;
+}
+
+/* ── Still tier: the held and approved stills, swapped with a short cross-fade ─ */
+
+.root :global(.still-wrap > img) {
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--dur-ui, 200ms) linear;
+}
+
+.root:not(:global([data-rev='approved'])) :global(.still-wrap > img[data-still='approved']),
+.root:global([data-rev='approved']) :global(.still-wrap > img[data-still='held']) {
+  opacity: 0;
+}
+
+/* Still tier and reduced motion: the labels show at once. */
+:global(html[data-tier='still']) .root:not(:global([data-user-play])) .label,
+.root:global([data-phase='still']:not([data-user-play])) .label {
+  opacity: 1;
+}
+
+/* In scrub mode the drawing follows the scroll, and the still tier offers Play the drawing,
+   so Replay is not offered there. */
+.root:global([data-mode='scrub']) :global([data-action='replay']),
+:global(html[data-tier='still'])
+  .root:not(:global([data-user-play]))
+  :global([data-action='replay']),
+.root:global([data-phase='still']:not([data-user-play])) :global([data-action='replay']) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.still-wrap > img) {
+    transition: none;
+  }
+}
