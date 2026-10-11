@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { IntentLink as Link } from '@/components/ui/IntentLink.client'
 import type { Route } from 'next'
 import type { Graph, Pt } from '@/drawings/types'
 import { firmGraph } from '@/drawings/graphs/firm'

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { IntentLink as Link } from '@/components/ui/IntentLink.client'
 import type { Route } from 'next'
 import { home } from '@/content/pages/home'
 import { processSteps } from '@/content/process'

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Route } from 'next'
-import Link from 'next/link'
+import { IntentLink as Link } from '@/components/ui/IntentLink.client'
 import type { FigureId } from '@/content/types'
 import type { Graph, LayoutId, Prim, Pt, SymbolId } from '@/drawings/types'
 import { counts, modeCounts, routesTouching } from '@/drawings/lib/counts'
