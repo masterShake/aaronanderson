@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from '../fixtures'
 import { gotoTier } from '../helpers/tier'
+import { axe, describe } from '../helpers/axe'
 
 /**
  * S-02 (owner: scenes-a), on the /kit/fig harness until the services page hosts it.
@@ -153,3 +154,25 @@ test('s02 still tier shows the print and fetches no layers and no 3D', async ({ 
   expect(await page.evaluate(() => document.documentElement.dataset.stageRuntime)).toBeUndefined()
   expect(guard.errors).toEqual([])
 })
+
+// The /kit/fig harness is outside the a11y matrix (e2e/routes.ts), so the figure runs axe
+// itself: no findings of any impact (W2), in the still tier, the svg tier mid-scan, at the
+// hand-off frame and at idle.
+for (const [tier, query] of [
+  ['still', ''],
+  ['svg', '?p=0.28'],
+  ['svg', '?p=0.44'],
+  ['svg', ''],
+] as const) {
+  test(`s02 has no axe findings (${tier}${query})`, async ({ page }) => {
+    test.setTimeout(60_000)
+    await gotoTier(page, `/kit/fig/s02${query}`, tier)
+    const fig = page.locator(FIG)
+    await fig.scrollIntoViewIfNeeded()
+    if (tier === 'svg') await expect(fig).toHaveAttribute('data-layers', 'ready')
+    if (tier === 'svg' && !query)
+      await expect(fig).toHaveAttribute('data-phase', 'done', { timeout: 30_000 })
+    const found = await axe(page)
+    expect(describe(found)).toEqual([])
+  })
+}
