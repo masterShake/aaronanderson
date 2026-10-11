@@ -320,6 +320,14 @@
   }
 }
 
+/* forced colors drop the pressed fill: a heavier border marks it instead (padding keeps size) */
+@media (forced-colors: active) {
+  .chip[aria-pressed='true'] {
+    padding: 2px calc(var(--s-3) - 2px);
+    border-width: 3px;
+  }
+}
+
 .answers {
   padding: var(--s-2) var(--s-3) var(--s-3);
 }
