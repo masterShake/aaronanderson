@@ -1,0 +1,269 @@
+/*
+ * S-02 (owner: scenes-a). Everything runs on --p (raw scrub or play progress) and the
+ * --s02-* timing vars FigureFrame writes from src/motion/timing/s02.ts:
+ *   --sc        the scan, 0 to 1 over [scan-a, scan-b]: reveals the deep panel and the CAD
+ *               layer left to right and erases the pencil to its ghost (§7.5)
+ *   .w-*        draw-on windows per path, staggered by its --i (§7.3 .pv)
+ * The controller moves the packets (l-pkt) and sets data-lead, data-sync, data-flash,
+ * data-loop and data-print on the root. Labels are an HTML overlay.
+ */
+
+.s02 {
+  --sc: clamp(0, (var(--p, 1) - var(--s02-scan-a)) / (var(--s02-scan-b) - var(--s02-scan-a)), 1);
+  --scan-at: calc(var(--sc) * 110%);
+}
+
+/* Scan: deep panel and CAD revealed left to right; the bar rides the edge. */
+.s02 :global(svg.l-panel),
+.s02 :global(svg.l-cad) {
+  clip-path: inset(0 calc(100% - min(var(--scan-at), 100%)) 0 0);
+}
+
+.s02 :global(.scan-bar) {
+  --scan: var(--scan-at);
+  background: transparent;
+  opacity: calc(min(var(--sc) * 40, 1) * min((1 - var(--sc)) * 40, 1));
+}
+
+/* Fills: figures.css's `:not([fill]) { fill: none }` outranks FigureFrame's .f-* rules
+   (request filed), so this figure restates the fills it uses. */
+.s02.s02 :global(.box svg .f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+.s02.s02 :global(.box svg .f-orange) {
+  fill: var(--c-orange);
+}
+.s02.s02 :global(.box svg .f-orange-dark) {
+  fill: color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt));
+}
+.s02.s02 :global(.box svg .f-paper) {
+  fill: var(--c-paper);
+}
+.s02.s02 :global(.box svg .f-alu-100) {
+  fill: var(--c-alu-100);
+}
+.s02.s02 :global(.box svg .f-alu-300) {
+  fill: var(--c-alu-300);
+}
+.s02.s02 :global(.box svg .f-alu-500) {
+  fill: var(--c-alu-500);
+}
+
+/* ERASE: the sketch fades to its ghost behind the scan (the layer itself stays at 1). */
+.s02.s02 :global(svg.l-ghost) {
+  opacity: 1;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    #000 var(--scan-at)
+  );
+  mask-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    #000 var(--scan-at)
+  );
+}
+
+/* Draw-on windows. */
+.s02 :global(.w-sk) {
+  --a: calc(var(--s02-sketch-a) + var(--i) * 0.035);
+  --b: calc(var(--a) + 0.07);
+}
+
+.s02 :global(.w-sr) {
+  --a: calc(var(--s02-sketch-a) + 0.05 + var(--i) * 0.035);
+  --b: calc(var(--a) + 0.04);
+}
+
+.s02 :global(.w-hc) {
+  --a: calc(var(--s02-sketch-b) - 0.1);
+  --b: calc(var(--s02-sketch-b) - 0.04);
+}
+
+.s02 :global(.w-cd) {
+  --a: calc(var(--s02-conduit-a) + var(--i) * 0.05);
+  --b: calc(var(--a) + 0.06);
+}
+
+.s02 :global(.w-fl) {
+  --a: calc(var(--s02-flange-a) + var(--i) * 0.02);
+  --b: calc(var(--a) + 0.01);
+}
+
+/* The carrier walks the hand-carry line, then steps off. */
+.s02 :global(.walker) {
+  --a: var(--s02-carry-a);
+  --b: var(--s02-carry-b);
+  translate: calc(var(--e) * var(--s02-walk, 0) * 1px) 0;
+}
+
+.s02 :global(.step) {
+  --a: var(--s02-step-a);
+  --b: var(--s02-step-b);
+  opacity: calc(1 - var(--e));
+}
+
+/* Packets: one dash per route, placed by the controller (pathLength 1). */
+.s02 :global(.pk) {
+  stroke-dasharray: calc(14 / var(--len, 100)) 2;
+  stroke-dashoffset: 0;
+  stroke-width: calc(7px * var(--k));
+  opacity: 0;
+}
+
+.s02 :global(.lamp) {
+  opacity: 0;
+}
+
+/* Loop 3: the accounting flange flashes (two flashes, never more than 2 per second). */
+.s02[data-flash] :global([data-part='flange.acct']) {
+  stroke-width: calc(var(--pen-100) * var(--k) * 2.4);
+}
+
+/* Idle: the iso print, cross-faded in. */
+.s02 :global(svg.l-iso) {
+  opacity: 0;
+  transition: opacity var(--s02-print-ms, 300ms) linear;
+}
+
+.s02 :global(:is(svg.l-cad, svg.l-ghost, svg.l-pkt)) {
+  transition: opacity var(--s02-print-ms, 300ms) linear;
+}
+
+.s02[data-print] :global(svg.l-iso) {
+  opacity: 1;
+}
+
+.s02.s02[data-print] :global(:is(svg.l-cad, svg.l-ghost, svg.l-pkt, svg.l-pencil)) {
+  opacity: 0;
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+.lbl {
+  display: grid;
+  place-items: center;
+  width: calc(var(--lw) * 1%);
+  height: calc(var(--lh) * 1%);
+  padding: 2px 4px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: normal !important;
+  color: color-mix(in srgb, var(--c-label-on-deep) calc(var(--sc) * 100%), var(--c-asphalt));
+}
+
+@container fig (width < 440px) {
+  .lbl {
+    width: calc(var(--lwt) * 1%);
+    height: calc(var(--lht) * 1%);
+  }
+}
+
+.tag,
+.fail,
+.callout,
+.prt {
+  padding: 2px 6px;
+  translate: -50% calc(-100% - 6px);
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  visibility: hidden;
+}
+
+.tag {
+  border: 1px solid var(--c-orange);
+}
+
+.fail {
+  translate: calc(-100% + 8px) calc(-100% - 10px);
+  border: 1px solid var(--c-orange);
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+}
+
+.callout {
+  max-width: 40%;
+  white-space: normal !important;
+  text-transform: none !important;
+}
+
+.note {
+  translate: 0 -100%;
+  padding: 2px 6px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  white-space: normal !important;
+  max-width: 90%;
+  visibility: hidden;
+}
+
+.s02[data-lead] .tag,
+.s02[data-sync] .fail {
+  visibility: visible;
+}
+
+/* WebGL: the Stage projects the anchors; labels it reports hidden stay hidden. */
+.s02[data-stage='webgl'] .tag:not(:global([data-hidden])),
+.s02[data-stage='webgl'] .callout:not(:global([data-hidden])) {
+  visibility: visible;
+}
+
+.s02[data-stage='webgl'] :global(.labels) > :global([data-hidden]) {
+  visibility: hidden !important;
+}
+
+.s02[data-labels='iso'] .lbl {
+  width: auto;
+  height: auto;
+  translate: -50% calc(-100% - 4px);
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+}
+
+/* The print (idle, and the still tier): its own labels and the note. */
+.s02[data-print] .lbl,
+:global(html[data-tier='still']) .s02:not(:global([data-user-play])) .lbl,
+.s02:global([data-phase='still']) .lbl {
+  visibility: hidden;
+}
+
+/* The tall print is small: its labels would overlap, so only the note shows there. */
+@container fig (width < 440px) {
+  .s02.s02 .prt {
+    display: none;
+  }
+}
+
+.s02[data-print] :is(.prt, .note),
+:global(html[data-tier='still']) .s02:not(:global([data-user-play])) :is(.prt, .note),
+.s02:global([data-phase='still']) :is(.prt, .note) {
+  visibility: visible;
+}
+
+.runAgain {
+  display: none;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+}
+
+.runAgain:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.s02:global([data-phase='done']) .runAgain {
+  display: inline-block;
+}
+
+@media (pointer: coarse) {
+  .runAgain {
+    min-height: 44px;
+  }
+}
