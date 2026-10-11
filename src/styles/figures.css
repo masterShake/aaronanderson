@@ -367,11 +367,13 @@
   opacity: clamp(0, (var(--p, 1) - var(--a, 0)) * 40, 1);
 }
 
-/* ── Labels: an HTML overlay, left-anchored so a font swap cannot shift them ─ */
+/* ── Labels: an HTML overlay, left-anchored so a font swap cannot shift them ─
+   --lx/--ly (wide) and --lxt/--lyt (tall) are percent numbers, 0–100, of the box.
+   --ix/--iy are written by the Stage as percentages ('12.345%'), used as they are. */
 .fig .labels > * {
   position: absolute;
-  inset-inline-start: calc(var(--lx, 0) * 100%);
-  inset-block-start: calc(var(--ly, 0) * 100%);
+  inset-inline-start: calc(var(--lx, 0) * 1%);
+  inset-block-start: calc(var(--ly, 0) * 1%);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
@@ -380,34 +382,41 @@
   white-space: nowrap;
 }
 
-.fig[data-labels='iso'] .labels > * {
-  inset-inline-start: calc(var(--ix, var(--lx, 0)) * 100%);
-  inset-block-start: calc(var(--iy, var(--ly, 0)) * 100%);
-}
-
 .fig[data-labels='hidden'] .labels {
   visibility: hidden;
 }
 
 @container fig (width < 560px) {
   .fig:not([data-figure='hero'], [data-figure^='s0']):has([data-family='tall']) .labels > * {
-    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
-    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
 }
 
 @container fig (width < 520px) {
   .fig[data-figure='hero']:has([data-family='tall']) .labels > * {
-    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
-    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
 }
 
 @container fig (width < 440px) {
   .fig[data-figure^='s0']:has([data-family='tall']) .labels > * {
-    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
-    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
+}
+
+/* Iso labels follow the Stage's projected anchors; after the tall rules, and more specific
+   than them and than FigureFrame's, so they win in every family. */
+.fig.fig[data-labels='iso'] .labels > [data-anchor] {
+  inset-inline-start: var(--ix, calc(var(--lx, 0) * 1%));
+  inset-block-start: var(--iy, calc(var(--ly, 0) * 1%));
+}
+
+/* An anchor the scene reports as not visible (data-hidden, written by the Stage). */
+.fig.fig[data-labels='iso'] .labels > [data-hidden] {
+  visibility: hidden;
 }
 
 /* Hand notes on drawings: real text, capitals, a slight tilt. */

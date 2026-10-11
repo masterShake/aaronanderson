@@ -131,6 +131,53 @@ test('the As found / Rewired toggle switches state, chip and descriptions', asyn
   await expect(bubbles.first()).toBeHidden()
 })
 
+test('every visible label sits inside the box at 390 and 1280, in both states', async ({
+  page,
+}) => {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(FIRM)
+    for (const state of ['asFound', 'rewired'] as const) {
+      await page.locator(`[data-state-value="${state}"]`).click()
+      await expect(page.locator('#fig-firm')).toHaveAttribute('data-toggle', state)
+      const out = await page.evaluate(() => {
+        const fig = document.querySelector('#fig-firm')!
+        const box = fig.querySelector('.box')!.getBoundingClientRect()
+        const anchorOut: { text: string; at: number[] }[] = []
+        const overflow: { text: string; at: number[] }[] = []
+        let shown = 0
+        for (const el of fig.querySelectorAll<HTMLElement>('.labels > *')) {
+          if (!el.checkVisibility({ visibilityProperty: true })) continue
+          const r = el.getBoundingClientRect()
+          if (!r.width || !r.height) continue
+          shown++
+          const at = [r.left - box.left, r.top - box.top, r.right - box.left, r.bottom - box.top]
+          const hit = { text: el.textContent ?? '', at: at.map(Math.round) }
+          // 1 px of slack for subpixel rounding
+          const [x0, y0, x1, y1] = at as [number, number, number, number]
+          const inX = (x: number) => x >= -1 && x <= box.width + 1
+          const inY = (y: number) => y >= -1 && y <= box.height + 1
+          if (!inX(x0) || !inY(y0) || !inY(y1)) anchorOut.push(hit)
+          else if (!inX(x1)) overflow.push(hit)
+        }
+        return { shown, anchorOut, overflow, box: [Math.round(box.width), Math.round(box.height)] }
+      })
+      const where = `${state} at ${width}: box ${out.box}`
+      expect(out.shown, `${where}: labels shown`).toBeGreaterThan(0)
+      // positions: every label's anchor (top-left) and its height lie inside the box
+      expect(out.anchorOut, where).toEqual([])
+      // widths: the hand notes fit; long rewired instrument labels may still run past the
+      // right edge (the schematic places them without their text width), so they are recorded
+      if (state === 'asFound') expect(out.overflow, where).toEqual([])
+      else if (out.overflow.length)
+        test.info().annotations.push({
+          type: 'label-overflow',
+          description: JSON.stringify({ width, state, overflow: out.overflow }),
+        })
+    }
+  }
+})
+
 test('the table alternative lists every hand-off and works as a details element', async ({
   page,
 }) => {

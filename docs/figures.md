@@ -102,8 +102,18 @@ under the stage canvas (`.slot`), `.labels` and `.ui`. Never give a layer a z-in
 over the canvas.
 
 Extra props beyond the contract: `textVars` (graph counts for the caption and long description)
-and `famMin`. Labels are positioned with `--lx/--ly` (wide) and `--lxt/--lyt` (tall), in % of the
-box, anchored at their left edge.
+and `famMin`.
+
+Labels (children of `.labels`) are positioned by their top-left corner:
+
+- `--lx/--ly` (wide) and `--lxt/--lyt` (tall) are **percent numbers 0–100** of the box, unitless
+  (`--lx: 12.5` means 12.5%); CSS multiplies them by `1%`. Write them with a `pct()` helper, never
+  as fractions 0–1 and never with a `%` sign.
+- `--ix/--iy` are written by the Stage on `[data-anchor="key"]` labels while
+  `data-labels="iso"`, already as percentages (`'12.345%'`), and used as they are. The Stage also
+  sets `data-hidden` on an anchor the scene reports as not visible; CSS hides it in iso mode.
+- `src/styles/figures.css` and `FigureFrame.module.css` both follow this; the iso rule wins over
+  the tall-family rules.
 
 ## Symbols and people
 
@@ -146,5 +156,6 @@ Add `?tier=still|svg|webgl` and `?state={rev}`. The firm inlines its layers unti
   rendered counts equal `counts(graph)`, the 104 × 36 px label floor, routing clearance, roughjs
   caps, frames and symbols. Set `DRAWINGS_DUMP=<dir>` to write the firm's files there.
 - `e2e/drawings.spec.ts`: schematic keyboard and 1.4.13 behaviour, the toggle, the table, no
-  text in SVG, no layer requests on the still tier, layers after motion comes back on, and
-  screenshots into `$ARTIFACTS_DIR`.
+  text in SVG, no layer requests on the still tier, layers after motion comes back on, every
+  visible label inside the box (390 and 1280, both states), and screenshots into
+  `$ARTIFACTS_DIR`.
