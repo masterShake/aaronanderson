@@ -71,6 +71,16 @@ render/index.ts graphBuilder()          → DrawingBuilder: {family}.json + {fam
 - Each drawing element is a `<g data-part="{id}">` under `<g data-layer data-rev>`, so a figure
   can highlight what a node touches.
 
+## Iso maths (shared with the rig)
+
+`lib/iso.ts` takes its angles from `SCENE` in `src/styles/tokens.ts` (no literal angles). Plan
+SVG `(x, y)` is world `(x, 0, y)`; a part's height is world `+Y`. `isoBasis()` returns
+`b` (toward the camera), `r = up × b` and `u = b × r`, as `OrthoRig` builds them.
+`fitIso(vb, cssW, cssH, bounds, pad = SCENE.padding)` returns `{ s, zoom, target, hw, hh }`:
+`zoom` is the rig's end-pose `z1` and `target` its recentred `t1`. `isoToViewBox(w, vb, fit)`
+places a world point in the plan's viewBox at the end pose, which is how the iso print lines up
+with the 3D end frame. The stage lane's parity test compares these with `runtime/kit/rig.ts`.
+
 ## FigureFrame
 
 `<FigureFrame>` writes the figure DOM contract (`src/figures/types.ts`, Appendix B §B5):
