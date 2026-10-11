@@ -119,6 +119,7 @@ export function S03Figure() {
       controls={{
         replay: true,
         playDrawing: true,
+        motion: true,
         extra: (
           <>
             <span className={s.chip}>
