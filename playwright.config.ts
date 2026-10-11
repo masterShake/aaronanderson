@@ -73,7 +73,7 @@ export default defineConfig({
         deviceScaleFactor: 2,
         launchOptions: { args: ['--use-angle=metal', '--ignore-gpu-blocklist'] },
       },
-      testMatch: /(stage|seam|perf)\.spec\.ts$/,
+      testMatch: /(stage|seam|perf|a11y)\.spec\.ts$/,
     },
     {
       name: 'shots',
