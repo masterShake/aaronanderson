@@ -8,7 +8,8 @@ import { writeArtifact } from './helpers/budgets'
 /**
  * The a11y matrix: routes × tiers (still and svg; webgl only in the gpu project)
  * × widths 390 and 1280 × UI states (menu open, callout open, form errors, FAQ
- * open, toggles flipped). A state that a page does not have yet is recorded as
+ * open, toggles flipped, S-03 approved, S-04 answered, a schematic tool's
+ * callout, the contact form sent). A state that a page does not have yet is recorded as
  * not applicable. Narrow it with ROUTES, TIERS and WIDTHS (comma lists).
  * Reports go to $ARTIFACTS_DIR/a11y/.
  */
@@ -100,6 +101,72 @@ const STATES: State[] = [
       return true
     },
   },
+  {
+    name: 's03-approved',
+    async apply(page) {
+      const approve = page.locator('#fig-s03 button[data-action="approve"]')
+      if (!(await approve.count())) return false
+      await approve.evaluate((b) => b.scrollIntoView({ block: 'center' }))
+      // enabled at HELD FOR APPROVAL, about 9 s after the batch starts; in scrub mode (≥1024)
+      // the batch starts once the track is scrolled in, so scroll only until it runs
+      const batch = () =>
+        approve.evaluate((b) => (b.closest('[data-mode]') as HTMLElement | null)?.dataset.batch)
+      for (let i = 0; i < 60; i++) {
+        if ((await approve.getAttribute('aria-disabled')) !== 'true') break
+        if (!(await batch())) await page.mouse.wheel(0, 120)
+        await page.waitForTimeout(300)
+      }
+      if ((await approve.getAttribute('aria-disabled')) === 'true') return false
+      await approve.click()
+      await page.waitForTimeout(1500)
+      return true
+    },
+  },
+  {
+    name: 's04-answered',
+    async apply(page) {
+      const chip = page.locator('#fig-s04 button[data-q]').nth(2)
+      if (!(await chip.count())) return false
+      await chip.evaluate((b) => b.scrollIntoView({ block: 'center' }))
+      await page.waitForTimeout(800)
+      await chip.click({ force: true })
+      await page.waitForTimeout(500)
+      return true
+    },
+  },
+  {
+    name: 'schematic-callout',
+    async apply(page) {
+      const tool = page.locator('#fig-firm button[data-tool]').nth(4)
+      if (!(await tool.count())) return false
+      await tool.evaluate((b) => b.scrollIntoView({ block: 'center' }))
+      await page.waitForTimeout(1200)
+      await tool.focus()
+      await page.waitForTimeout(400)
+      return true
+    },
+  },
+  {
+    name: 'contact-sent',
+    async apply(page) {
+      if (!(await page.locator('main form #f-message').count())) return false
+      // its own address, so the in-memory rate limit never trips across the matrix
+      await page.setExtraHTTPHeaders({
+        'x-forwarded-for': `10.7.${process.pid % 250}.${Math.floor(Math.random() * 250)}`,
+      })
+      await page.locator('#f-name').fill('Sam Field')
+      await page.locator('#f-email').fill(`a11y.${Date.now()}@example.com`)
+      await page.locator('#f-message').fill('We retype the weekly report by hand.')
+      await page.locator('main form button[type="submit"]').click()
+      // preview: the success panel; a production build answers not_configured (the summary)
+      await page
+        .locator('[role="status"]:has-text("Received."), #form-errors:focus')
+        .first()
+        .waitFor({ timeout: 10_000 })
+      await page.waitForTimeout(300)
+      return true
+    },
+  },
 ]
 
 for (const r of routes) {
@@ -113,8 +180,10 @@ for (const r of routes) {
             'the webgl tier is judged only in the gpu project (real GPU)',
           )
           const settle = tier === 'still' ? 300 : tier === 'svg' ? 1500 : 4000
-          // 1 + STATES loads, each settling, plus axe: webgl alone is about 31 s
-          test.setTimeout(tier === 'webgl' ? 120_000 : 60_000)
+          // 1 + STATES loads, each settling, plus the state's own waits and axe
+          test.setTimeout(
+            Math.max(tier === 'webgl' ? 120_000 : 60_000, (1 + STATES.length) * (settle + 8_000)),
+          )
           const report: Record<string, Finding[] | 'not applicable'> = {}
           const load = async () => {
             await gotoTier(page, r.path, tier)
