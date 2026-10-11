@@ -20,9 +20,9 @@ import type { ModelPart, Pen, Pt } from '@/drawings/types'
 import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
-import { isSolid, outline, partLines, type LiteLine } from './model/frame-lite'
+import { isSolid, outline, partLines, quarterEdges, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
-import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
+import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
 import { RoutePath, makePipe, setGrowth } from '@/stage/runtime/kit/pipes'
 import { PacketField, type PacketPlan } from '@/stage/runtime/kit/packets'
@@ -118,7 +118,6 @@ const mod: SceneModule = {
     const rig = new OrthoRig('plan')
     const own: { geometry?: BufferGeometry; material?: Material; dispose?(): void }[] = []
     const lines: { m: LineMaterial; pen: Pen; o: Object3D }[] = []
-    const edges: { m: LineMaterial; ink: string }[] = []
     const pipeLines: LineMaterial[] = []
     const solids: { mesh: Mesh; face: Solid; order: number }[] = []
     const tubes: Mesh<TubeGeometry>[] = []
@@ -178,6 +177,9 @@ const mod: SceneModule = {
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
         g.stroke()
       }
+      const img = g.getImageData(0, 0, cv.width, cv.height)
+      quarterEdges(img.data, cv.width)
+      g.putImageData(img, 0, 0)
       tex.needsUpdate = true
     }
 
@@ -233,7 +235,7 @@ const mod: SceneModule = {
           mesh.position.y = z0
           own.push({ geometry: geo })
           const l = partLines(p)[i]!
-          for (const y of [0, top]) edges.push({ m: mkLine(l, y, order, mesh), ink: l.ink })
+          for (const y of [0, top]) mkLine(l, y, order, mesh)
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order })
           three.add(mesh)
@@ -379,12 +381,8 @@ const mod: SceneModule = {
       // the decal holds the plan frame; the Line2 edges take over as it tilts
       decal.visible = at < TILT * 0.15
       decalMat.opacity = 1 - span(at, 0, TILT * 0.15)
+      // the Line2 edges (depth-tested) show only once the model leaves the plan frame
       for (const l of lines) l.o.visible = at > 0
-      const fade = span(at, TILT * 0.2, TILT * 0.7) * 0.45
-      for (const ed of edges) {
-        ed.m.depthTest = at > 0
-        if (ed.ink !== 'orange') fadeEdge(ed.m, COLOR.cyan, COLOR.alu300, fade)
-      }
       const grow = span(at, TILT * 0.45, TILT * 0.8)
       for (const tb of tubes) setGrowth(tb, grow)
       for (const m of pipeLines) {

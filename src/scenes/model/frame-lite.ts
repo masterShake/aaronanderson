@@ -75,5 +75,20 @@ export function partLines(p: ModelPart): LiteLine[] {
   })
 }
 
+/**
+ * The page rasterizes SVG strokes with four samples a pixel, so an axis-aligned edge covers its
+ * pixel in quarter steps; a 2D canvas covers it exactly. On straight horizontal and vertical
+ * runs (a pixel whose neighbours along the run match it) the decal's coverage is rounded to the
+ * nearest quarter, as four samples would give; curves and diagonals keep the exact coverage.
+ */
+export function quarterEdges(d: Uint8ClampedArray, w: number): void {
+  const s = d.slice()
+  const r = w * 4
+  const near = (i: number, o: number) =>
+    Math.abs(s[i - o]! - s[i]!) < 32 && Math.abs(s[i + o]! - s[i]!) < 32
+  for (let i = r + 3; i < s.length - r; i += 4)
+    if (s[i]! % 255 && (near(i, r) || near(i, 4))) d[i] = Math.round(s[i]! / 63.75) * 63.75
+}
+
 /** Solid parts get a filled footprint (planFrame: not a pipe, not a line, closed). */
 export const isSolid = (p: ModelPart) => p.kind !== 'pipe' && p.material !== 'line'

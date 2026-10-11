@@ -22,7 +22,7 @@ import { S06 } from '@/motion/timing/s06'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { S06_EXTRA } from './model/s06-data'
-import { isSolid, outline, partLines, type LiteLine } from './model/frame-lite'
+import { isSolid, outline, partLines, quarterEdges, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -158,6 +158,9 @@ const mod: SceneModule = {
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
         g.stroke()
       }
+      const img = g.getImageData(0, 0, cv.width, cv.height)
+      quarterEdges(img.data, cv.width)
+      g.putImageData(img, 0, 0)
       tex.needsUpdate = true
     }
 
