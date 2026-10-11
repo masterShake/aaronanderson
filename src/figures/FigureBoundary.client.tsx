@@ -1,11 +1,11 @@
 'use client'
 import { Component, type ReactNode } from 'react'
-import { downgrade } from '@/stage/tier'
 
 /**
- * Wraps every figure controller and stage slot. If one throws, the figure
- * shows its still, data-phase becomes still, and 3D is off for the session.
- * W0 minimal; owner: stage lane.
+ * Wraps every figure controller and stage slot. If one throws, that figure
+ * alone shows its still and data-phase becomes still. It never downgrades the
+ * session (W0 addendum 2): only context loss and the frame guard take 3D away
+ * from the other scenes.
  */
 export class FigureBoundary extends Component<
   { figureId: string; fallback?: ReactNode; children: ReactNode },
@@ -19,8 +19,10 @@ export class FigureBoundary extends Component<
 
   override componentDidCatch() {
     const fig = document.getElementById(`fig-${this.props.figureId}`)
-    if (fig) fig.dataset.phase = 'still'
-    downgrade('build-error')
+    if (!fig) return
+    fig.dataset.phase = 'still'
+    fig.dataset.medium = 'svg'
+    fig.dataset.stage = 'svg'
   }
 
   override render() {
