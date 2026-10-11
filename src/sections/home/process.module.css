@@ -1,0 +1,11 @@
+/* Home D: the process strip. Never sticky. */
+
+.process {
+  position: relative;
+}
+
+.link {
+  margin: var(--s-5) 0 0;
+  font-family: var(--ff-ui);
+  font-weight: 700;
+}

@@ -1,26 +1,34 @@
 import Link from 'next/link'
+import type { Route } from 'next'
 import { home } from '@/content/pages/home'
-import { site } from '@/content/site'
-import { HeldText } from '@/components/ui/HeldText'
+import { people } from '@/content/people'
 import { SectionHead } from '@/components/blueprint/SectionHead'
-import { SpecGrid } from '@/components/blueprint/SpecGrid'
+import { CrewCard } from '@/sections/about/CrewCard'
+import s from '@/sections/about/crew.module.css'
 
-/** Home section E: the crew, as a title-block strip (W0 stub; owner: home-about). */
+/**
+ * Home section E: "The person on the call is the person on the tools."
+ * Compact crew cards (photo HOLD, name, role, one-line background), then the
+ * APPROVED BY: YOU cell and the link to About.
+ */
 export function Crew() {
   const c = home.crew
-  const tb = site.titleBlock
   return (
     <section id={c.id} aria-labelledby={`${c.id}-title`} className="wrap">
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
-      <SpecGrid
-        cells={[
-          { label: tb.drawnBy.label, value: <HeldText value={tb.drawnBy.value} /> },
-          { label: tb.checkedBy.label, value: <HeldText value={tb.checkedBy.value} /> },
-          { label: c.approvedBy.label, value: c.approvedBy.value },
-        ]}
-      />
-      <p>
-        <Link href={c.link.href as '/about'}>{c.link.label}</Link>
+      <div className={s.homeLayout}>
+        <ul className={s.list}>
+          {people.people.map((p) => (
+            <CrewCard key={p.id} person={p} compact />
+          ))}
+        </ul>
+        <p className={s.approved}>
+          <span className={s.approvedLabel}>{c.approvedBy.label}:</span>
+          <span className={s.approvedValue}>{c.approvedBy.value}</span>
+        </p>
+      </div>
+      <p className={s.more}>
+        <Link href={c.link.href as Route}>{c.link.label}</Link>
       </p>
     </section>
   )
