@@ -1,0 +1,97 @@
+/* Home section A, the hero (owner: hero lane). Moved out of home.module.css (C8). */
+.hero {
+  display: grid;
+  gap: var(--s-6);
+  padding-block: var(--s-6) var(--section-pad);
+}
+
+.heroText,
+.heroFigure {
+  min-width: 0;
+}
+
+.eyebrow,
+.spec {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+.eyebrow {
+  margin-block-end: var(--s-4);
+}
+
+.h1 {
+  margin-block: 0;
+}
+
+.signoff {
+  margin-block: var(--s-2) var(--s-5);
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand);
+}
+
+.deck {
+  max-inline-size: 38rem;
+}
+
+.short {
+  display: inline;
+}
+
+.full {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4) var(--s-5);
+}
+
+.see {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+}
+
+/* sm: Book a call runs full width; the figure bleeds to the edges. */
+@media (width < 640px) {
+  .book {
+    inline-size: 100%;
+    justify-content: center;
+  }
+
+  .heroFigure {
+    margin-inline: calc(-1 * clamp(16px, 4vw, 56px));
+  }
+}
+
+@media (min-width: 640px) {
+  .short {
+    display: none;
+  }
+
+  .full {
+    display: inline;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    grid-template-columns: 5fr 7fr;
+    align-items: start;
+    column-gap: var(--s-6);
+  }
+
+  .hero > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .see {
+    display: none;
+  }
+}

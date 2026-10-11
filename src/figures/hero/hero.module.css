@@ -1,0 +1,759 @@
+/*
+ * The hero storyboard (D2 A), all CSS: every animation is offset from the figure's one start
+ * (first paint; the entry gate on phones), timed only from the HERO table
+ * (src/motion/timing/hero.ts, serialized as --hero-* by FigureFrame's vars), and plays under
+ * the registered --gate. The finished frame of each phase is the keyframe end state, so
+ * reduced motion (durations zeroed) lands on the idle iso print.
+ *
+ * Paths carry --i: a stagger index for boxes, lines and clouds; for people and cut-outs the
+ * ms at which the scan bar crosses them (doc.server.ts crossAt).
+ */
+
+/* ── Clock: zero-size marks the controller listens to (animationstart) ────────────── */
+.clock {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+  animation:
+    hero-decision 1ms linear var(--hero-decision-at) both,
+    hero-boundary 1ms linear var(--hero-late-handoff-at) both,
+    hero-idle 1ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes hero-decision {
+  to {
+    order: 1;
+  }
+}
+
+@keyframes hero-boundary {
+  to {
+    order: 2;
+  }
+}
+
+@keyframes hero-idle {
+  to {
+    order: 3;
+  }
+}
+
+/* ── Shared keyframes ─────────────────────────────────────────────────────────────── */
+@keyframes draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeout {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes show {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes hide {
+  from {
+    visibility: visible;
+  }
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes on {
+  from,
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes lift {
+  to {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+
+@keyframes erase {
+  to {
+    opacity: var(--pencil-ghost, 0.22);
+  }
+}
+
+@keyframes scan {
+  from {
+    --scan: 0%;
+  }
+  to {
+    --scan: 110%;
+  }
+}
+
+@keyframes bar {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: calc(-105 / var(--len, 105));
+  }
+}
+
+@keyframes flow4 {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: calc(-420 / var(--len, 420));
+  }
+}
+
+@keyframes level {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes approve {
+  0%,
+  22% {
+    opacity: 1;
+  }
+  26%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes card {
+  0%,
+  78% {
+    opacity: 0;
+    translate: -50% -6px;
+  }
+  88%,
+  100% {
+    opacity: 1;
+    translate: -50% 10px;
+  }
+}
+
+@keyframes labpop {
+  from {
+    opacity: 0;
+    translate: var(--tx, -50%) calc(-50% + 4px);
+  }
+  to {
+    opacity: 1;
+    translate: var(--tx, -50%) -50%;
+  }
+}
+
+@keyframes ink {
+  from {
+    color: var(--c-graphite);
+  }
+  to {
+    color: var(--c-label-on-deep);
+  }
+}
+
+@keyframes labiso {
+  0% {
+    filter: opacity(1);
+    left: calc(var(--px) * 1%);
+    top: calc(var(--py) * 1%);
+  }
+  45% {
+    filter: opacity(0);
+    left: calc(var(--px) * 1%);
+    top: calc(var(--py) * 1%);
+  }
+  55% {
+    filter: opacity(0);
+    left: calc(var(--qx) * 1%);
+    top: calc(var(--qy) * 1%);
+    background-color: var(--c-blueprint-deep);
+  }
+  100% {
+    filter: opacity(1);
+    left: calc(var(--qx) * 1%);
+    top: calc(var(--qy) * 1%);
+    background-color: var(--c-blueprint-deep);
+  }
+}
+
+@keyframes labout {
+  to {
+    filter: opacity(0);
+  }
+}
+
+@keyframes reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* ── Fills: figures.css `.fig .box :is(path…):not([fill]) { fill: none }` outranks the
+      FigureFrame f-* classes, so the hero states its fills at a higher specificity. ── */
+.hero.hero :global(.box) :global(.f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+
+.hero.hero :global(.box) :global(.f-paper) {
+  fill: var(--c-paper);
+}
+
+.hero.hero :global(.box) :global(.f-orange) {
+  fill: var(--c-orange);
+}
+
+.hero.hero :global(.box) :global(.f-orange-dark) {
+  fill: color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt));
+}
+
+.hero.hero :global(.box) :global(.f-alu-100) {
+  fill: var(--c-alu-100);
+}
+
+.hero.hero :global(.box) :global(.f-alu-300) {
+  fill: var(--c-alu-300);
+}
+
+.hero.hero :global(.box) :global(.f-alu-500) {
+  fill: var(--c-alu-500);
+}
+
+/* ── Layers ──────────────────────────────────────────────────────────────────────── */
+.hero :global(.drawing) :is(:global(.l-panel), :global(.l-cad)) {
+  clip-path: inset(0 max(0%, calc(100% - var(--scan))) 0 0);
+}
+
+.hero :global(.drawing .l-panel) {
+  animation: scan var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .l-cad) {
+  animation:
+    scan var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both,
+    fadeout var(--hero-iso-fade) linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .l-pencil) {
+  animation:
+    erase var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both,
+    hide 1ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .l-pkt) {
+  animation:
+    show 1ms linear var(--hero-decision-at) both,
+    fadeout var(--hero-iso-fade) linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .l-iso) {
+  opacity: 0;
+  animation: fadein var(--hero-iso-fade) linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+/* Sketch: boxes, then lines (draw-on), people pop, clouds mark up. */
+.hero :global(.drawing .k-box .draw) {
+  animation: draw var(--hero-tool-dur) var(--ease-pencil)
+    calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap)) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .k-box .f-paper) {
+  animation: fadein var(--hero-tool-dur) var(--ease-pencil)
+    calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap)) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .k-line .draw) {
+  animation: draw var(--hero-line-dur) var(--ease-pencil)
+    calc(var(--hero-line-start) + var(--i, 0) * var(--hero-line-gap)) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .k-person) {
+  animation: pop var(--hero-pop-dur) var(--ease-settle) var(--hero-people-at) both;
+  animation-play-state: var(--gate);
+}
+
+/* the people lift off the lines as the scan crosses them */
+.hero :global(.drawing .k-person path) {
+  animation: lift var(--hero-lift-dur) linear calc(var(--i, 0) * 1ms) both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .k-cloud path) {
+  animation:
+    draw var(--hero-cloud-dur) var(--ease-pencil)
+      calc(var(--hero-clouds-start) + var(--i, 0) * var(--hero-cloud-gap)) both,
+    fadeout 200ms linear calc(var(--hero-scan-start) + var(--hero-scan-dur) / 3) both;
+  animation-play-state: var(--gate);
+}
+
+/* and redraw as cut-outs at the valve, estimating and on site */
+.hero :global(.drawing .k-cut path) {
+  animation: fadein var(--hero-pop-dur) var(--ease-settle) calc(var(--i, 0) * 1ms) both;
+  animation-play-state: var(--gate);
+}
+
+/* Plan mechanism: packets at constant speed, every fourth through the valve. */
+.hero :global(.drawing .pk) {
+  stroke: var(--c-orange);
+  stroke-width: calc(4.5 * var(--k));
+  stroke-linecap: round;
+  stroke-dasharray: calc(6 / var(--len, 105)) calc(99 / var(--len, 105));
+  animation: flow var(--hero-packet-gap) linear calc(var(--hero-decision-at) - var(--i, 0) * 170ms)
+    25 both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .pk-held) {
+  stroke-dasharray: calc(6 / var(--len, 420)) calc(414 / var(--len, 420));
+  animation: flow4 calc(var(--hero-packet-gap) * 4) linear var(--hero-decision-at) 6 both;
+  animation-play-state: var(--gate);
+}
+
+.hero :global(.drawing .tank-level) {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: level calc(var(--hero-loop) * 3) steps(12, end) var(--hero-decision-at) both;
+  animation-play-state: var(--gate);
+}
+
+/* The scan bar sweeps once. */
+.hero :global(.box > .scan-bar) {
+  animation:
+    scan var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both,
+    bar var(--hero-scan-dur) linear var(--hero-scan-start);
+  animation-play-state: var(--gate);
+}
+
+/* ── Labels ──────────────────────────────────────────────────────────────────────── */
+.hero .lab {
+  --px: var(--lx);
+  --py: var(--ly);
+  --qx: var(--jx, var(--lx));
+  --qy: var(--jy, var(--ly));
+  translate: var(--tx, -50%) -50%;
+  padding: 0 3px;
+  color: var(--c-graphite);
+  text-align: center;
+  white-space: normal;
+  animation:
+    labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
+    ink 160ms linear var(--ts) both,
+    labout 200ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .lab[data-anchor] {
+  animation:
+    labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
+    ink 160ms linear var(--ts) both,
+    labiso 500ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .tool {
+  inline-size: 19%;
+  font-size: clamp(9px, 1.25cqi, 12px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.hero .sym,
+.hero .place {
+  font-size: clamp(9px, 1.15cqi, 11px);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.hero .place {
+  --tx: 0%;
+}
+
+.hero .sub {
+  display: block;
+  font-size: 0.86em;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+.hero .noteWrap {
+  display: grid;
+  inline-size: max-content;
+  max-inline-size: 30%;
+  font-size: clamp(9px, 1.15cqi, 11px);
+}
+
+.hero .note,
+.hero .spec {
+  grid-area: 1 / 1;
+  justify-self: center;
+}
+
+.hero .note {
+  rotate: var(--tilt, 0deg);
+  animation:
+    reveal var(--hero-note-dur) var(--ease-pencil) var(--t) both,
+    labout 160ms linear var(--ts) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .spec {
+  white-space: nowrap;
+  animation: fadein 160ms linear var(--ts) both;
+  animation-play-state: var(--gate);
+}
+
+/* Mechanism overlays (svg tier). */
+.hero .approved {
+  padding: 1px 6px;
+  border: 1px solid var(--c-orange);
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  font-size: clamp(9px, 1.1cqi, 11px);
+  translate: -50% -50%;
+  opacity: 0;
+  animation: approve var(--hero-approve-every) linear var(--hero-approve-first) 6;
+  animation-play-state: var(--gate);
+}
+
+.hero .report {
+  inline-size: clamp(22px, 4cqi, 40px);
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--c-asphalt);
+  background:
+    linear-gradient(var(--c-graphite) 0 0) 20% 30% / 60% 1px no-repeat,
+    linear-gradient(var(--c-graphite) 0 0) 20% 50% / 60% 1px no-repeat,
+    linear-gradient(var(--c-graphite) 0 0) 20% 70% / 40% 1px no-repeat,
+    var(--c-paper);
+  opacity: 0;
+  animation:
+    card var(--hero-loop) var(--ease-settle) var(--hero-decision-at) 3 forwards,
+    labout 200ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .idle {
+  --lx: 3;
+  --ly: 92;
+  --lxt: 4;
+  --lyt: 94;
+  color: var(--c-label-on-deep);
+  visibility: hidden;
+  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) both;
+  animation-play-state: var(--gate);
+}
+
+/* ── Strip: the REV chip (one span per beat) and Run again ───────────────────────── */
+.chips {
+  display: inline-grid;
+  order: -1;
+  margin-inline-end: auto;
+}
+
+.chip {
+  grid-area: 1 / 1;
+  padding: 2px var(--s-2);
+  border: 1px solid currentColor;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.chip0 {
+  visibility: visible;
+  animation: hide 1ms linear var(--hero-decision-at) both;
+  animation-play-state: var(--gate);
+}
+
+.chip1 {
+  animation: on calc(var(--hero-running-at) - var(--hero-decision-at)) linear
+    var(--hero-decision-at);
+  animation-play-state: var(--gate);
+}
+
+.chip2 {
+  animation: on calc(var(--hero-idle-at) - var(--hero-running-at)) linear var(--hero-running-at);
+  animation-play-state: var(--gate);
+}
+
+.chip3 {
+  animation: show 1ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.again {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+  visibility: hidden;
+  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) both;
+  animation-play-state: var(--gate);
+}
+
+.again:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (pointer: coarse) {
+  .again {
+    min-height: 44px;
+  }
+}
+
+/* ── Tall family (under 520 px) ──────────────────────────────────────────────────── */
+@container fig (width < 520px) {
+  .hero .lab {
+    --px: var(--lxt, var(--lx));
+    --py: var(--lyt, var(--ly));
+    --qx: var(--jxt, var(--lxt, var(--lx)));
+    --qy: var(--jyt, var(--lyt, var(--ly)));
+  }
+
+  .hero .tool {
+    inline-size: 36%;
+  }
+
+  .hero .noteWrap {
+    max-inline-size: 45%;
+  }
+
+  .hero.hero [data-wide-only] {
+    display: none;
+  }
+}
+
+/* ── WebGL: the canvas carries the machine; beats drive the chip ─────────────────── */
+.hero[data-medium='webgl'] :is(.approved, .report, .idle),
+.hero[data-medium='webgl'] .lab:not([data-anchor]) {
+  visibility: hidden;
+  animation: none;
+}
+
+.hero[data-medium='webgl'] .lab[data-anchor] {
+  animation: none;
+  color: var(--c-label-on-deep);
+}
+
+.hero[data-labels='iso'] .lab[data-anchor] {
+  background-color: var(--c-blueprint-deep);
+}
+
+.hero[data-labels='iso'] .lab[data-anchor] .sub {
+  display: none;
+}
+
+.hero.hero[data-medium='webgl'] .chip,
+.hero.hero[data-medium='webgl'] .again {
+  visibility: hidden;
+  animation: none;
+}
+
+.hero.hero[data-medium='webgl']:not([data-rev]) .chip1,
+.hero.hero[data-medium='webgl'][data-rev='rewired'] .chip1,
+.hero.hero[data-medium='webgl'][data-rev='running'] .chip2,
+.hero.hero[data-medium='webgl'][data-rev='done'] .chip3,
+.hero.hero[data-medium='webgl'][data-rev='done'] .again {
+  visibility: visible;
+}
+
+/* ── Still tier (reduced motion, or paused on load): the iso print, labels on it, the
+      AS FOUND inset and Play the drawing. The print is the l-iso layer, shipped once. ── */
+:global(html[data-tier='still']) .hero.hero:not([data-user-play]) :global(.box > .drawing),
+.hero.hero[data-phase='still']:not([data-user-play]) :global(.box > .drawing) {
+  display: block;
+}
+
+:global(html[data-tier='still'])
+  .hero.hero:not([data-user-play])
+  :global(.drawing)
+  :is(:global(.l-pencil), :global(.l-cad), :global(.l-pkt), :global(.l-ghost)),
+.hero.hero[data-phase='still']:not([data-user-play])
+  :global(.drawing)
+  :is(:global(.l-pencil), :global(.l-cad), :global(.l-pkt), :global(.l-ghost)) {
+  visibility: hidden;
+  animation: none;
+}
+
+:global(html[data-tier='still'])
+  .hero.hero:not([data-user-play])
+  :global(.drawing)
+  :is(:global(.l-panel), :global(.l-iso)),
+.hero.hero[data-phase='still']:not([data-user-play])
+  :global(.drawing)
+  :is(:global(.l-panel), :global(.l-iso)) {
+  opacity: 1;
+  clip-path: none;
+  animation: none;
+}
+
+:global(html[data-tier='still'])
+  .hero.hero:not([data-user-play])
+  :global(.labels)
+  > .lab[data-anchor],
+.hero.hero[data-phase='still']:not([data-user-play]) :global(.labels) > .lab[data-anchor] {
+  left: calc(var(--qx) * 1%);
+  top: calc(var(--qy) * 1%);
+  color: var(--c-label-on-deep);
+  background-color: var(--c-blueprint-deep);
+  opacity: 1;
+  filter: none;
+  animation: none;
+}
+
+:global(html[data-tier='still'])
+  .hero.hero:not([data-user-play])
+  :is(.lab:not([data-anchor]), .approved, .report, .idle, .again, .chip),
+.hero.hero[data-phase='still']:not([data-user-play])
+  :is(.lab:not([data-anchor]), .approved, .report, .idle, .again, .chip) {
+  visibility: hidden;
+  animation: none;
+}
+
+:global(html[data-tier='still']) .hero.hero:not([data-user-play]) .chip.chip3,
+.hero.hero[data-phase='still']:not([data-user-play]) .chip.chip3 {
+  visibility: visible;
+}
+
+.inset {
+  --k: 4;
+  --k-tall: 3;
+  position: absolute;
+  inset-inline-start: 2%;
+  inset-block-end: 3%;
+  inline-size: 30%;
+  aspect-ratio: var(--vbw) / var(--vbh);
+  border: 1px solid var(--c-cyan-dim);
+  background: var(--c-paper);
+}
+
+.inset > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.insetTag,
+.leader {
+  position: absolute;
+  font-family: var(--ff-mono);
+  font-size: clamp(9px, 1.1cqi, 11px);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.insetTag {
+  inset-block-start: 4px;
+  inset-inline-start: 6px;
+  color: var(--c-graphite);
+}
+
+.leader {
+  inset-block-end: 6px;
+  inset-inline-start: calc(100% + 8px);
+  color: var(--c-label-on-deep);
+}
+
+@container fig (width < 520px) {
+  .inset {
+    inline-size: 38%;
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+}
+
+/* ── ?frame=plan (preview only): the CAD plan at rest, for the seam check ─────────── */
+.hero[data-frame='plan'],
+.hero[data-frame='plan'] * {
+  animation: none !important;
+}
+
+.hero[data-frame='plan'] :global(.drawing) :is(:global(.l-panel), :global(.l-cad)) {
+  clip-path: none;
+  opacity: 1;
+}
+
+.hero[data-frame='plan']
+  :global(.drawing)
+  :is(:global(.l-pencil), :global(.l-pkt), :global(.l-iso), :global(.l-ghost), :global(.k-cut)),
+.hero[data-frame='plan'] :is(:global(.scan-bar), :global(.labels)) {
+  visibility: hidden;
+}

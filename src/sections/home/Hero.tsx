@@ -4,9 +4,13 @@ import { BookCallButton } from '@/components/ui/BookCallButton'
 import { GridBubbles } from '@/components/blueprint/GridBubbles'
 import { HeroFigure } from '@/figures/hero/HeroFigure'
 import Link from 'next/link'
-import s from './home.module.css'
+import s from './hero/hero.module.css'
 
-/** Home section A: the words and the hero figure (W0 stub; owner: hero). */
+/**
+ * Home section A (D2 A): the page's only H1, the sign-off line as real text directly under
+ * it, the deck, Book a call plus "See the drawing ↓" (hidden at 1024 px and up), the mono
+ * line, and DETAIL 1. The words paint first and stay the LCP; the figure never pushes them.
+ */
 export function HomeHero() {
   const h = home.hero
   return (
@@ -17,11 +21,14 @@ export function HomeHero() {
           <span className={s.full}>{h.eyebrow.full}</span>
           <span className={s.short}>{h.eyebrow.short}</span>
         </p>
-        <h1 id="hero-title">{h.h1}</h1>
+        <h1 id="hero-title" className={s.h1}>
+          {h.h1}
+          <span aria-hidden="true">*</span>
+        </h1>
         <p className={s.signoff}>{h.signoff}</p>
-        <RichText value={h.deck} className="lead" />
+        <RichText value={h.deck} className={`lead ${s.deck}`} />
         <p className={s.actions}>
-          <BookCallButton size="lg" />
+          <BookCallButton size="lg" className={s.book} />
           <Link href={h.seeDrawing.href} className={s.see}>
             {h.seeDrawing.label}
           </Link>
