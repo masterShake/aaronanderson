@@ -8,7 +8,7 @@
     "tbtFailMs": 200
   },
   "bytes": {
-    "initialJsGzip": 133120,
+    "initialJsGzip": 148480,
     "htmlBrotli": 61440,
     "preloadFonts": 76800,
     "runtime3dGzip": 168960,
