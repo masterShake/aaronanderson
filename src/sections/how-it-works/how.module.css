@@ -75,6 +75,138 @@
   padding-block: var(--s-6) var(--section-pad);
 }
 
+/* ── Where the machine stops: the detail and its plates ─────────────────── */
+.control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+}
+
+.valveCol {
+  min-width: 0;
+}
+
+.plates {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plate {
+  padding: var(--s-3) var(--s-4);
+  border: 1.5px solid var(--c-asphalt);
+  outline: 1px solid var(--c-asphalt);
+  outline-offset: 3px;
+  background: var(--c-paper-2);
+}
+
+.plateTitle {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: 0.1em;
+}
+
+/* ── FAQ as an RFI log ──────────────────────────────────────────────────── */
+.logLabel {
+  margin: 0 0 var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiLog {
+  max-inline-size: 56rem;
+  border-block-start: 1.5px solid var(--c-asphalt);
+  counter-reset: rfi;
+}
+
+.rfi {
+  border-block-end: 1px solid var(--c-asphalt);
+  counter-increment: rfi;
+}
+
+.rfiQ {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  min-block-size: 44px;
+  padding: var(--s-3) 0;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+}
+
+.rfiQ::-webkit-details-marker {
+  display: none;
+}
+
+.rfiQ::before {
+  content: 'RFI-' counter(rfi, decimal-leading-zero);
+  flex: none;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  font-weight: 400;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiQ:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.rfiText {
+  flex: 1 1 16rem;
+}
+
+.rfiStatus {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 400;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiA {
+  padding: 0 0 var(--s-4) calc(4.5em);
+  max-inline-size: var(--measure);
+}
+
+.rfiA > p {
+  margin: 0;
+}
+
+@media (width < 640px) {
+  .rfiA {
+    padding-inline-start: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .control {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gutter);
+  }
+
+  .controlHead {
+    grid-column: 1 / -1;
+  }
+
+  .valveCol {
+    grid-column: 1 / 9;
+  }
+
+  .plates {
+    grid-column: 9 / 13;
+  }
+}
+
 @media (min-width: 1024px) {
   .process {
     grid-template-columns: repeat(12, minmax(0, 1fr));

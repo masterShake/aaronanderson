@@ -180,8 +180,15 @@
   color: var(--c-blueprint);
 }
 
+/* CSS Modules scope keyframe names, so the module keeps its own fade. */
+@keyframes ticket-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 .ticket:global([data-rev='rev3']) .tick {
-  animation: ae-fade var(--ticket-tick, 200ms) var(--ease-ui, ease)
+  animation: ticket-fade var(--ticket-tick, 200ms) var(--ease-ui, ease)
     calc(var(--ticket-fan, 300ms) + var(--i, 0) * var(--ticket-tick, 200ms)) both;
 }
 
