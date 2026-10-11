@@ -57,8 +57,7 @@ for (const r of ROUTES) {
   })
 }
 
-// /contact only for now: /about's General notes (all pending CONFIRMs) is a W3 pages request
-for (const r of ROUTES.filter((x) => x.path === '/contact')) {
+for (const r of ROUTES) {
   test(`no empty section on ${r.path}`, async ({ page }) => {
     await page.goto(r.path)
     // a section whose HOLD fell away must go with its heading (D11)
