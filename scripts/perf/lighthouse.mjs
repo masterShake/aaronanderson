@@ -6,6 +6,8 @@
  *   npm run perf:lh -- [--base URL] [--routes /,/services] [--runs 5] [--calibrate]
  *                      [--multiplier 7] [--tier svg|still|webgl|none] [--preset desktop] [--gate]
  *                      [--method simulate|devtools]
+ *   npm run perf:lh -- --webgl-gate [--method devtools] [--runs 5]   (the WebGL Cost gate)
+ *   npm run perf:lh -- --check-3d <report.json,…>                   (no Lighthouse run)
  *
  * --method     Lighthouse's throttling method (default simulate). Against localhost the
  *              simulated LCP charges every request that finished before the observed paint
@@ -20,6 +22,20 @@
  * --multiplier sets the multiplier directly (default 4, Lighthouse's own).
  * --tier       appended as ?tier=… (default svg, so the 3D chunk stays out; none = no query).
  * --gate       exit 1 when a median is past its budgets.json fail line.
+ * --webgl-gate the WebGL quality gate's Cost check (TBT on ?tier=webgl ≤ the fail line). The
+ *              mobile preset never measures 3D: on a coarse pointer the hero waits until it is
+ *              30% visible, which a Pixel-size viewport only reaches after a scroll, so the
+ *              runtime chunk is never fetched. This mode forces --preset desktop (fine pointer:
+ *              the hero loads after load and idle), --tier webgl, and a hardware renderer
+ *              (--use-angle=metal --ignore-gpu-blocklist), measures / and /services#s-02 unless
+ *              --routes or ROUTES says otherwise, writes under lighthouse/webgl-gate[-devtools],
+ *              and fails a run whose network-requests lack the 3D runtime chunk (the chunk
+ *              carrying the "stage-canvas" marker, as in scripts/check-3d-bundle.mjs). Implies --gate.
+ *              Its TBT is not the D9 HERO_TOUCH_3D input (that is the gpu project's hero.stage
+ *              4x window); never use the mobile default-vs-svg delta for that.
+ * --check-3d <report.json,…>  no Lighthouse run: applies the webgl gate's 3D check to saved
+ *              reports (chunk bodies from the report's URLs, else this checkout's .next) and
+ *              exits 1 when any lacks the runtime chunk.
  *
  * Writes <out>/summary.json (per route: medians of LCP, TBT, CLS, FCP, SI and
  * score, plus the runs) with the multiplier and benchmarkIndex; <out> is
@@ -29,7 +45,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import {
   ROOT,
   arg,
@@ -37,6 +53,7 @@ import {
   budgets,
   ensureServer,
   flag,
+  list as commaList,
   median,
   outDir,
   routes,
@@ -47,19 +64,91 @@ const CHROME_PATH =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const LH = join(ROOT, 'node_modules/lighthouse/cli/index.js')
 const base = baseUrl()
+
+/** The 3D runtime chunk's marker (scripts/check-3d-bundle.mjs) and a scene chunk's. */
+const RUNTIME_MARKER = 'stage-canvas'
+const SCENE_RE = /id:"(hero|s0\d)",create/
+
+/**
+ * A chunk's text: this checkout's .next by file name (Turbopack names chunks by content hash),
+ * else fetched from the base being measured. Never fetches from any other origin.
+ */
+const chunkText = new Map()
+async function readChunk(url) {
+  if (chunkText.has(url)) return chunkText.get(url)
+  const u = new URL(url)
+  const local = join(ROOT, '.next/static/chunks', basename(u.pathname))
+  let text = existsSync(local) ? readFileSync(local, 'utf8') : ''
+  if (!text && u.origin === new URL(base).origin) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (r.ok) text = await r.text()
+    } catch {}
+  }
+  chunkText.set(url, text)
+  return text
+}
+
+/** Which 3D chunks a Lighthouse report fetched: { runtime, scenes, runtimeUrls }. */
+async function threeIn(report) {
+  const items = report.audits?.['network-requests']?.details?.items ?? []
+  const urls = [
+    ...new Set(
+      items
+        .map((x) => x.url)
+        .filter((u) => /\/_next\/static\/chunks\/[^/?]+\.js(\?|$)/.test(u ?? '')),
+    ),
+  ]
+  const runtimeUrls = []
+  const scenes = new Set()
+  for (const u of urls) {
+    const t = await readChunk(u)
+    if (t.includes(RUNTIME_MARKER)) runtimeUrls.push(u)
+    const m = SCENE_RE.exec(t)
+    if (m) scenes.add(m[1])
+  }
+  return { runtime: runtimeUrls.length > 0, runtimeUrls, scenes: [...scenes].sort() }
+}
+
+const check3d = arg('--check-3d')
+if (check3d) {
+  let bad = 0
+  for (const file of commaList(check3d)) {
+    const r = await threeIn(JSON.parse(readFileSync(file, 'utf8')))
+    if (!r.runtime) bad++
+    console.log(
+      `${r.runtime ? 'ok  ' : 'FAIL'} ${file}: runtime ${r.runtime ? r.runtimeUrls.map((u) => basename(u)).join(',') : 'not fetched'} · scenes [${r.scenes.join(',')}]`,
+    )
+  }
+  console.log(
+    `check-3d: ${bad ? `${bad} report(s) measured no 3D` : 'every report fetched the 3D runtime'}`,
+  )
+  process.exit(bad ? 1 : 0)
+}
+
+const webglGate = flag('--webgl-gate')
 const runs = Math.max(1, Number(arg('--runs', process.env.LH_RUNS ?? 5)))
-const preset = arg('--preset', 'mobile')
-const tier = arg('--tier', 'svg')
+const preset = webglGate ? 'desktop' : arg('--preset', 'mobile')
+const tier = webglGate ? 'webgl' : arg('--tier', 'svg')
 const calibrate = flag('--calibrate')
-const gate = flag('--gate')
+const gate = webglGate || flag('--gate')
 const method = arg('--method', 'simulate')
 if (method !== 'simulate' && method !== 'devtools') {
   console.error(`lighthouse: --method must be simulate or devtools, not ${method}`)
   process.exit(2)
 }
+if (webglGate && (arg('--preset') ?? 'desktop') !== 'desktop')
+  console.warn('lighthouse: --webgl-gate measures with the desktop preset; --preset ignored')
+if (webglGate && (arg('--tier') ?? 'webgl') !== 'webgl')
+  console.warn('lighthouse: --webgl-gate measures ?tier=webgl; --tier ignored')
 const lab = budgets().lab
-const sub = method === 'simulate' ? preset : `${preset}-${method}`
+const name = webglGate ? 'webgl-gate' : preset
+const sub = method === 'simulate' ? name : `${name}-${method}`
 const out = outDir(join('lighthouse', sub), join('.lighthouse', sub))
+const chromeFlags = [
+  '--headless=new',
+  ...(webglGate ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : []),
+]
 
 if (!existsSync(CHROME_PATH)) {
   console.error(`lighthouse: no Chrome at ${CHROME_PATH}; set CHROME_PATH`)
@@ -68,9 +157,20 @@ if (!existsSync(CHROME_PATH)) {
 
 const calibratedMultiplier = (bi) => Math.min(10, Math.max(4, Math.round((4 * bi) / 1750)))
 
-const slug = (route) => (route === '/' ? 'home' : route.replace(/^\//, '').replace(/\//g, '_'))
-const urlFor = (route) =>
-  `${base}${route}${tier === 'none' ? '' : `${route.includes('?') ? '&' : '?'}tier=${tier}`}`
+const slug = (route) =>
+  route === '/' ? 'home' : route.replace(/^\//, '').replace(/[/#]/g, '_') || 'home'
+/** The tier query goes before any #fragment. */
+const urlFor = (route) => {
+  const [path, hash] = route.split('#')
+  const q = tier === 'none' ? '' : `${path.includes('?') ? '&' : '?'}tier=${tier}`
+  return `${base}${path}${q}${hash === undefined ? '' : `#${hash}`}`
+}
+/**
+ * --webgl-gate's routes when none are given. Lighthouse never scrolls and the service scenes
+ * sit below the first screen, so /services opens at S-02's sheet (#s-02, the first service
+ * scene shipping as 'webgl'); at the desktop screen that fetches the runtime and the s02 chunk.
+ */
+const WEBGL_GATE_ROUTES = ['/', '/services#s-02']
 
 /** One Lighthouse run; returns the metrics read from its JSON report. */
 function lighthouse(route, file, multiplier) {
@@ -81,7 +181,7 @@ function lighthouse(route, file, multiplier) {
     '--only-categories=performance',
     '--output=json',
     `--output-path=${file}`,
-    '--chrome-flags=--headless=new',
+    `--chrome-flags=${chromeFlags.join(' ')}`,
     `--throttling-method=${method}`,
     ...(preset === 'desktop' ? ['--preset=desktop'] : []),
     ...(multiplier !== null ? [`--throttling.cpuSlowdownMultiplier=${multiplier}`] : []),
@@ -111,7 +211,7 @@ const verdict = (v, target, fail) =>
 const server = await ensureServer(base)
 let summary
 try {
-  const list = routes()
+  const list = webglGate && !arg('--routes') && !process.env.ROUTES ? WEBGL_GATE_ROUTES : routes()
   let multiplier = arg('--multiplier') ? Number(arg('--multiplier')) : 4
   let calibration = null
   if (calibrate) {
@@ -130,8 +230,16 @@ try {
     const dir = join(out, slug(route))
     mkdirSync(dir, { recursive: true })
     const res = []
-    for (let i = 0; i < runs; i++)
-      res.push(lighthouse(route, join(dir, `run-${i}.json`), multiplier))
+    for (let i = 0; i < runs; i++) {
+      const file = join(dir, `run-${i}.json`)
+      const r = lighthouse(route, file, multiplier)
+      if (webglGate) {
+        const t = await threeIn(JSON.parse(readFileSync(file, 'utf8')))
+        r.three = { runtime: t.runtime, scenes: t.scenes }
+        if (!t.runtime) console.log(`${route} run ${i}: FAIL, the 3D runtime chunk was not fetched`)
+      }
+      res.push(r)
+    }
     const m = (k) => median(res.map((x) => x[k]))
     const med = {
       lcpMs: m('lcpMs'),
@@ -147,10 +255,12 @@ try {
       lcp: verdict(med.lcpMs, lab.lcpTargetMs, lab.lcpFailMs),
       tbt: verdict(med.tbtMs, lab.tbtTargetMs, lab.tbtFailMs),
       cls: verdict(med.cls, null, lab.clsFail),
+      // the Cost gate only counts when every run fetched the 3D runtime
+      ...(webglGate ? { runtime3d: res.every((x) => x.three?.runtime) ? 'pass' : 'fail' } : {}),
     }
     results[route] = { median: med, verdict: v, runs: res }
     console.log(
-      `${route}: LCP ${Math.round(med.lcpMs)} ms (${v.lcp}) · TBT ${Math.round(med.tbtMs)} ms (${v.tbt}) · CLS ${med.cls?.toFixed(3)} (${v.cls}) · BI ${med.benchmarkIndex} · ×${multiplier} · ${method}`,
+      `${route}: LCP ${Math.round(med.lcpMs)} ms (${v.lcp}) · TBT ${Math.round(med.tbtMs)} ms (${v.tbt}) · CLS ${med.cls?.toFixed(3)} (${v.cls})${webglGate ? ` · 3D runtime (${v.runtime3d})` : ''} · BI ${med.benchmarkIndex} · ×${multiplier} · ${method}`,
     )
   }
   const bi = median(allBi)
@@ -160,6 +270,8 @@ try {
     preset,
     method,
     tier,
+    webglGate,
+    chromeFlags,
     runs,
     multiplier,
     benchmarkIndex: bi,
