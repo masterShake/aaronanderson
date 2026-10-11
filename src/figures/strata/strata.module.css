@@ -1,0 +1,23 @@
+/* The strata: static. Until the layers arrive, the still stands in. */
+
+.strata:not([data-layers='ready']) :global(.still-wrap) {
+  display: block;
+}
+
+.strata :global(.still-wrap) > img {
+  position: absolute;
+  inset: 0;
+}
+
+/* band names sit on a paper chip over the hatch */
+.strata :global(.labels) > .band {
+  padding: 1px 6px;
+  background: var(--c-paper);
+  border: 1px solid var(--c-asphalt);
+  color: var(--c-asphalt);
+  font-weight: 600;
+}
+
+.strata :global(.labels) > .cut {
+  color: var(--c-asphalt);
+}

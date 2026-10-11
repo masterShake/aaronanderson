@@ -180,16 +180,47 @@
   opacity: 0.85;
 }
 
-/* Instrument labels and hand notes (aria-hidden layer) */
-.inst {
+/*
+ * Instrument labels and hand notes (aria-hidden layer). The schematic decides
+ * its own label type here, above the generic figure label rule in figures.css
+ * (.fig .labels > *, 0,2,0): the placement in Schematic.tsx and the controller
+ * measures exactly these metrics.
+ */
+.schematic :global(.labels) > .inst {
   white-space: nowrap;
+  font-family: var(--ff-mono);
   font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--c-label-on-deep);
 }
 
-.note {
-  max-width: 14em;
+.schematic :global(.labels) > .leaders {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--c-graphite);
+  stroke-width: 1px;
+}
+
+.schematic[data-toggle='rewired'] :global(.labels) > .leaders {
+  stroke: var(--c-cyan-dim);
+}
+
+/* below the family threshold the sub-lines drop; the callouts and the table carry them */
+@container fig (width < 560px) {
+  .sub {
+    display: none;
+  }
+}
+
+.schematic :global(.labels) > .note {
+  white-space: nowrap;
   font-family: var(--ff-hand);
+  letter-spacing: 0.02em;
   font-size: var(--fs-hand);
   line-height: var(--lh-hand);
   text-transform: uppercase;

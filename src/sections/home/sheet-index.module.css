@@ -1,0 +1,81 @@
+/*
+ * Home C: the sheet index, with a key-plan panel beside it from 1024 px. The
+ * hovered or focused row picks the plan (CSS :has, no JS); S-01 by default.
+ * Never sticky.
+ */
+
+.layout {
+  display: grid;
+  gap: var(--gutter);
+}
+
+.table {
+  min-width: 0;
+}
+
+.plans {
+  display: none;
+}
+
+@media (width >= 1024px) {
+  .layout {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .table {
+    grid-column: 1 / span 9;
+  }
+
+  .plans {
+    display: block;
+    grid-column: 10 / span 3;
+    padding-block-start: var(--s-6);
+  }
+}
+
+.plan {
+  display: none;
+}
+
+.plan img {
+  width: 100% !important;
+  height: auto;
+}
+
+.planLabel {
+  margin: var(--s-2) 0 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+/* the default plan: S-01, unless a row is hovered or focused */
+.sheets:not(:has(tbody tr:is(:hover, :focus-within))) .plan[data-plan='S-01'],
+.sheets:has(tr[data-sheet='S-01']:is(:hover, :focus-within)) .plan[data-plan='S-01'],
+.sheets:has(tr[data-sheet='S-02']:is(:hover, :focus-within)) .plan[data-plan='S-02'],
+.sheets:has(tr[data-sheet='S-03']:is(:hover, :focus-within)) .plan[data-plan='S-03'],
+.sheets:has(tr[data-sheet='S-04']:is(:hover, :focus-within)) .plan[data-plan='S-04'],
+.sheets:has(tr[data-sheet='S-05']:is(:hover, :focus-within)) .plan[data-plan='S-05'],
+.sheets:has(tr[data-sheet='S-06']:is(:hover, :focus-within)) .plan[data-plan='S-06'] {
+  display: block;
+}
+
+/* the plan draws on left to right, unless motion is off */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='paused']) .sheets:has(tbody tr:is(:hover, :focus-within)) .plan img {
+    animation: plan-draw 300ms var(--ease-pencil, ease) both;
+  }
+}
+
+@keyframes plan-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}

@@ -1,0 +1,55 @@
+/* About (G-02) sections. Nothing here is sticky at any width. */
+
+.notes {
+  max-width: var(--measure);
+}
+
+.split {
+  display: grid;
+  gap: var(--gutter);
+}
+
+.figure {
+  min-width: 0;
+}
+
+.layers {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+}
+
+.layers > div {
+  padding-block-end: var(--s-3);
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.layers dt {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: var(--tr-label);
+}
+
+.layers dd {
+  margin: var(--s-1) 0 0;
+}
+
+@media (width >= 1024px) {
+  .split {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .figure {
+    grid-column: 1 / span 7;
+  }
+
+  .layers {
+    grid-column: 8 / span 5;
+  }
+}
+
+.beliefs :global(h2) {
+  max-width: 18ch;
+}

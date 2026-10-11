@@ -1,0 +1,64 @@
+/* Home B: the head, the figure at full width, then the margin note, kicker and Legend link. Never sticky. */
+
+.wiring {
+  position: relative;
+}
+
+.head {
+  margin-block-end: var(--s-5);
+}
+
+.head > p {
+  max-width: var(--measure);
+}
+
+/* the pointer hint that matches the device */
+.touch {
+  display: none;
+}
+
+@media not ((hover: hover) and (pointer: fine)) {
+  .hover {
+    display: none;
+  }
+
+  .touch {
+    display: block;
+  }
+}
+
+.after {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-3) var(--s-6);
+  margin-block-start: var(--s-4);
+}
+
+/* the (E)/(N) margin note: only once the drawing is rewired (space is kept, so nothing shifts) */
+.newNote {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--c-graphite);
+  visibility: hidden;
+  --tilt: -1.5deg;
+}
+
+.wiring:has(:global(#fig-firm[data-toggle='rewired'])) .newNote {
+  visibility: visible;
+}
+
+.kicker {
+  margin: 0;
+  font-family: var(--ff-display);
+  font-size: var(--fs-h3);
+  font-weight: 800;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.legend {
+  margin: 0;
+  font-family: var(--ff-ui);
+  font-weight: 700;
+}

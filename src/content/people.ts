@@ -39,7 +39,7 @@ export const people: PeopleContent = {
         kind: 'text',
         prodFallback: null,
       }),
-      photo: hold('Crew member 1: photo at /crew/crew-1.jpg', {
+      photo: hold('Crew member 1: photo at /crew/crew-1.jpg (a real photo, no stock models)', {
         id: 'people.crew-1.photo',
         kind: 'photo',
         prodFallback: null,
@@ -79,7 +79,7 @@ export const people: PeopleContent = {
         kind: 'text',
         prodFallback: null,
       }),
-      photo: hold('Crew member 2: photo at /crew/crew-2.jpg', {
+      photo: hold('Crew member 2: photo at /crew/crew-2.jpg (a real photo, no stock models)', {
         id: 'people.crew-2.photo',
         kind: 'photo',
         prodFallback: null,
@@ -119,7 +119,7 @@ export const people: PeopleContent = {
         kind: 'text',
         prodFallback: null,
       }),
-      photo: hold('Crew member 3: photo at /crew/crew-3.jpg', {
+      photo: hold('Crew member 3: photo at /crew/crew-3.jpg (a real photo, no stock models)', {
         id: 'people.crew-3.photo',
         kind: 'photo',
         prodFallback: null,

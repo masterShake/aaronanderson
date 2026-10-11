@@ -2,8 +2,9 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import type { FigureId } from '@/content/types'
-import type { Graph, LayoutId, Pt } from '@/drawings/types'
+import type { Graph, LayoutId, Prim, Pt, SymbolId } from '@/drawings/types'
 import { counts, modeCounts, routesTouching } from '@/drawings/lib/counts'
+import { bounds, primPts } from '@/drawings/lib/geometry'
 import {
   center,
   inRev,
@@ -12,13 +13,19 @@ import {
   pointAlong,
   routeGraph,
 } from '@/drawings/lib/route'
+import { aiPrims, monitorPrims, placeSymbol, tankPrims, valvePrims } from '@/drawings/symbols'
 import { tableRows } from '@/drawings/render/table'
 import { FigureFrame } from '@/figures/FigureFrame'
 import { figureDomId } from '@/figures/types'
 import { RichText } from '@/components/ui/RichText'
 import { calloutText, ERA_TAG } from './callout'
 import type { SchematicCopy } from './copy'
-import { SchematicController } from './SchematicController.client'
+import { lineBoxes, placeAll, type Box } from './place'
+import {
+  SchematicController,
+  type SchematicLines,
+  type SchematicObstacles,
+} from './SchematicController.client'
 import s from './schematic.module.css'
 
 /**
@@ -28,6 +35,11 @@ import s from './schematic.module.css'
  * (<LazyDrawing> on pages; the /kit/fig harness may inline it) together with
  * both states' stills. Works without JS: the stills, labels, buttons and the
  * table are all server-rendered.
+ *
+ * Labels and detail bubbles are placed clear of every box, instrument, person
+ * and each other: here in viewBox units with estimated text sizes (no-JS and
+ * first paint), then again by the controller with measured sizes at the
+ * figure's real width (src/components/schematic/place.ts).
  */
 
 type AnyGraph = Graph<string, string>
@@ -63,7 +75,9 @@ export interface DetailBubble {
   anchor: string
 }
 
+const FAMILIES: readonly LayoutId[] = ['wide', 'tall']
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
+const r1 = (v: number) => Math.round(v * 10) / 10
 
 /** Position vars for an element covering a rect, in both families. */
 function rectVars(g: AnyGraph, rw: { x: number; y: number; w: number; h: number }, rt: typeof rw) {
@@ -82,44 +96,73 @@ function rectVars(g: AnyGraph, rw: { x: number; y: number; w: number; h: number 
 }
 
 /**
- * The top-left of a label next to a symbol at p: the first of eight spots
- * around it (radius r) whose label box (about 150 × 18 u wide, 120 × 18 tall)
- * stays inside the viewBox and clear of every box.
+ * CSS px per viewBox unit the server assumes for its first placement (the
+ * figure at about 1100 px wide, and at a 390 px phone), and the label metrics
+ * in px (mono 11 px, uppercase, 0.02em tracking; see schematic.module.css).
  */
-function freeSpot(g: AnyGraph, family: LayoutId, p: Pt, r: number): Pt {
-  const [vx, vy, vw, vh] = g.viewBox[family]
-  const [w, h] = family === 'wide' ? [150, 18] : [120, 18]
-  const rects = g.nodes
-    .filter((n) => inRev(n, g.revs[g.revs.length - 1]!))
-    .map((n) => nodeRect(n, family))
-  const spots: Pt[] = [
-    [p[0] + r, p[1] - r - h],
-    [p[0] + r, p[1] + r],
-    [p[0] - r - w, p[1] - r - h],
-    [p[0] - r - w, p[1] + r],
-    [p[0] - w / 2, p[1] - r - h],
-    [p[0] - w / 2, p[1] + r],
-    [p[0] + r, p[1] - h / 2],
-    [p[0] - r - w, p[1] - h / 2],
-  ]
-  const free = spots.find(
-    ([x, y]) =>
-      x >= vx &&
-      y >= vy &&
-      x + w <= vx + vw &&
-      y + h <= vy + vh &&
-      !rects.some((q) => x < q.x + q.w && x + w > q.x && y < q.y + q.h && y + h > q.y),
-  )
-  return free ?? spots[0]!
+const REF_SCALE: Readonly<Record<LayoutId, number>> = { wide: 1.1, tall: 0.88 }
+const CHAR_PX = 7
+const LINE_PX = 16
+const BUBBLE_PX = 32
+const PAD_PX = 3
+
+const primsBox = (prims: readonly Prim[]): Box => {
+  const [x, y, w, h] = bounds(prims.flatMap((p) => primPts(p, 12)))
+  return { x, y, w, h }
 }
 
-const pointVars = (g: AnyGraph, w: Pt, t: Pt) =>
-  ({
-    '--lx': pct(w[0], g.viewBox.wide[2]),
-    '--ly': pct(w[1], g.viewBox.wide[3]),
-    '--lxt': pct(t[0], g.viewBox.tall[2]),
-    '--lyt': pct(t[1], g.viewBox.tall[3]),
-  }) as CSSProperties
+type Pose = { symbol: SymbolId; at: Pt; atTall?: Pt }
+const poseOf = (p: NonNullable<AnyGraph['people']>[number], st: string) =>
+  (p.poses as Record<string, Pose | undefined>)[st]
+const poseAt = (pose: Pose, family: LayoutId): Pt =>
+  family === 'tall' && pose.atTall ? pose.atTall : pose.at
+
+/** Everything drawn in one family and state that labels must stay clear of (viewBox units). */
+function obstaclesOf(g: AnyGraph, family: LayoutId, st: string): Box[] {
+  const out: Box[] = g.nodes.filter((n) => inRev(n, st)).map((n) => nodeRect(n, family))
+  for (const r of routeGraph(g, st, family).values()) {
+    const ins = instrumentsOn(r)
+    if (ins.ai) {
+      const a = aiPrims(ins.ai.at)
+      out.push(primsBox([...a.body, ...a.ring]))
+    }
+    if (ins.valve) {
+      const v = valvePrims(ins.valve.at)
+      out.push(primsBox([...v.body, ...v.wheel]))
+    }
+  }
+  for (const n of g.nodes.filter((x) => inRev(x, st))) {
+    const c = center(nodeRect(n, family))
+    if (n.kind === 'store') out.push(primsBox(tankPrims(c, 0.6).body))
+    if (n.kind === 'monitor') out.push(primsBox(monitorPrims(c)))
+  }
+  for (const p of g.people ?? []) {
+    const pose = poseOf(p, st)
+    if (pose)
+      out.push(primsBox(placeSymbol(pose.symbol, poseAt(pose, family)).flatMap((q) => q.prims)))
+  }
+  return out
+}
+
+/** The routed lines of one family and state, as flat polylines (labels prefer not to cross them). */
+function linesOf(g: AnyGraph, family: LayoutId, st: string): number[][] {
+  const bend = st === g.revs[0] ? 0 : 12
+  return [...routeGraph(g, st, family, { bend }).values()].map((r) =>
+    r.pts.flatMap(([x, y]) => [Math.round(x), Math.round(y)]),
+  )
+}
+
+/** A label or bubble to place: its anchor and clearance per family, and its estimated size. */
+interface Placed {
+  key: string
+  show: State
+  a: Readonly<Record<LayoutId, Pt>>
+  gap: Readonly<Record<LayoutId, number>>
+  /** Estimated size in px per family: [w, h]. */
+  px: Readonly<Record<LayoutId, readonly [number, number]>>
+}
+
+const flat = (bs: readonly Box[]) => bs.flatMap((b) => [r1(b.x), r1(b.y), r1(b.w), r1(b.h)])
 
 export function Schematic({
   id,
@@ -172,132 +215,199 @@ export function Schematic({
     </div>
   )
 
-  // instrument labels (rewired only), placed from the routed geometry: plain words first,
-  // then the sub-line, then the (N) chip
+  // --- what gets placed: detail bubbles first, then instrument and place labels, then notes
+  const placed: Placed[] = []
+  const textPx = (text: string, wideText = text): Placed['px'] => ({
+    wide: [wideText.length * CHAR_PX + 4, LINE_PX],
+    tall: [text.length * CHAR_PX + 4, LINE_PX],
+  })
+  const both = (f: (family: LayoutId) => Pt) => ({ wide: f('wide'), tall: f('tall') })
+
+  const bubbleAnchor = (anchor: string, family: LayoutId): Pt => {
+    const [vx, vy] = g.viewBox[family]
+    const n = g.nodes.find((x) => x.id === anchor)
+    const r = routes[family].get(anchor)
+    const person = (g.people ?? []).find((x) => x.id === anchor)
+    if (n) return center(nodeRect(n, family))
+    if (r) {
+      const ins = instrumentsOn(r)
+      return ins.ai?.at ?? ins.valve?.at ?? pointAlong(r.pts, 0.5)
+    }
+    if (person) {
+      const pose = poseOf(person, wired)
+      if (pose) {
+        const at = poseAt(pose, family)
+        return [at[0], at[1] - 20]
+      }
+    }
+    return [vx, vy]
+  }
+  for (const d of details)
+    placed.push({
+      key: `bubble-${d.sheet}`,
+      show: wired,
+      a: both((f) => bubbleAnchor(d.anchor, f)),
+      gap: { wide: 6, tall: 4 },
+      px: { wide: [BUBBLE_PX, BUBBLE_PX], tall: [BUBBLE_PX, BUBBLE_PX] },
+    })
+
+  // instrument labels (rewired only): plain words first, then the sub-line, then the (N) chip
   const inst = (key: string) => {
     const sub = c.maybe(`${key}-sub`)
     return (
       <>
         {c.label(key)}
-        {sub ? <> · {sub}</> : null} {c.label(ERA_TAG.N)}
+        {sub ? <span className={s.sub}> · {sub}</span> : null} {c.label(ERA_TAG.N)}
       </>
     )
   }
-  const instLabels: ReactNode[] = []
+  const instPx = (key: string) => {
+    const short = `${c.label(key)} ${c.label(ERA_TAG.N)}`
+    const sub = c.maybe(`${key}-sub`)
+    return textPx(short, sub ? `${c.label(key)} · ${sub} ${c.label(ERA_TAG.N)}` : short)
+  }
+  const labelText: Record<string, ReactNode> = {}
   for (const r of routes.wide.values()) {
     const rt = routes.tall.get(r.id)
     if (!rt) continue
     const iw = instrumentsOn(r)
     const it = instrumentsOn(rt)
-    if (iw.ai && it.ai)
-      instLabels.push(
-        <span
-          key={`${r.id}-ai`}
-          className={s.inst}
-          data-show={wired}
-          style={pointVars(g, freeSpot(g, 'wide', iw.ai.at, 22), freeSpot(g, 'tall', it.ai.at, 20))}
-        >
-          {inst(symbolKeys.ai)}
-        </span>,
-      )
-    if (iw.valve && it.valve)
-      instLabels.push(
-        <span
-          key={`${r.id}-hv`}
-          className={s.inst}
-          data-show={wired}
-          style={pointVars(
-            g,
-            freeSpot(g, 'wide', iw.valve.at, 26),
-            freeSpot(g, 'tall', it.valve.at, 24),
-          )}
-        >
-          {inst(symbolKeys.valve)}
-        </span>,
-      )
+    if (iw.ai && it.ai) {
+      const key = `${r.id}-ai`
+      labelText[key] = inst(symbolKeys.ai)
+      placed.push({
+        key,
+        show: wired,
+        a: { wide: iw.ai.at, tall: it.ai.at },
+        gap: { wide: 20, tall: 20 },
+        px: instPx(symbolKeys.ai),
+      })
+    }
+    if (iw.valve && it.valve) {
+      const key = `${r.id}-hv`
+      labelText[key] = inst(symbolKeys.valve)
+      placed.push({
+        key,
+        show: wired,
+        a: { wide: iw.valve.at, tall: it.valve.at },
+        gap: { wide: 18, tall: 18 },
+        px: instPx(symbolKeys.valve),
+      })
+    }
   }
   for (const n of g.nodes.filter((x) => x.kind !== 'tool' && inRev(x, wired))) {
     const rw = nodeRect(n, 'wide')
     const rt = nodeRect(n, 'tall')
-    instLabels.push(
-      <span
-        key={n.id}
-        className={s.inst}
-        data-show={wired}
-        style={pointVars(
-          g,
-          freeSpot(g, 'wide', center(rw), rw.h / 2 + 4),
-          freeSpot(g, 'tall', center(rt), rt.h / 2 + 4),
-        )}
-      >
-        {inst(n.label)}
-      </span>,
-    )
+    labelText[n.id] = inst(n.label)
+    placed.push({
+      key: n.id,
+      show: wired,
+      a: { wide: center(rw), tall: center(rt) },
+      gap: { wide: Math.max(rw.w, rw.h) / 2 + 4, tall: Math.max(rt.w, rt.h) / 2 + 4 },
+      px: instPx(n.label),
+    })
   }
   // where people stand once rewired, when the place has a name
-  for (const p of g.people ?? []) {
-    const key = places[p.id]
-    const pose = (p.poses as Record<string, { at: Pt; atTall?: Pt } | undefined>)[wired]
+  for (const person of g.people ?? []) {
+    const key = places[person.id]
+    const pose = poseOf(person, wired)
     if (!key || !pose) continue
-    const at = (q: Pt): Pt => [q[0] + 14, q[1] - 30]
-    instLabels.push(
-      <span
-        key={`${p.id}-place`}
-        className={s.inst}
-        data-show={wired}
-        style={pointVars(g, at(pose.at), at(pose.atTall ?? pose.at))}
-      >
-        {c.label(key)}
-      </span>,
-    )
+    labelText[`${person.id}-place`] = c.label(key)
+    placed.push({
+      key: `${person.id}-place`,
+      show: wired,
+      a: both((f) => {
+        const at = poseAt(pose, f)
+        return [at[0], at[1] - 20]
+      }),
+      gap: { wide: 14, tall: 14 },
+      px: textPx(c.label(key)),
+    })
   }
   // hand notes come from the figure's notes; a missing one is left out
-  const notes = (g.notes ?? []).flatMap((n) => {
+  const noteRotate: Record<string, number> = {}
+  for (const n of g.notes ?? []) {
     const text = c.note(n.key)
-    return text
-      ? [
-          <span
-            key={n.key}
-            className={s.note}
-            data-show={found}
-            style={{ ...pointVars(g, n.at, n.atTall ?? n.at), rotate: `${n.rotate}deg` }}
-          >
-            {text}
-          </span>,
-        ]
-      : []
-  })
-
-  // where a detail bubble sits (top-left, viewBox units): up and to the right of its anchor
-  const bubbleAt = (anchor: string, family: LayoutId): Pt => {
-    const [vx, vy, vw, vh] = g.viewBox[family]
-    let p: Pt = [vx + 8, vy + 8]
-    const n = g.nodes.find((x) => x.id === anchor)
-    const r = routes[family].get(anchor)
-    const person = (g.people ?? []).find((x) => x.id === anchor)
-    if (n) p = center(nodeRect(n, family))
-    else if (r) p = pointAlong(r.pts, 0.5)
-    else if (person) {
-      const pose = (person.poses as Record<string, { at: Pt; atTall?: Pt } | undefined>)[wired]
-      if (pose) p = family === 'tall' && pose.atTall ? pose.atTall : pose.at
-    }
-    if (anchor === 'drawing') return p
-    const size = 40
-    let q: Pt = [
-      Math.min(vx + vw - size, Math.max(vx, p[0] + 10)),
-      Math.min(vy + vh - size, Math.max(vy, p[1] - size - 10)),
-    ]
-    // step aside from bubbles already placed
-    for (
-      let i = 0;
-      i < 6 && placed[family].some((o) => Math.hypot(o[0] - q[0], o[1] - q[1]) < 44);
-      i++
-    )
-      q = [Math.min(vx + vw - size, q[0] + 46), q[1]]
-    placed[family].push(q)
-    return q
+    if (!text) continue
+    labelText[`note-${n.key}`] = text
+    noteRotate[`note-${n.key}`] = n.rotate
+    placed.push({
+      key: `note-${n.key}`,
+      show: found,
+      a: { wide: n.at, tall: n.atTall ?? n.at },
+      gap: { wide: 2, tall: 2 },
+      // the hand face runs wider than mono and is uppercased
+      px: { wide: [text.length * 10 + 8, 24], tall: [text.length * 10 + 8, 24] },
+    })
   }
-  const placed: Record<LayoutId, Pt[]> = { wide: [], tall: [] }
+
+  // --- the server's placement, per family and state, in viewBox units
+  const obstacles = {} as SchematicObstacles
+  const lines = {} as SchematicLines
+  const boxes: Record<string, Partial<Record<LayoutId, Box>>> = {}
+  for (const family of FAMILIES) {
+    const [vx, vy, vw, vh] = g.viewBox[family]
+    const k = REF_SCALE[family]
+    obstacles[family] = {}
+    lines[family] = {}
+    for (const st of [found, wired]) {
+      const obs = obstaclesOf(g, family, st)
+      obstacles[family][st] = flat(obs)
+      lines[family][st] = linesOf(g, family, st)
+      const items = placed.filter((x) => x.show === st)
+      const out = placeAll(
+        items.map((x) => ({
+          ax: x.a[family][0],
+          ay: x.a[family][1],
+          gap: x.gap[family],
+          w: x.px[family][0] / k,
+          h: x.px[family][1] / k,
+        })),
+        obs,
+        { x: vx, y: vy, w: vw, h: vh },
+        { pad: PAD_PX / k, step: 8, rings: 30 },
+        lineBoxes(lines[family][st], 2),
+      )
+      items.forEach((x, i) => {
+        boxes[x.key] = { ...boxes[x.key], [family]: out[i] }
+      })
+    }
+  }
+  const placeAttrs = (key: string) => {
+    const x = placed.find((q) => q.key === key)!
+    const w = boxes[key]?.wide ?? { x: 0, y: 0 }
+    const t = boxes[key]?.tall ?? w
+    return {
+      'data-at': [...x.a.wide, ...x.a.tall].map(r1).join(' '),
+      'data-gap': [x.gap.wide, x.gap.tall].map(r1).join(' '),
+      style: {
+        '--lx': pct(w.x, g.viewBox.wide[2]),
+        '--ly': pct(w.y, g.viewBox.wide[3]),
+        '--lxt': pct(t.x, g.viewBox.tall[2]),
+        '--lyt': pct(t.y, g.viewBox.tall[3]),
+      } as CSSProperties,
+    }
+  }
+
+  const labels = placed
+    .filter((x) => !x.key.startsWith('bubble-'))
+    .map((x) => {
+      const a = placeAttrs(x.key)
+      const note = x.key.startsWith('note-')
+      return (
+        <span
+          key={x.key}
+          className={note ? s.note : s.inst}
+          data-show={x.show}
+          data-place={x.key}
+          data-at={a['data-at']}
+          data-gap={a['data-gap']}
+          style={note ? { ...a.style, rotate: `${noteRotate[x.key]}deg` } : a.style}
+        >
+          {labelText[x.key]}
+        </span>
+      )
+    })
 
   const describe = (t: (typeof tools)[number], st: State) => {
     const text = calloutText(g, t.id, st, c, st === wired ? rewiredLabels[t.id] : undefined)
@@ -354,18 +464,25 @@ export function Schematic({
       {tools.flatMap((t) => [describe(t, found), describe(t, wired)])}
       {details.length ? (
         <ul className={s.bubbles} aria-label={c.ui('bubblesLabel')} data-show={wired}>
-          {details.map((d) => (
-            <li
-              key={d.sheet}
-              className={s.bubble}
-              style={pointVars(g, bubbleAt(d.anchor, 'wide'), bubbleAt(d.anchor, 'tall'))}
-            >
-              <Link href={d.href} aria-label={d.label} className={s.bubbleLink}>
-                <span aria-hidden="true">{d.n}</span>
-                <span aria-hidden="true">{d.sheet}</span>
-              </Link>
-            </li>
-          ))}
+          {details.map((d) => {
+            const a = placeAttrs(`bubble-${d.sheet}`)
+            return (
+              <li
+                key={d.sheet}
+                className={s.bubble}
+                data-place={`bubble-${d.sheet}`}
+                data-at={a['data-at']}
+                data-gap={a['data-gap']}
+                data-leader={d.anchor === 'drawing' ? 'none' : undefined}
+                style={a.style}
+              >
+                <Link href={d.href} aria-label={d.label} className={s.bubbleLink}>
+                  <span aria-hidden="true">{d.n}</span>
+                  <span aria-hidden="true">{d.sheet}</span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </>
@@ -409,7 +526,7 @@ export function Schematic({
     </table>
   )
 
-  const still = (['wide', 'tall'] as const).flatMap((fam) =>
+  const still = FAMILIES.flatMap((fam) =>
     [found, wired].map((st) => (
       // static SVG stills from /drawings/[file]; next/image would add nothing
       // eslint-disable-next-line @next/next/no-img-element
@@ -438,8 +555,9 @@ export function Schematic({
       still={still}
       labels={
         <>
-          {instLabels}
-          {notes}
+          {/* leader lines, drawn by the controller once it has placed the labels */}
+          <svg data-leaders="" className={s.leaders} focusable="false" />
+          {labels}
         </>
       }
       ui={ui}
@@ -469,6 +587,12 @@ export function Schematic({
         touch={touch}
         chips={Object.fromEntries([found, wired].map((st) => [st, revs[st] ?? st]))}
         initial={initial}
+        viewBox={{
+          wide: [g.viewBox.wide[2], g.viewBox.wide[3]],
+          tall: [g.viewBox.tall[2], g.viewBox.tall[3]],
+        }}
+        obstacles={obstacles}
+        lines={lines}
       />
     </FigureFrame>
   )
