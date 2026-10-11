@@ -90,11 +90,11 @@ export const services: readonly Service[] = [
     name: 'AI Workflow Automation',
     promise: 'Hand the repetitive paperwork to AI, and keep people on the decisions.',
     explanation: [
-      '[[ai-agent|AI agents]] built into your workflows that read, draft, sort and route work.',
+      'AI agents built into your workflows that read, draft, sort and route work.',
       'A person approves anything that matters.',
     ],
     plainTerms: confirm(
-      "Think of a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk. It doesn't sign, pay or send anything unless you've decided it may.",
+      "Think of an [[ai-agent|AI agent]] as a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk. It doesn't sign, pay or send anything unless you've decided it may.",
       { id: 'claim.s03.plainTerms' },
     ),
     examples: [
