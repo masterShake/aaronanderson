@@ -122,14 +122,16 @@
   visibility: hidden;
 }
 
-/* ── Families: wide from 560 px (hero 520, service sheets 440), else tall ── */
+/* ── Families: wide from 560 px (hero 520, service sheets 440), else tall ──
+   Keyed on the server-rendered [data-has-tall], never :has(): a :has() on the
+   figure re-matches its subtree on every node insert while it streams (perf-2). */
 .fig svg[data-family='tall'],
 .fig img.still-img[data-family='tall'] {
   display: none;
 }
 
 @container fig (width < 560px) {
-  .fig:not([data-figure='hero'], [data-figure^='s0']):has(svg[data-family='tall'])
+  .fig:not([data-figure='hero'], [data-figure^='s0'])[data-has-tall]
     :is(svg, img.still-img)[data-family='wide'] {
     display: none;
   }
@@ -138,14 +140,13 @@
     display: block;
   }
 
-  .fig:not([data-figure='hero'], [data-figure^='s0']):has([data-family='tall']) .box {
+  .fig:not([data-figure='hero'], [data-figure^='s0'])[data-has-tall] .box {
     aspect-ratio: var(--vbw-t) / var(--vbh-t);
   }
 }
 
 @container fig (width < 520px) {
-  .fig[data-figure='hero']:has(svg[data-family='tall'])
-    :is(svg, img.still-img)[data-family='wide'] {
+  .fig[data-figure='hero'][data-has-tall] :is(svg, img.still-img)[data-family='wide'] {
     display: none;
   }
 
@@ -153,13 +154,13 @@
     display: block;
   }
 
-  .fig[data-figure='hero']:has([data-family='tall']) .box {
+  .fig[data-figure='hero'][data-has-tall] .box {
     aspect-ratio: var(--vbw-t) / var(--vbh-t);
   }
 }
 
 @container fig (width < 440px) {
-  .fig[data-figure^='s0']:has(svg[data-family='tall']) :is(svg, img.still-img)[data-family='wide'] {
+  .fig[data-figure^='s0'][data-has-tall] :is(svg, img.still-img)[data-family='wide'] {
     display: none;
   }
 
@@ -167,7 +168,7 @@
     display: block;
   }
 
-  .fig[data-figure^='s0']:has([data-family='tall']) .box {
+  .fig[data-figure^='s0'][data-has-tall] .box {
     aspect-ratio: var(--vbw-t) / var(--vbh-t);
   }
 }
@@ -393,21 +394,21 @@
 }
 
 @container fig (width < 560px) {
-  .fig:not([data-figure='hero'], [data-figure^='s0']):has([data-family='tall']) .labels > * {
+  .fig:not([data-figure='hero'], [data-figure^='s0'])[data-has-tall] .labels > * {
     inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
     inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
 }
 
 @container fig (width < 520px) {
-  .fig[data-figure='hero']:has([data-family='tall']) .labels > * {
+  .fig[data-figure='hero'][data-has-tall] .labels > * {
     inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
     inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
 }
 
 @container fig (width < 440px) {
-  .fig[data-figure^='s0']:has([data-family='tall']) .labels > * {
+  .fig[data-figure^='s0'][data-has-tall] .labels > * {
     inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 1%);
     inset-block-start: calc(var(--lyt, var(--ly, 0)) * 1%);
   }
