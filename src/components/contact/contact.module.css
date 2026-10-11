@@ -1,0 +1,430 @@
+/*
+ * Contact: the form (pages-drawings §8.1), the booking facade (§8.3) and the
+ * success drawing. Asphalt fills, never orange, inside the form and the
+ * calendar; redline only for problems.
+ */
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.form {
+  position: relative;
+  display: grid;
+  gap: var(--s-5);
+  max-width: 40rem;
+}
+
+.field {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.label {
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--c-graphite);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--c-redline);
+}
+
+.control {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--s-2) var(--s-3);
+  border: 2px solid var(--c-input-line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(var(--c-blueprint), var(--c-blueprint)) 0 100% / 0 2px no-repeat,
+    var(--c-paper);
+  font-size: var(--fs-input);
+  line-height: 1.4;
+  transition: background-size var(--dur-ui, 200ms) var(--ease-ui, ease);
+}
+
+.control:focus-visible {
+  background-size:
+    100% 2px,
+    auto;
+}
+
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+select.control {
+  appearance: auto;
+}
+
+/* The redline cloud around a failing field: scallops drawn as a border-image. */
+.cloud {
+  position: relative;
+  display: block;
+}
+
+.field[data-invalid] .control {
+  border-color: var(--c-redline);
+}
+
+.field[data-invalid] .cloud::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  border: 6px solid transparent;
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath d='M10 8A5 5 0 0 1 20 8M10 22A5 5 0 0 0 20 22M8 10A5 5 0 0 0 8 20M22 10A5 5 0 0 1 22 20M8 10A2.5 2.5 0 0 1 10 8M20 8A2.5 2.5 0 0 1 22 10M22 20A2.5 2.5 0 0 1 20 22M10 22A2.5 2.5 0 0 1 8 20' fill='none' stroke='%23b5400a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")
+    10 / 6px round;
+  animation: cloud-in var(--dur-ui, 200ms) var(--ease-settle, ease) both;
+}
+
+@keyframes cloud-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@media (forced-colors: active) {
+  .field[data-invalid] .cloud::after {
+    border: 2px dashed CanvasText;
+    border-image: none;
+  }
+}
+
+.counter {
+  margin: calc(-1 * var(--s-4)) 0 0;
+  justify-self: end;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  color: var(--c-graphite);
+}
+
+.counter[data-over] {
+  color: var(--c-redline);
+}
+
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.submit {
+  min-height: 48px;
+  min-width: 44px;
+  padding: var(--s-2) var(--s-6);
+  border: var(--line-frame, 2px) solid var(--c-asphalt);
+  border-radius: var(--radius);
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.submit:hover {
+  background: var(--c-asphalt-deep);
+}
+
+.submit[aria-disabled='true'] {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.status {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
+
+/* Error summary: focused on an invalid result. */
+.summary {
+  padding: var(--s-4) var(--s-5);
+  border: 2px solid var(--c-redline);
+  background: var(--c-paper);
+}
+
+.summary:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.summaryTitle {
+  margin: 0;
+  font-family: var(--ff-ui);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-ui);
+  color: var(--c-redline);
+}
+
+.summaryList {
+  margin: var(--s-3) 0 0;
+}
+
+.summaryList li + li {
+  margin-block-start: var(--s-2);
+}
+
+.summaryList a {
+  color: var(--c-redline);
+  font-weight: 700;
+}
+
+/* Success, under the submit button (always present, filled when sent). */
+.sent:empty {
+  display: none;
+}
+
+.sent {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border: 2px solid var(--c-asphalt);
+  max-width: 34rem;
+}
+
+.sent p {
+  margin: 0;
+}
+
+.sentTitle {
+  font-family: var(--ff-ui);
+  font-size: var(--fs-lead);
+  font-weight: 700;
+}
+
+.sentLive {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+.success {
+  position: relative;
+  width: 100%;
+  background: var(--c-blueprint-deep);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  line-height: var(--lh-label);
+  color: var(--c-label-on-deep);
+  overflow: hidden;
+}
+
+.successImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.node {
+  position: absolute;
+  max-width: 27%;
+  font-size: clamp(0.5625rem, 2.2vw, var(--fs-label));
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.theirs {
+  animation: node-in var(--dur-state, 900ms) var(--ease-pencil, ease) both;
+}
+
+.received {
+  position: absolute;
+  --t: calc(var(--dur-state, 900ms) + var(--dur-sheet, 420ms));
+  padding: 0 var(--s-1);
+  border: 2px double currentColor;
+  color: var(--c-label-on-deep);
+  font-weight: 600;
+  rotate: -4deg;
+}
+
+@keyframes node-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ── Booking facade ──────────────────────────────────────────────────────── */
+.facade {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.bookBox {
+  position: relative;
+  height: clamp(560px, 85svh, 720px);
+  overflow: auto;
+  border: 2px solid var(--c-asphalt);
+  background: var(--c-paper);
+}
+
+@media (width >= 640px) {
+  .bookBox {
+    height: 720px;
+  }
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: auto repeat(6, minmax(0, 1fr));
+  padding: var(--s-4);
+  gap: 0;
+  pointer-events: none;
+}
+
+.day {
+  padding-block-end: var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-align: center;
+  color: var(--c-graphite);
+}
+
+.cell {
+  border-inline-start: 1px solid var(--c-pencil-faint);
+  border-block-start: 1px solid var(--c-pencil-faint);
+}
+
+.cell:nth-child(7n) {
+  border-inline-end: 1px solid var(--c-pencil-faint);
+}
+
+.cell:nth-last-child(-n + 7) {
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.idle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  text-align: center;
+}
+
+.idle p {
+  max-width: 34ch;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  background: var(--c-paper);
+  font-size: var(--fs-small);
+}
+
+.show {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: var(--s-2) var(--s-6);
+  border: 2px solid var(--c-asphalt);
+  border-radius: var(--radius);
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.show:hover {
+  background: var(--c-asphalt-deep);
+}
+
+.region {
+  position: relative;
+  min-height: 100%;
+  background: var(--c-paper);
+}
+
+.region:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+.queue {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline: 20%;
+  height: 2px;
+  background: var(--c-pencil-faint);
+}
+
+.queue::after {
+  content: '';
+  position: absolute;
+  inset-block-start: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--c-graphite);
+  animation: queue var(--flow-loop, 6000ms) linear infinite;
+}
+
+@keyframes queue {
+  from {
+    inset-inline-start: 0;
+  }
+  to {
+    inset-inline-start: calc(100% - 8px);
+  }
+}
+
+.note {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border-inline-start: 4px solid var(--c-asphalt);
+  background: var(--c-paper-2);
+}
+
+.note p {
+  margin: 0;
+}
+
+.newTab {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue::after {
+    animation: none;
+  }
+}
