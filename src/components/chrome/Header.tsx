@@ -22,7 +22,7 @@ export function Header() {
           <Wordmark size="header" mark />
           <SheetChip items={site.nav} />
         </Link>
-        <nav aria-label={site.header.navLabel} className={`${s.nav} ${s.wide}`}>
+        <nav aria-label={site.header.navLabel} className={s.wide}>
           <NavLinks items={site.nav} variant="bar" />
         </nav>
         <div className={s.wide}>

@@ -69,6 +69,14 @@
   display: none;
 }
 
+/* A static figure may pass its drawing as the still: stack those layers too. */
+.fig .box > :is(.still, .still-wrap) > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
 .fig .still-img {
   inline-size: 100%;
   block-size: 100%;

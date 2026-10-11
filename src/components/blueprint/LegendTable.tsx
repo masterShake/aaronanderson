@@ -101,7 +101,12 @@ export function LegendTable({
 }) {
   return (
     <div data-compact={compact ? '' : undefined}>
-      <div className="scroll">
+      <div
+        className="scroll"
+        tabIndex={0}
+        role="region"
+        aria-label={captions?.symbols ?? columns[1]}
+      >
         <table className={s.table} data-legend="">
           {captions ? <caption>{captions.symbols}</caption> : null}
           <thead>

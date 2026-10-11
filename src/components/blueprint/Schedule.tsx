@@ -18,7 +18,7 @@ export function Schedule({
   stack?: boolean
 }) {
   return (
-    <div className="scroll">
+    <div className="scroll" tabIndex={0} role="region" aria-label={caption}>
       <table className={s.table} data-stack={stack ? '' : undefined}>
         <caption>{caption}</caption>
         <thead>

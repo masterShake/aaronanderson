@@ -41,6 +41,11 @@
   color: var(--c-asphalt);
 }
 
+/* The footer size always sits on a dark surface. */
+.wordmark[data-size='footer'] {
+  color: var(--c-paper);
+}
+
 /* Narrow phones: the wordmark stacks on two lines, like a title-block cell. */
 .word {
   inline-size: min-content;
@@ -85,7 +90,7 @@
 }
 
 /* Book a call: one line, at least 44 px tall on phones. */
-.book {
+.bar .book {
   flex: none;
   white-space: nowrap;
   min-height: 44px;
@@ -238,6 +243,22 @@
   padding-block-start: var(--s-4);
 }
 
+/* The narrowest phones (360-389 px): tighter type and padding keep one line. */
+@media (max-width: 389px) {
+  .bar .book,
+  .bar .menuButton {
+    padding-inline: var(--s-2);
+    font-size: 0.75rem;
+  }
+}
+
+/* Under 360 px (320 px reflow) the header drops the drawn mark. */
+@media (max-width: 359px) {
+  .header .mark {
+    display: none;
+  }
+}
+
 @media (min-width: 480px) {
   .word {
     inline-size: auto;
@@ -258,7 +279,7 @@
     display: inline-block;
   }
 
-  .book {
+  .bar .book {
     padding-inline: var(--s-5);
     font-size: var(--fs-ui);
   }
@@ -286,7 +307,7 @@
     font-size: 1.5rem;
   }
 
-  .book {
+  .bar .book {
     min-height: 44px;
     padding-inline: var(--s-4);
   }
@@ -439,5 +460,93 @@
 
   .wideCell {
     grid-column: span 2;
+  }
+}
+
+/* ── Error sheets (error.tsx, global-error.tsx) and the 404 sheet ────────── */
+.errorSheet {
+  padding-block: var(--s-8) var(--section-pad);
+}
+
+.errorStrip {
+  margin: 0 0 var(--s-4);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  margin-block: var(--s-6);
+}
+
+.errorNav {
+  max-width: 40rem;
+  padding-block-start: var(--s-5);
+  border-block-start: var(--line-frame) solid var(--c-asphalt);
+}
+
+.errorLinksTitle {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.errorNav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.errorNav li {
+  max-width: none;
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.errorLink {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding-block: var(--s-3);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.errorLink:hover {
+  text-decoration: underline;
+}
+
+.errorLink .indexSheet {
+  color: var(--c-blueprint);
+}
+
+.notFoundHead {
+  padding-block: var(--s-6) var(--s-5);
+}
+
+.notFound {
+  display: grid;
+  gap: var(--s-6);
+  padding-block: var(--s-6) var(--section-pad);
+}
+
+.notFoundLinks .errorActions {
+  margin-block: var(--s-5) 0;
+}
+
+@media (min-width: 1024px) {
+  .notFound {
+    grid-template-columns: 7fr 5fr;
+    align-items: start;
   }
 }

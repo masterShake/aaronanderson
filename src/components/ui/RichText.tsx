@@ -100,8 +100,12 @@ export function RichText({ value, vars, as: As = 'p', className }: RichTextProps
     if (r.show === 'omit') return null
     const parts = render(r.value, vars)
     if (!parts) return null
-    const body = <As className={className}>{parts}</As>
-    return r.pending && r.id ? <ConfirmMark id={r.id}>{body}</ConfirmMark> : body
+    // The mark goes inside the block, so a <p> or <li> keeps valid structure.
+    return (
+      <As className={className}>
+        {r.pending && r.id ? <ConfirmMark id={r.id}>{parts}</ConfirmMark> : parts}
+      </As>
+    )
   }
   const parts = render(value, vars)
   return parts ? <As className={className}>{parts}</As> : null

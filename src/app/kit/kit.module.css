@@ -1,0 +1,54 @@
+/* /kit: the design-system sheet (preview only). Specimen cells on a ruled grid. */
+.group {
+  padding-block: var(--s-7);
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.groupTitle {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.specimens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  border: 1.5px solid var(--c-asphalt);
+}
+
+.cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: var(--s-4);
+  min-width: 0;
+  padding: var(--s-5);
+  outline: 1px solid var(--c-pencil-faint);
+  outline-offset: -0.5px;
+}
+
+.cell > * {
+  max-width: 100%;
+}
+
+.wide {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--s-4);
+}
+
+.dark {
+  background: var(--c-asphalt-deep);
+  color: var(--c-paper);
+}
+
+.h1Sample {
+  max-width: 14ch;
+  margin: 0;
+  font-family: var(--ff-display);
+  font-size: var(--fs-h1);
+  font-weight: 800;
+  line-height: var(--lh-h1);
+  letter-spacing: var(--tr-h1);
+  text-transform: uppercase;
+}

@@ -26,7 +26,7 @@ export function SheetIndexTable({
   caption?: string
 }) {
   return (
-    <div className="scroll">
+    <div className="scroll" tabIndex={0} role="region" aria-label={caption ?? columns.service}>
       <table className={`${s.table} ${s.indexTable}`} data-stack="">
         {caption ? <caption>{caption}</caption> : null}
         <thead>

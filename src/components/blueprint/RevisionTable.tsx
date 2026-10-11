@@ -11,7 +11,7 @@ export function RevisionTable({
   rows: readonly (readonly string[])[]
 }) {
   return (
-    <div className="scroll">
+    <div className="scroll" tabIndex={0} role="region" aria-label={caption}>
       <table className={s.table} data-revisions="">
         <caption>{caption}</caption>
         <thead>
