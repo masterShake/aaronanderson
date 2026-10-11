@@ -113,6 +113,11 @@ npm run perf:lh -- --runs 5 --calibrate --routes /,/services,/how-it-works,/abou
   at about 3.0 s while the throttled load painted the H1 at 1.6 s. Gate LCP on `devtools`,
   and gate CLS and TBT on the worse of the two methods (the throttled load is the one that
   catches late web-font swaps).
+- `--webgl-gate` is the WebGL quality gate's Cost check (TBT on `?tier=webgl` at or under
+  200 ms). The mobile preset never loads 3D (on touch the hero waits until it is 30% visible),
+  so this mode runs the desktop preset with a hardware renderer, measures `/` and
+  `/services#s-02`, and fails any run that never fetched the 3D runtime chunk. Run it as
+  `npm run perf:lh -- --webgl-gate --method devtools --runs 5 --multiplier 7`.
 - Writes `summary.json` (per route: medians of LCP, TBT, CLS, FCP, Speed Index and score,
   with every run) plus the multiplier and benchmarkIndex.
 - Lighthouse numbers swing with machine load. Run it with the machine otherwise idle, and
