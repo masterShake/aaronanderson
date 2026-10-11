@@ -1,12 +1,13 @@
 import type { FigureCopy } from '../types'
 
 /**
- * The org chart on About, DETAIL 1 / G-02 (owner: home-about). Toggles between
- * the usual chain and ours. Hand notes: 1 of the site's 12.
+ * The org chart on About, DETAIL 2 / G-02 (owner: home-about): it follows the
+ * strata on the sheet. Toggles between the usual chain and ours. Hand notes: 1
+ * of the site's 12.
  */
 export const orgChartFigure = {
   id: 'org-chart',
-  detail: 'DETAIL 1 / G-02',
+  detail: 'DETAIL 2 / G-02',
   title: 'ONE WIRE LONG',
   caption: 'The usual chain, and ours.',
   longDescription: [

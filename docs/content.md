@@ -71,9 +71,12 @@ confirm("We don't rip out systems that work.", { id: 'nic.ripOut' })
 - You can also reword the promise before you confirm it.
 
 Pending promises include the "Not in contract." list, the five plates (GUARD, INTERLOCK,
-LOGBOOK, OFF SWITCH, INSPECTION), the About general notes and beliefs line, the Home process
-line, the S-03 "It doesn't sign, pay or send anything…" line, the FAQ answers that promise
-something, and the privacy line.
+LOGBOOK, OFF SWITCH, INSPECTION), the How It Works sign-off line, the About general notes and
+beliefs line, the Home process line, the FAQ answers that promise something, and the privacy
+line. The S-03 "In plain terms" explanation is not a promise, so it shows everywhere.
+
+Nothing outside a CONFIRM promises a fixed fee after the S-01 survey: P-02 says the scope and
+timeline are written down, and the fee waits on `faq.cost` and `claim.home.process`.
 
 ## The punch list
 

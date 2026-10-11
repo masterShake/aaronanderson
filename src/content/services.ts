@@ -1,4 +1,4 @@
-import { confirm, hold } from './hold'
+import { hold } from './hold'
 import type { Service, ServiceId } from './types'
 
 /**
@@ -34,7 +34,7 @@ export const services: readonly Service[] = [
       { item: 'A 90-day roadmap' },
     ],
     shape: {
-      summary: 'About two weeks, fixed fee. The natural first engagement.',
+      summary: 'A fixed fee. The natural first engagement.',
       span: { weeks: [2, 2] },
       price: {
         label: 'Fixed fee, starting at',
@@ -62,7 +62,7 @@ export const services: readonly Service[] = [
       'No double entry, no copy-paste.',
     ],
     plainTerms:
-      'An [[integration]] is plumbing between programs. What goes in one end comes out the other, and nobody carries buckets.',
+      'An [[integration|integration]] is plumbing between programs. What goes in one end comes out the other, and nobody carries buckets.',
     examples: [
       'Project-management software synced with accounting, such as Procore, QuickBooks or Sage.',
       'CRM leads turned into estimates and projects automatically.',
@@ -77,7 +77,10 @@ export const services: readonly Service[] = [
       { item: 'Documentation' },
       { item: 'Alerts when something breaks' },
     ],
-    shape: { summary: 'Two to six weeks for each set of integrations.', span: { weeks: [2, 6] } },
+    shape: {
+      summary: 'Each set is tested on your real records before it goes live.',
+      span: { weeks: [2, 6] },
+    },
     lengthLabel: 'Two to six weeks per integration set',
     walkAwayWith: 'Your tools passing data with no person in the middle',
     pairedWith: ['S-01', 'S-06'],
@@ -93,10 +96,9 @@ export const services: readonly Service[] = [
       'AI agents built into your workflows that read, draft, sort and route work.',
       'A person approves anything that matters.',
     ],
-    plainTerms: confirm(
-      "Think of an [[ai-agent|AI agent]] as a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk. It doesn't sign, pay or send anything unless you've decided it may.",
-      { id: 'claim.s03.plainTerms' },
-    ),
+    // An explanation, not a promise, so it shows everywhere. The sign-off promise is CONFIRMed on How It Works (claim.how.control).
+    plainTerms:
+      "Think of an [[ai-agent|AI agent]] as a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk.",
     examples: [
       'Reading invoices, delivery tickets and submittals, and entering the data.',
       'Drafting RFI responses and daily-report summaries from field notes.',
@@ -109,7 +111,7 @@ export const services: readonly Service[] = [
       { item: 'A simple guide for your team' },
     ],
     shape: {
-      summary: 'Three to eight weeks, usually one workflow at a time.',
+      summary: 'Each workflow runs alongside the old way before it takes over.',
       span: { weeks: [3, 8] },
     },
     lengthLabel: 'Three to eight weeks, one workflow at a time',
@@ -130,7 +132,7 @@ export const services: readonly Service[] = [
     plainTerms:
       'Every system drains into one tank, so every report draws the same water. Ask where a project stands and the answer comes from your own records.',
     examples: [
-      'A job-cost [[dashboard]] that updates itself.',
+      'A job-cost [[dashboard|dashboard]] that updates itself.',
       "A weekly owner's report that writes and sends itself.",
       'Utilization and headcount views for people-operations teams.',
       'A "where are we on this project?" assistant.',
@@ -140,7 +142,7 @@ export const services: readonly Service[] = [
       { item: 'Dashboards and scheduled reports' },
       { item: 'A short handover session' },
     ],
-    shape: { summary: 'Three to six weeks.', span: { weeks: [3, 6] } },
+    shape: { summary: 'Then the dashboards keep themselves up to date.', span: { weeks: [3, 6] } },
     lengthLabel: 'Three to six weeks',
     walkAwayWith: 'Reports that build and send themselves',
     pairedWith: ['S-02', 'S-06'],

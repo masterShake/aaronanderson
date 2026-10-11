@@ -49,8 +49,7 @@ export const seo: SeoContent = {
   },
   contact: {
     title: 'Book a call',
-    description:
-      'Pick a time on our calendar, send a short note or email us, and see exactly what happens next.',
+    description: 'Book a call, send a short note or email us, and see exactly what happens next.',
     og: {
       kicker: 'G-03 · REQUEST FOR INFORMATION',
       title: 'Pick a time. Bring the spreadsheet.',

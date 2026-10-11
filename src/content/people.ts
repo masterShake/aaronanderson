@@ -1,7 +1,21 @@
 import { hold } from './hold'
 import type { PeopleContent } from './types'
 
-/** The crew. Every fact is a HOLD until the owner fills it in; names are essential. */
+/**
+ * The crew's FIELD / OFFICE / CODE tags below are a guess, not a fact: confirm
+ * each person's set (types.ts keeps tags as plain strings, so this HOLD carries
+ * them onto the punch list). Never rendered.
+ */
+export const crewTags = hold(
+  'Crew tags: confirm FIELD, OFFICE and CODE for each person (crew-1 FIELD and OFFICE, crew-2 OFFICE and CODE, crew-3 CODE are a guess)',
+  { id: 'people.tags', kind: 'text', prodFallback: null },
+)
+
+/**
+ * The crew. Every fact is a HOLD until the owner fills it in; names are
+ * essential. Roles have no production fallback: a role nobody has confirmed is
+ * left out rather than shown as fact.
+ */
 export const people: PeopleContent = {
   /** Reads "Actual Engineer is {teamSize} people." */
   teamSize: hold('How many people the crew is, as a word, e.g. three', {
@@ -21,9 +35,9 @@ export const people: PeopleContent = {
       role: hold('Crew member 1: role', {
         id: 'people.crew-1.role',
         kind: 'role',
-        prodFallback: 'Founder',
+        prodFallback: null,
       }),
-      tags: ['FIELD', 'OFFICE'],
+      tags: ['FIELD', 'OFFICE'], // a guess until people.tags is confirmed
       oneLine: hold('Crew member 1: one-line background', {
         id: 'people.crew-1.oneLine',
         kind: 'bio',
@@ -61,9 +75,9 @@ export const people: PeopleContent = {
       role: hold('Crew member 2: role', {
         id: 'people.crew-2.role',
         kind: 'role',
-        prodFallback: 'Founder',
+        prodFallback: null,
       }),
-      tags: ['OFFICE', 'CODE'],
+      tags: ['OFFICE', 'CODE'], // a guess until people.tags is confirmed
       oneLine: hold('Crew member 2: one-line background', {
         id: 'people.crew-2.oneLine',
         kind: 'bio',
@@ -101,9 +115,9 @@ export const people: PeopleContent = {
       role: hold('Crew member 3: role', {
         id: 'people.crew-3.role',
         kind: 'role',
-        prodFallback: 'Founder',
+        prodFallback: null,
       }),
-      tags: ['CODE'],
+      tags: ['CODE'], // a guess until people.tags is confirmed
       oneLine: hold('Crew member 3: one-line background', {
         id: 'people.crew-3.oneLine',
         kind: 'bio',
