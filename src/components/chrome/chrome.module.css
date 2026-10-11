@@ -315,8 +315,9 @@
   }
 }
 
-/* Between 1024 and 1279 px the switch keeps its name but hides its words, so the bar fits. */
-@media (min-width: 1024px) and (max-width: 1279px) {
+/* Between 1024 and 1365 px the switch keeps its name but hides its words, so the bar fits
+   on one row (at 1280 the full bar wrapped Book a call onto a second row). */
+@media (min-width: 1024px) and (max-width: 1365px) {
   .wide [data-variant='header'] > span:last-child {
     position: absolute;
     inline-size: 1px;
