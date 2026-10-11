@@ -1,7 +1,9 @@
 /**
  * The 3D bundle budget (D9, §B10), measured on the last `next build`:
  *   runtime group ≤165 KB gzip-9 (three + the Line2 family + RoomEnvironment + runtime + kit),
- *   each scene chunk ≤6 KB, each route's 3D total ≤180 KB.
+ *   each scene chunk ≤6 KB, each route's 3D total ≤180 KB. A route's total counts the
+ *   runtime plus the scenes SHIP (src/stage/gates.ts) marks 'webgl', which is what
+ *   production loads; the total with every scene is printed as information only.
  *
  * Turbopack loads an async chunk group with
  *   Promise.all(["static/chunks/a.js", …].map(load)).then(() => require(id))
@@ -22,10 +24,34 @@ const NEXT = join(ROOT, '.next')
 const CHUNKS = join(NEXT, 'static/chunks')
 const KB = 1024
 const BUDGET = { runtime: 165, scene: 6, route: 180 }
-/** Which scenes each route can load (worst case: every scene on the page). */
+/** Every scene each route could load (the all-scenes total, printed as information only). */
 const ROUTES = { '/': ['hero'], '/services': ['s02', 's03', 's04', 's06'], '/kit/stage': ['_demo'] }
 /** Measured and reported, never gated: the W0 bundle probe (preview only, ?probe=1). */
 const UNGATED = new Set(['_probe'])
+
+/**
+ * SHIP from src/stage/gates.ts: production registers 3D only for scenes marked 'webgl', so
+ * a route's gated total counts those (W2 handover #2). Preview scenes ('_demo') are not in
+ * SHIP and always count on their preview route.
+ */
+function readShip() {
+  const src = readFileSync(join(ROOT, 'src/stage/gates.ts'), 'utf8')
+  const block = /export const SHIP\b[^=]*=\s*\{([^}]*)\}/.exec(src)?.[1]
+  const ship = {}
+  for (const m of (block ?? '').matchAll(/^\s*(\w+)\s*:\s*'(webgl|svg)'/gm)) ship[m[1]] = m[2]
+  const missing = Object.values(ROUTES)
+    .flat()
+    .filter((id) => !id.startsWith('_') && !(id in ship))
+  if (!block || missing.length) {
+    console.error(
+      `perf:3d: could not read SHIP for ${missing.join(', ') || 'any scene'} in gates.ts`,
+    )
+    process.exit(2)
+  }
+  return ship
+}
+const SHIP = readShip()
+const ships = (id) => id.startsWith('_') || SHIP[id] === 'webgl'
 
 if (!existsSync(CHUNKS)) {
   console.error('perf:3d: no .next/static/chunks; run a build first (npm run build)')
@@ -73,7 +99,13 @@ const report = {
   scenes: Object.fromEntries(
     Object.entries(scenes).map(([id, l]) => [id, { kb: kb(sum(l)), chunks: l }]),
   ),
+  ship: SHIP,
+  /** Gated, KB: the runtime plus the scenes SHIP marks 'webgl' (what production loads). */
   routes: {},
+  /** The scenes each gated route total counts. */
+  routeScenes: {},
+  /** Information only, KB: the runtime plus every scene the route could load. */
+  routesAllScenes: {},
   failures: [],
 }
 if (report.runtime.kb > BUDGET.runtime)
@@ -81,11 +113,17 @@ if (report.runtime.kb > BUDGET.runtime)
 for (const [id, s] of Object.entries(report.scenes))
   if (!UNGATED.has(id) && s.kb > BUDGET.scene)
     report.failures.push(`scene ${id} ${s.kb} KB > ${BUDGET.scene} KB`)
-for (const [route, ids] of Object.entries(ROUTES)) {
+const routeKb = (ids) => {
   const all = new Set(runtime)
   for (const id of ids) for (const c of scenes[id] ?? []) all.add(c)
-  const total = kb(sum([...all]))
+  return kb(sum([...all]))
+}
+for (const [route, ids] of Object.entries(ROUTES)) {
+  const shipped = ids.filter(ships)
+  const total = routeKb(shipped)
   report.routes[route] = total
+  report.routeScenes[route] = shipped
+  report.routesAllScenes[route] = routeKb(ids)
   if (total > BUDGET.route) report.failures.push(`route ${route} ${total} KB > ${BUDGET.route} KB`)
 }
 
@@ -93,7 +131,11 @@ console.log(`3D runtime group: ${report.runtime.kb} KB gzip (budget ${BUDGET.run
 for (const [k, v] of report.runtime.chunks) console.log(`  ${k}  ${v} KB`)
 for (const [id, s] of Object.entries(report.scenes))
   console.log(`scene ${id}: ${s.kb} KB${UNGATED.has(id) ? ' (not gated)' : ''}`)
-for (const [r, v] of Object.entries(report.routes)) console.log(`route ${r}: ${v} KB 3D total`)
+for (const [r, v] of Object.entries(report.routes))
+  console.log(
+    `route ${r}: ${v} KB 3D total (shipped: ${report.routeScenes[r].join(', ') || 'none'}; ` +
+      `all scenes ${report.routesAllScenes[r]} KB, information only)`,
+  )
 if (process.env.ARTIFACTS_DIR) {
   mkdirSync(process.env.ARTIFACTS_DIR, { recursive: true })
   writeFileSync(join(process.env.ARTIFACTS_DIR, '3d-bundle.json'), JSON.stringify(report, null, 2))

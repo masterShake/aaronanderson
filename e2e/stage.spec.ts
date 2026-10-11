@@ -1,5 +1,7 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { HANDOFF_P, MOTION_FROM_P, SCRUB } from '../src/motion/timing'
+import { SHIP } from '../src/stage/gates'
 
 /**
  * The Stage on the gpu project (real Chrome, --use-angle=metal). A
@@ -378,6 +380,109 @@ test('canvas strokes follow the SVG stroke scale (--k on the CAD layer)', async 
     expect(r, JSON.stringify(w)).toBeLessThan(1.14)
   }
   expect(guard.errors).toEqual([])
+})
+
+/**
+ * /services at a steady reading pace (60 px per wheel tick every 200 ms, craft-11): every shipped
+ * service scene hands off on the real page, at a p between its HANDOFF_P and MOTION_FROM_P. One
+ * tick can move p further than the .04 window, and the scene can arm after p passed it.
+ */
+test.describe('/services: shipped scenes hand off during a steady scroll', () => {
+  /**
+   * Opens /services with the figure's track 1.6 viewports below the top of the screen: near
+   * enough for its drawing layers to load (and the figure's scroll driver to attach), far enough
+   * that the driver's first look does not see the track (which would hold p at 1 until the track
+   * had left the screen once, scroll-driver.ts).
+   */
+  async function open(page: Page, fig: string) {
+    await page.goto('/services?tier=webgl')
+    await page.waitForLoadState('load')
+    await expect(page.locator(fig)).toHaveAttribute('data-phase', /.+/)
+    await page.locator(fig).evaluate((el) => {
+      const track = el.closest('section')!.querySelector('[data-scrub-track]')!
+      const y = track.getBoundingClientRect().top + scrollY - 1.6 * innerHeight
+      window.scrollTo(0, Math.max(0, y))
+    })
+    await expect(page.locator(fig)).toHaveAttribute('data-layers', 'ready', { timeout: 15_000 })
+    await page.waitForTimeout(500)
+  }
+
+  for (const id of ['s02', 's06'] as const) {
+    test(id, async ({ page, guard }) => {
+      test.skip(SHIP[id] !== 'webgl', `${id} ships as svg`)
+      test.setTimeout(120_000)
+      const fig = `#fig-${id}`
+      await open(page, fig)
+      await page.locator(fig).evaluate((el) => {
+        const w = window as unknown as { __handoffP?: number }
+        new MutationObserver(() => {
+          if (el.dataset.stage === 'handoff' && w.__handoffP === undefined)
+            w.__handoffP = parseFloat(el.style.getPropertyValue('--p'))
+        }).observe(el, { attributes: true, attributeFilter: ['data-stage'] })
+      })
+      await page.mouse.move(720, 450)
+      const p = () =>
+        page.locator(fig).evaluate((el) => parseFloat(el.style.getPropertyValue('--p')))
+      for (let i = 0; i < 300 && !((await p()) >= 0.999); i++) {
+        await page.mouse.wheel(0, 60)
+        await page.waitForTimeout(200)
+      }
+      expect(await p(), 'the scrub reached its end').toBeGreaterThanOrEqual(0.999)
+      const at = await page.evaluate(
+        () => (window as unknown as { __handoffP?: number }).__handoffP,
+      )
+      expect(at, `${id} handed off`).toBeDefined()
+      expect(at!).toBeGreaterThanOrEqual(HANDOFF_P[id])
+      expect(at!).toBeLessThanOrEqual(MOTION_FROM_P[id])
+      await expect(page.locator(fig)).toHaveAttribute('data-stage', 'webgl')
+      test.info().annotations.push({ type: `${id} handoff p`, description: String(at) })
+      expect(guard.errors).toEqual([])
+    })
+  }
+
+  /** Scrolls so the figure's scrub (scroll-driver: sticky top over the section's track) is at p. */
+  const scrollToP = (page: Page, fig: string, p: number) =>
+    page.locator(fig).evaluate((el, p) => {
+      const track = el.closest('section')!.querySelector<HTMLElement>('[data-scrub-track]')!
+      const top = parseFloat(getComputedStyle(el).top) || 0
+      const r = track.getBoundingClientRect()
+      const span = Math.max(1, r.height - (el as HTMLElement).offsetHeight)
+      window.scrollTo(0, r.top + scrollY - top + p * span)
+    }, p)
+  const armed = (page: Page, id: string) =>
+    page.evaluate(
+      (id) => (window.__aeStage?.state() as State | undefined)?.figs?.find((f) => f.scene === id),
+      id,
+    )
+
+  for (const id of ['s02', 's06'] as const) {
+    test(`${id}: one step across the whole window still hands off`, async ({ page, guard }) => {
+      test.skip(SHIP[id] !== 'webgl', `${id} ships as svg`)
+      const fig = `#fig-${id}`
+      await open(page, fig)
+      await scrollToP(page, fig, Math.max(0, HANDOFF_P[id] - 0.03))
+      await expect.poll(async () => (await armed(page, id))?.arm, { timeout: 30_000 }).toBe('armed')
+      await expect(page.locator(fig)).toHaveAttribute('data-stage', 'svg')
+      await scrollToP(page, fig, HANDOFF_P[id] + SCRUB.handoffWindow + 0.04)
+      await expect(page.locator(fig)).toHaveAttribute('data-stage', 'webgl', { timeout: 3000 })
+      expect(guard.errors).toEqual([])
+    })
+
+    test(`${id}: armed after p passed the window still hands off`, async ({ page, guard }) => {
+      test.skip(SHIP[id] !== 'webgl', `${id} ships as svg`)
+      const fig = `#fig-${id}`
+      await open(page, fig)
+      const mid = (HANDOFF_P[id] + MOTION_FROM_P[id]) / 2
+      await scrollToP(page, fig, mid)
+      await expect
+        .poll(() =>
+          page.locator(fig).evaluate((el) => parseFloat(el.style.getPropertyValue('--p'))),
+        )
+        .toBeCloseTo(mid, 1)
+      await expect(page.locator(fig)).toHaveAttribute('data-stage', 'webgl', { timeout: 30_000 })
+      expect(guard.errors).toEqual([])
+    })
+  }
 })
 
 test('?frame=plan holds the demo at its hand-off frame', async ({ page, guard }) => {
