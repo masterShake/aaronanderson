@@ -127,7 +127,11 @@ test('rig matches the iso print (drawings/lib/iso fitIso)', async () => {
     const p = new Vector3(120, 40, 300)
     let theirs: unknown = null
     try {
-      theirs = (lib.isoProject as (x: number, y: number, z: number) => unknown)(p.x, p.y, p.z)
+      // drawings/lib/iso: isoProject(planPoint [x, z], height y) -> [right, down]
+      theirs = (lib.isoProject as (plan: readonly [number, number], z: number) => unknown)(
+        [p.x, p.z],
+        p.y,
+      )
     } catch {
       test.info().annotations.push({ type: 'parity', description: 'isoProject signature differs' })
     }
