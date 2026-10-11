@@ -1,0 +1,264 @@
+import type { Graph, GraphView, LayoutId, Port, Pt, ViewBox } from '../types'
+import { applyView, routeGraph, type Routed } from '../lib/route'
+import { ticketGraph, type TicketLabel, type TicketRev } from '../graphs/ticket'
+
+/**
+ * Layout of the ticket figure (pages-drawings §6 table: wide 960 × 720, tall
+ * 400 × 500). The left part of the sheet (the ticket, the truck, the field
+ * lead) never changes; tracing paper, then the deep panel, cover the rest.
+ * `at` is a box's top-left corner. Isomorphic, no strings.
+ */
+
+type Rect = readonly [x: number, y: number, w: number, h: number]
+
+export const TICKET_VIEW: GraphView<TicketRev> = {
+  id: 'ticket',
+  graph: 'ticket',
+  nodes: ticketGraph.nodes.map((n) => n.id),
+  routes: ticketGraph.routes.map((r) => r.id),
+  viewBox: { wide: [0, 0, 960, 720], tall: [0, 0, 400, 500] },
+  layout: {
+    ticket: { at: [24, 24], atTall: [244, 12] },
+    truck: { at: [24, 216], atTall: [16, 12] },
+    field: { at: [24, 344], atTall: [16, 84] },
+    pm: { at: [312, 32], atTall: [16, 164] },
+    inbox: { at: [534, 32], atTall: [244, 164] },
+    office: { at: [756, 32], atTall: [244, 236] },
+    po: { at: [534, 168], atTall: [16, 236] },
+    accounting: { at: [756, 168], atTall: [244, 308] },
+    jobCost: { at: [312, 168], atTall: [16, 308] },
+    match: { at: [420, 344], atTall: [16, 380] },
+    acct: { at: [756, 344], atTall: [244, 380] },
+    job: { at: [756, 504], atTall: [244, 444] },
+  },
+}
+
+/** Fixed ports and bends per family, where the automatic router needs a hand. */
+const PORTS: Readonly<Record<LayoutId, Readonly<Record<string, Readonly<Record<string, Port>>>>>> =
+  {
+    wide: {
+      field: { photo: { side: 'e', at: 0.5 } },
+      pm: { w: { side: 'w', at: 0.5 } },
+      inbox: { out: { side: 'e', at: 0.4 } },
+      office: {
+        in: { side: 'w', at: 0.4 },
+        po: { side: 'w', at: 0.85 },
+        acct: { side: 's', at: 0.85 },
+      },
+      po: { in: { side: 'n', at: 0.5 } },
+      accounting: { in: { side: 'n', at: 0.85 } },
+    },
+    tall: { field: { e: { side: 'e', at: 0.5 } } },
+  }
+const VIA: Readonly<Record<LayoutId, Readonly<Record<string, readonly Pt[]>>>> = {
+  wide: {
+    r2: [
+      [262, 376],
+      [262, 64],
+    ],
+    r5: [
+      [735, 86.4],
+      [735, 136],
+      [624, 136],
+    ],
+  },
+  tall: {
+    n1: [
+      [200, 108],
+      [200, 362],
+      [86, 362],
+    ],
+  },
+}
+
+/** The ticket graph laid out for one family (positions, fixed ports and bends). */
+export function ticketGraphFor(family: LayoutId): Graph<TicketLabel, TicketRev> {
+  const g = applyView(ticketGraph, TICKET_VIEW)
+  return {
+    ...g,
+    nodes: g.nodes.map((n) => {
+      const p = PORTS[family][n.id]
+      return p ? { ...n, ports: { ...n.ports, ...p } } : n
+    }),
+    routes: g.routes.map((r) => {
+      const via = VIA[family][r.id]
+      return via ? { ...r, via } : r
+    }),
+  }
+}
+
+/** The longest straight run of a polyline (instruments never straddle a bend). */
+function longest(pts: readonly Pt[]): readonly [Pt, Pt] {
+  let a = pts[0]!
+  let b = pts[1] ?? pts[0]!
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1]!
+    const q = pts[i]!
+    if (Math.hypot(q[0] - p[0], q[1] - p[1]) > Math.hypot(b[0] - a[0], b[1] - a[1])) {
+      a = p
+      b = q
+    }
+  }
+  return [a, b]
+}
+
+const along = (seg: readonly [Pt, Pt], t: number): Pt => [
+  seg[0][0] + (seg[1][0] - seg[0][0]) * t,
+  seg[0][1] + (seg[1][1] - seg[0][1]) * t,
+]
+
+export interface TicketGeometry {
+  graph: Graph<TicketLabel, TicketRev>
+  /** Routed corner points of every route, as found (rev0) and rewired (rev1 on). */
+  old: ReadonlyMap<string, Routed>
+  neu: ReadonlyMap<string, Routed>
+  ai: Pt
+  tolerance: Pt
+  /** The exception branch: off the line, down, along, back up. */
+  branch: readonly Pt[]
+  valve: Pt
+  packets: readonly Pt[]
+  monitor: Pt
+  watch: Pt
+  flange: Pt
+}
+
+/** Where every instrument and mark sits, shared by the drawing and the HTML labels. */
+export function ticketGeometry(family: LayoutId): TicketGeometry {
+  const graph = ticketGraphFor(family)
+  const old = routeGraph(graph, 'rev0', family, { bend: 0 })
+  const neu = routeGraph(graph, 'rev1', family)
+  const ex = TICKET_EXTRAS[family]
+  const n1 = longest(neu.get('n1')!.pts)
+  const n2 = longest(neu.get('n2')!.pts)
+  const [f, t, drop] = ex.branch
+  const a = along(n2, f)
+  const b = along(n2, t)
+  const branch: Pt[] = [a, [a[0], a[1] + drop], [b[0], b[1] + drop], b]
+  const seg = (r: 'n1' | 'n2') => (r === 'n1' ? n1 : n2)
+  return {
+    graph,
+    old,
+    neu,
+    ai: along(n1, 0.5),
+    tolerance: along(n2, ex.tolerance),
+    branch,
+    valve: [(a[0] + b[0]) / 2, a[1] + drop],
+    packets: ex.packets.map(([r, at]) => along(seg(r), at)),
+    monitor: ex.monitor[0],
+    watch: [ex.monitor[0][0], along(n2, ex.monitor[2])[1]],
+    flange: along(n2, ex.flange),
+  }
+}
+
+/** Everything drawn beside the graph, per family. */
+export interface TicketExtras {
+  viewBox: ViewBox
+  /** The tracing paper (REV 1), then the deep panel (REV 2 on). */
+  zone: Rect
+  /** Symbol scale for instruments. */
+  k: number
+  /** Scale figures: the field lead with a phone, the project manager at the valve (wide only). */
+  people: readonly { id: string; symbol: 'fig.phone' | 'fig.at-valve'; feet: Pt; k: number }[]
+  /** Tape measure under the hand-off count. */
+  tape: Rect
+  /** Where along n1 the AI reader sits, and n2's tolerance and exception branch (fractions). */
+  tolerance: number
+  branch: readonly [from: number, to: number, drop: number]
+  /** The redline cloud around the sign-off (REV 1). */
+  cloud: Rect
+  /** Test packets (REV 2), as fractions along n1, n1, n2. */
+  packets: readonly (readonly [route: 'n1' | 'n2', t: number])[]
+  /** The hand-over documents (REV 3): rect and rotation. */
+  docs: readonly (readonly [key: TicketLabel, rect: Rect, deg: number])[]
+  /** Monitor centre (REV 4) and the point on the line it watches. */
+  monitor: readonly [at: Pt, watch: 'n2', t: number]
+  /** The flange that pulses on n2 (fraction). */
+  flange: number
+  /** Box sizes of the label tags that are not nodes (x, y, width in user units). */
+  tags: Readonly<Record<string, Rect>>
+}
+
+export const TICKET_EXTRAS: Readonly<Record<LayoutId, TicketExtras>> = {
+  wide: {
+    viewBox: [0, 0, 960, 720],
+    zone: [288, 0, 672, 720],
+    k: 1.3,
+    people: [
+      { id: 'lead', symbol: 'fig.phone', feet: [150, 532], k: 1.5 },
+      { id: 'signer', symbol: 'fig.at-valve', feet: [628, 548], k: 1.3 },
+    ],
+    tape: [24, 616, 216, 16],
+    tolerance: 0.16,
+    branch: [0.3, 0.86, 44],
+    cloud: [636, 380, 110, 72],
+    packets: [
+      ['n1', 0.22],
+      ['n1', 0.72],
+      ['n2', 0.55],
+    ],
+    docs: [
+      ['doc.guide', [500, 64, 132, 92], -6],
+      ['doc.walkthrough', [646, 56, 132, 92], 0],
+      ['doc.guideline', [792, 64, 132, 92], 6],
+    ],
+    monitor: [[690, 286], 'n2', 0.58],
+    flange: 0.88,
+    tags: {
+      tape: [24, 640, 216, 40],
+      ai: [290, 402, 120, 20],
+      tolerance: [566, 318, 150, 20],
+      signOff: [420, 452, 180, 60],
+      markup: [420, 560, 300, 44],
+      test: [222, 346, 70, 20],
+      parallel: [312, 252, 220, 20],
+      punch: [312, 56, 172, 96],
+      monitor: [716, 262, 120, 20],
+      fixed: [716, 290, 200, 20],
+      photoNote: [280, 248, 140, 40],
+      poNote: [560, 240, 140, 40],
+      'carry.paper': [128, 308, 140, 20],
+      'carry.photo': [276, 318, 130, 20],
+      'carry.forward': [470, 8, 140, 20],
+      'carry.print': [690, 8, 140, 20],
+      'carry.po': [556, 102, 160, 20],
+      'carry.lines': [760, 102, 140, 20],
+    },
+  },
+  tall: {
+    viewBox: [0, 0, 400, 500],
+    zone: [0, 148, 400, 352],
+    k: 1,
+    people: [],
+    tape: [244, 100, 140, 10],
+    tolerance: 0.2,
+    branch: [0.36, 0.86, 26],
+    cloud: [176, 404, 66, 40],
+    packets: [
+      ['n1', 0.3],
+      ['n1', 0.62],
+      ['n2', 0.5],
+    ],
+    docs: [
+      ['doc.guide', [20, 170, 120, 64], -6],
+      ['doc.walkthrough', [254, 170, 120, 64], 6],
+      ['doc.guideline', [254, 256, 120, 64], 0],
+    ],
+    monitor: [[226, 338], 'n2', 0.8],
+    flange: 0.9,
+    tags: {
+      tape: [244, 114, 140, 30],
+      ai: [212, 226, 90, 20],
+      tolerance: [160, 360, 80, 20],
+      signOff: [16, 440, 168, 52],
+      markup: [16, 300, 180, 48],
+      test: [208, 160, 60, 20],
+      parallel: [164, 136, 120, 14],
+      punch: [16, 252, 170, 80],
+      monitor: [252, 322, 132, 20],
+      fixed: [252, 344, 132, 20],
+      photoNote: [100, 136, 140, 20],
+      poNote: [160, 262, 80, 40],
+    },
+  },
+}

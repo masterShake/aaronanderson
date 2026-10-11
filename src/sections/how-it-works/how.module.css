@@ -1,0 +1,243 @@
+/*
+ * How It Works (P-00): the steps beside the sticky ticket figure, the sign-off
+ * detail and its plates, the legend, and the FAQ as an RFI log.
+ * Nothing is sticky below 1024 px.
+ */
+
+/* ── Ticket intro and the steps ─────────────────────────────────────────── */
+.intro {
+  padding-block-end: 0;
+}
+
+.process {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.figureCol {
+  display: none;
+}
+
+.steps {
+  min-width: 0;
+}
+
+.step {
+  display: grid;
+  gap: var(--s-4);
+  align-content: start;
+  max-inline-size: 48rem;
+}
+
+.step + .step {
+  border-block-start: 1px solid var(--c-pencil-faint);
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.stepId {
+  font-family: var(--ff-mono);
+  font-size: 0.55em;
+  letter-spacing: var(--tr-label);
+  vertical-align: 0.2em;
+}
+
+.stampRow {
+  margin: 0;
+}
+
+.still {
+  margin: 0;
+  max-inline-size: 24rem;
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+}
+
+.still img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 400 / 500;
+}
+
+.still figcaption {
+  padding: var(--s-2) var(--s-3);
+  border-block-start: 1px solid var(--c-asphalt);
+  color: var(--c-graphite);
+  font-size: var(--fs-small);
+}
+
+.revisions {
+  padding-block: var(--s-6) var(--section-pad);
+}
+
+/* ── Where the machine stops: the detail and its plates ─────────────────── */
+.control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+}
+
+.valveCol {
+  min-width: 0;
+}
+
+.plates {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plate {
+  padding: var(--s-3) var(--s-4);
+  border: 1.5px solid var(--c-asphalt);
+  outline: 1px solid var(--c-asphalt);
+  outline-offset: 3px;
+  background: var(--c-paper-2);
+}
+
+.plateTitle {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: 0.1em;
+}
+
+/* ── FAQ as an RFI log ──────────────────────────────────────────────────── */
+.logLabel {
+  margin: 0 0 var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiLog {
+  max-inline-size: 56rem;
+  border-block-start: 1.5px solid var(--c-asphalt);
+  counter-reset: rfi;
+}
+
+.rfi {
+  border-block-end: 1px solid var(--c-asphalt);
+  counter-increment: rfi;
+}
+
+.rfiQ {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  min-block-size: 44px;
+  padding: var(--s-3) 0;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+}
+
+.rfiQ::-webkit-details-marker {
+  display: none;
+}
+
+.rfiQ::before {
+  content: 'RFI-' counter(rfi, decimal-leading-zero);
+  flex: none;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  font-weight: 400;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiQ:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.rfiText {
+  flex: 1 1 16rem;
+}
+
+.rfiStatus {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 400;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.rfiA {
+  padding: 0 0 var(--s-4) calc(4.5em);
+  max-inline-size: var(--measure);
+}
+
+.rfiA > p {
+  margin: 0;
+}
+
+@media (width < 640px) {
+  .rfiA {
+    padding-inline-start: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .control {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gutter);
+  }
+
+  .controlHead {
+    grid-column: 1 / -1;
+  }
+
+  .valveCol {
+    grid-column: 1 / 9;
+  }
+
+  .plates {
+    grid-column: 9 / 13;
+  }
+}
+
+@media (min-width: 1024px) {
+  .process {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gutter);
+  }
+
+  .steps {
+    grid-column: 1 / 7;
+    grid-row: 1;
+  }
+
+  .figureCol {
+    display: block;
+    grid-column: 7 / 13;
+    grid-row: 1;
+    padding-block: var(--section-pad);
+  }
+
+  .sticky {
+    position: sticky;
+    top: var(--sticky-top);
+    max-block-size: calc(100svh - var(--header-h) - 48px);
+  }
+
+  /* Keep the whole figure on screen: limit its width by the viewport height. */
+  .sticky > :global(figure) {
+    inline-size: min(100%, calc((100svh - var(--header-h) - 48px - 7rem) * 4 / 3));
+    margin-inline-start: auto;
+  }
+
+  .still {
+    display: none;
+  }
+}

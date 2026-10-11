@@ -1,34 +1,54 @@
+import type { ReactNode } from 'react'
 import { howItWorks } from '@/content/pages/how-it-works'
 import { faq } from '@/content/faq'
-import { isHold, resolveHeld } from '@/content/hold'
+import { isConfirm, isHold, resolveClaim, resolveHeld } from '@/content/hold'
+import type { Confirm, Rich } from '@/content/types'
 import { RichText } from '@/components/ui/RichText'
 import { HoldChip } from '@/components/blueprint/HoldChip'
 import { SectionHead } from '@/components/blueprint/SectionHead'
+import s from './how.module.css'
 
-/** Questions people ask before they book, as an RFI log (W0 stub; owner: how). */
+/**
+ * Questions people ask before they book, as an RFI log: native <details>, so
+ * every item opens and closes with the keyboard and without JS. Each summary
+ * is numbered RFI-01, RFI-02 … by a CSS counter. Answers only the owner can
+ * give are HOLDs; answers that promise something are CONFIRMs (both preview only).
+ */
 export function FaqSection() {
   const c = howItWorks.faq
+  const items = faq.flatMap((f) => {
+    let answer: ReactNode
+    let open = false
+    if (isHold(f.a)) {
+      const r = resolveHeld(f.a)
+      if (r.show === 'omit') return []
+      answer = r.show === 'hold' ? <HoldChip hold={r.hold} /> : <p>{r.text}</p>
+      open = r.show === 'hold'
+    } else if (isConfirm(f.a)) {
+      if (resolveClaim(f.a as Confirm<Rich>).show === 'omit') return []
+      answer = <RichText value={f.a as Confirm<Rich>} />
+    } else answer = <RichText value={f.a} />
+    return [{ id: f.id, q: f.q, answer, open }]
+  })
   return (
-    <section id={c.id} aria-labelledby={`${c.id}-title`} className="wrap">
+    <section id={c.id} aria-labelledby={`${c.id}-title`} className={`wrap ${s.faq}`}>
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
-      {faq.map((f) => {
-        if (isHold(f.a)) {
-          const r = resolveHeld(f.a)
-          if (r.show === 'omit') return null
-          return (
-            <details key={f.id}>
-              <summary>{f.q}</summary>
-              {r.show === 'hold' ? <HoldChip hold={r.hold} /> : <p>{r.text}</p>}
-            </details>
-          )
-        }
-        return (
-          <details key={f.id}>
-            <summary>{f.q}</summary>
-            <RichText value={f.a} />
+      <p className={s.logLabel} aria-hidden="true">
+        {c.logLabel}
+      </p>
+      <div className={s.rfiLog}>
+        {items.map((f) => (
+          <details key={f.id} id={`rfi-${f.id}`} className={s.rfi}>
+            <summary className={s.rfiQ}>
+              <span className={s.rfiText}>{f.q}</span>
+              <span className={s.rfiStatus} aria-hidden="true">
+                {f.open ? c.open : c.closed}
+              </span>
+            </summary>
+            <div className={s.rfiA}>{f.answer}</div>
           </details>
-        )
-      })}
+        ))}
+      </div>
     </section>
   )
 }
