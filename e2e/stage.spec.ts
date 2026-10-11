@@ -245,6 +245,53 @@ test('?ship= promotes an svg-gated scene outside production', async ({ page }) =
   expect(Object.values(s!.ship).every(Boolean)).toBe(true)
 })
 
+test.describe('service scenes: WebGL only at 1024 px and up with a fine pointer (D3)', () => {
+  const S02 = '/kit/fig/s02?tier=webgl'
+  /** Visits the s02 harness and reports whether the runtime chunk was fetched or loaded. */
+  async function visit(page: Page) {
+    const js: string[] = []
+    page.on('response', async (r) => {
+      if (!r.url().endsWith('.js')) return
+      const body = await r.text().catch(() => '')
+      if (/WebGLRenderer|stage-canvas/.test(body)) js.push(r.url())
+    })
+    await page.goto(S02)
+    await page.waitForLoadState('load')
+    await page.locator('#fig-s02').scrollIntoViewIfNeeded()
+    return js
+  }
+
+  test('a wide desktop with a fine pointer prefetches the runtime', async ({ page, guard }) => {
+    const js = await visit(page)
+    await expect(page.locator('html')).toHaveAttribute('data-stage-runtime', 'loaded', {
+      timeout: 15_000,
+    })
+    expect(js.length).toBeGreaterThan(0)
+    expect(guard.errors).toEqual([])
+  })
+
+  test('below 1024 px: no probe, no prefetch', async ({ page, guard }) => {
+    await page.setViewportSize({ width: 900, height: 900 })
+    const js = await visit(page)
+    await page.waitForTimeout(2500)
+    expect(js).toEqual([])
+    await expect(page.locator('html')).not.toHaveAttribute('data-stage-runtime', 'loaded')
+    expect(guard.errors).toEqual([])
+  })
+
+  test.describe('touch', () => {
+    test.use({ hasTouch: true })
+    test('a coarse pointer at 1440 px: no probe, no prefetch', async ({ page, guard }) => {
+      const js = await visit(page)
+      expect(await page.evaluate(() => matchMedia('(pointer: fine)').matches)).toBe(false)
+      await page.waitForTimeout(2500)
+      expect(js).toEqual([])
+      await expect(page.locator('html')).not.toHaveAttribute('data-stage-runtime', 'loaded')
+      expect(guard.errors).toEqual([])
+    })
+  })
+})
+
 /**
  * Line widths across horizontal plan lines, in device px: for each point (viewBox units, on a
  * horizontal line), the ink summed down a ±12 unit column, over the ink of a full pixel.

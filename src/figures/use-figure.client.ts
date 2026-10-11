@@ -64,9 +64,22 @@ export function bindStage(
   }
 }
 
-export function useFigure(id: FigureId, config: FigureConfig): FigureApi {
+/**
+ * `onStageEvent` gets every Stage event for the figure (ready, handoff, handback, beat,
+ * fallback with atMs). It is kept in a ref, so passing a new function each render never
+ * re-registers the figure.
+ */
+export function useFigure(
+  id: FigureId,
+  config: FigureConfig,
+  onStageEvent?: (e: StageEvent) => void,
+): FigureApi {
   const root = useRef<HTMLElement | null>(null)
   const handle = useRef<FigureHandle | null>(null)
+  const onEvent = useRef(onStageEvent)
+  useEffect(() => {
+    onEvent.current = onStageEvent
+  }, [onStageEvent])
   useEffect(() => {
     const el = document.getElementById(figureDomId(id))
     root.current = el
@@ -86,7 +99,11 @@ export function useFigure(id: FigureId, config: FigureConfig): FigureApi {
     }
     offs.push(watchOffscreen(el))
     if (config.stage && !still) {
-      const bound = bindStage(el, { scene: config.stage.scene, mode: config.stage.mode })
+      const bound = bindStage(el, {
+        scene: config.stage.scene,
+        mode: config.stage.mode,
+        onEvent: (e) => onEvent.current?.(e),
+      })
       if (bound) {
         handle.current = bound.handle
         offs.push(() => {

@@ -16,6 +16,7 @@ import { HERO_TOUCH_3D, SHIP } from './gates'
 import { downgrade, getTier, setTier } from './tier'
 import { coarsePointer, ineligible, probe, type Probe } from './probe'
 import { LOAD } from '@/motion/timing/global'
+import { BREAKPOINT } from '@/styles/tokens'
 import { afterLoad, whenIdle } from '@/motion/visibility'
 import { MARK } from './types'
 
@@ -92,6 +93,21 @@ const noop: FigureHandle = {
 const isDev = (s: AnySceneId): s is DevSceneId => s === '_demo' || s === '_probe'
 const NOT_PROD = process.env.SITE_ENV !== 'production'
 
+/** D3: service figures run WebGL only at 1024 px and up with a fine pointer. */
+export const SERVICE_3D_QUERY = `(min-width: ${BREAKPOINT.lg}px) and (pointer: fine)`
+
+/**
+ * Whether this viewport may run `scene` as WebGL. The hero (HERO_TOUCH_3D) and the preview
+ * scenes are not gated here; every service scene needs SERVICE_3D_QUERY. Checked when a
+ * figure registers and before any prefetch, so a tablet or phone never fetches the runtime
+ * for a services page. SSR-safe.
+ */
+export function viewportAllows(scene: AnySceneId): boolean {
+  if (scene === 'hero' || isDev(scene)) return true
+  if (typeof matchMedia !== 'function') return false
+  return matchMedia(SERVICE_3D_QUERY).matches
+}
+
 /** Scenes ?ship=<id>,<id> or ?ship=all promotes to webgl outside production (W0 addendum 1). */
 function shipOverride(): ReadonlySet<string> {
   if (!NOT_PROD || typeof location === 'undefined') return new Set()
@@ -152,6 +168,7 @@ class Host {
     if (this.failed) return this.failed
     if (!shipped(scene)) return 'ineligible'
     if (scene === 'hero' && HERO_TOUCH_3D === 'deferred' && coarsePointer()) return 'ineligible'
+    if (!viewportAllows(scene)) return 'ineligible'
     if (ineligible()) return 'ineligible'
     return null
   }
