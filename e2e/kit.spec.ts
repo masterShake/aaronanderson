@@ -409,6 +409,23 @@ test('404 sheet: one H1, links to all five sheets, Book a call, static cloud', a
 })
 
 // ── Intent prefetch (§B10 initial JS, W2 handover #1) ────────────────────────
+test('footer and 404 sheet lists put the plain label before the sheet number', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/no-such-sheet')
+  const lists = [
+    page.getByRole('contentinfo').getByRole('navigation', { name: site.titleBlock.sheetIndex }),
+    page.getByRole('navigation', { name: notFound.links }),
+  ]
+  for (const nav of lists)
+    for (const it of site.nav) {
+      const text = (await nav.locator(`a[href="${it.href}"]`).innerText()).trim().toUpperCase()
+      expect(text.startsWith(it.label.toUpperCase()), `"${text}" starts with ${it.label}`).toBe(
+        true,
+      )
+      expect(text).toContain(it.sheet.toUpperCase())
+    }
+})
+
 test('links to other sheets prefetch on intent, never on viewport', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   const prefetched: string[] = []

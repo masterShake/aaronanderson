@@ -28,7 +28,7 @@ export default function Error({
       onRetry={() => (retry ?? reset)?.()}
       link={(it) => (
         <IntentLink href={it.href} className={navStyles.errorLink}>
-          <span className={navStyles.indexSheet}>{it.sheet}</span> {it.label}
+          {it.label} <span className={navStyles.indexSheet}>{it.sheet}</span>
         </IntentLink>
       )}
     />

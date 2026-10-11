@@ -39,7 +39,7 @@ export default function NotFound() {
               {site.nav.map((it) => (
                 <li key={it.page}>
                   <IntentLink href={it.href} className={s.errorLink}>
-                    <span className={s.indexSheet}>{it.sheet}</span> {it.label}
+                    {it.label} <span className={s.indexSheet}>{it.sheet}</span>
                   </IntentLink>
                 </li>
               ))}
