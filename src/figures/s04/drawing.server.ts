@@ -10,6 +10,7 @@ import {
   S04_DIALS,
   S04_LAYOUT,
   S04_TILES,
+  capsulePts,
   type Rect,
   type S04Reading,
 } from '@/drawings/views/s04'
@@ -53,14 +54,22 @@ const polar = (c: Pt, r: number, fromUp: number): Pt => {
 }
 const INK: Readonly<Record<S04Reading, string>> = { low: 'alu-500', in: 'cad', check: 'redline' }
 
-function capsule([x, y, w, h]: Rect): Prim {
-  const r = h / 2
+/** A filled ring sector from r0 to r1 between two angles (degrees clockwise from up). */
+function sector(c: Pt, r0: number, r1: number, a: number, b: number): Prim {
+  const p = (r: number, t: number) => polar(c, r, t).map((v) => Math.round(v * 100) / 100)
+  const [ax, ay] = p(r1, a)
+  const [bx, by] = p(r1, b)
+  const [cx, cy] = p(r0, b)
+  const [dx, dy] = p(r0, a)
   return {
     t: 'path',
-    d: `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`,
-    len: 2 * (w - 2 * r) + 2 * Math.PI * r,
+    d: `M${ax} ${ay}A${r1} ${r1} 0 0 1 ${bx} ${by}L${cx} ${cy}A${r0} ${r0} 0 0 0 ${dx} ${dy}Z`,
+    len: 0,
   }
 }
+
+/** The capsule as the same polygon the WebGL scene extrudes (views/s04 capsulePts). */
+const capsule = (r: Rect): Prim => ({ t: 'poly', pts: capsulePts(r), closed: true })
 
 function doc(family: LayoutId): SvgDoc {
   const l = S04_LAYOUT[family]
@@ -100,38 +109,58 @@ function doc(family: LayoutId): SvgDoc {
   )
   S04_DIALS.forEach((d, i) => {
     const { c, r } = l.dials[d]
-    const kids: SvgNode[] = [clean([{ t: 'circle', c, r }], `dial.${d}`, i, 'p-035 i-cyan f-paper')]
+    // The gauge kit's geometry (runtime/kit/gauges.ts), so the WebGL plan pose matches:
+    // bands are ring sectors 0.72r–0.86r, ticks 0.88r–0.98r, a 3-wide needle 0.82r long, hub r 3.
+    // the face is the kit's 48-sided CircleGeometry, drawn as the same polygon
+    const face: Prim = {
+      t: 'poly',
+      pts: Array.from({ length: 48 }, (_, k): Pt => [
+        c[0] + r * Math.cos((Math.PI * k) / 24),
+        c[1] + r * Math.sin((Math.PI * k) / 24),
+      ]),
+      closed: true,
+    }
+    // its rim: a 24-sided outline, as the scene draws it (fewer joins, a closer seam)
+    const rim: Prim = {
+      t: 'poly',
+      pts: Array.from({ length: 24 }, (_, k): Pt => [
+        c[0] + r * Math.cos((Math.PI * k) / 12),
+        c[1] + r * Math.sin((Math.PI * k) / 12),
+      ]),
+      closed: true,
+    }
+    const kids: SvgNode[] = [
+      clean([face], `dial.${d}`, i, 'f-paper'),
+      clean([rim], `dial.${d}`, i, 'p-035 i-cyan'),
+    ]
     for (const [band, [a, b]] of Object.entries(S04_BANDS) as [
       S04Reading,
       readonly [number, number],
     ][])
       kids.push(
-        clean(
-          [{ t: 'arc', c, r: r * 0.79, from: deg(a), to: deg(b) }],
-          `band.${d}.${band}`,
-          i,
-          `p-100 band i-${INK[band]}`,
-        ),
+        clean([sector(c, r * 0.72, r * 0.86, a, b)], `band.${d}.${band}`, i, `f-${INK[band]}`),
       )
     const ticks: Prim[] = Array.from({ length: 9 }, (_, k) => {
       const a = -120 + 30 * k
-      return { t: 'line', a: polar(c, r * 0.9, a), b: polar(c, r * 0.99, a) }
+      return { t: 'line', a: polar(c, r * 0.88, a), b: polar(c, r * 0.98, a) }
     })
     kids.push(clean(ticks, `ticks.${d}`, i, 'p-018 i-asphalt'))
+    const needle: Prim = {
+      t: 'poly',
+      pts: [
+        [c[0] - 1.5, c[1]],
+        [c[0], c[1] - r * 0.82],
+        [c[0] + 1.5, c[1]],
+      ],
+      closed: true,
+    }
     kids.push({
       el: 'g',
       cls: 'needle',
       part: `needle.${d}`,
-      children: [
-        clean(
-          [{ t: 'line', a: c, b: [c[0], c[1] - r * 0.82] }],
-          `needle.${d}`,
-          i,
-          'p-070 i-asphalt',
-        ),
-      ],
+      children: [clean([needle], `needle.${d}`, i, 'f-asphalt')],
     })
-    kids.push(clean([{ t: 'circle', c, r: Math.max(2.5, r * 0.07) }], `hub.${d}`, i, 'f-asphalt'))
+    kids.push(clean([{ t: 'circle', c, r: 3 }], `hub.${d}`, i, 'f-asphalt'))
     cad.push(group(`dial.${d}`, kids))
   })
   cad.push(clean([rect(l.printer)], 'printer', 0, 'f-asphalt'))

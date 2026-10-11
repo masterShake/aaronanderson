@@ -14,6 +14,30 @@
   --scan-at: calc(var(--sc) * 110%);
 }
 
+/* Whole-pixel strip lines and box width, so the art box sits on whole CSS px: the Stage's
+   canvas is pixel-snapped, the SVG is not. */
+.s04 :global(.strip) :is(p, span) {
+  line-height: 16px;
+}
+
+.s04.s04 {
+  width: calc(round(down, 100% - 4px, 4px) + 2px);
+}
+
+/* WebGL: the Stage projects the panel's anchors; hidden ones stay hidden. */
+.s04[data-labels='iso'] :is(.dn, .rd, .st, .rp) {
+  width: auto;
+  height: auto;
+  translate: -50% -50%;
+  padding: 1px 6px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+}
+
+.s04[data-stage='webgl'] :global(.labels) > :global([data-hidden]) {
+  visibility: hidden !important;
+}
+
 /* The still tier shows the finished labels over the still image. */
 :global(html[data-tier='still']) .s04:not(:global([data-user-play])),
 .s04:global([data-phase='still']) {
@@ -62,12 +86,14 @@
 .s04.s04 :global(.box svg .f-cyan-dim) {
   fill: var(--c-cyan-dim);
 }
-.s04 :global(.box .i-alu-500) {
-  stroke: var(--c-alu-500);
+.s04.s04 :global(.box svg .f-alu-500) {
+  fill: var(--c-alu-500);
 }
-.s04 :global(.box .band) {
-  stroke-width: calc(var(--pen-100) * var(--k) * 2.4);
-  stroke-linecap: butt;
+.s04.s04 :global(.box svg .f-cad) {
+  fill: var(--c-blueprint);
+}
+.s04.s04 :global(.box svg .f-redline) {
+  fill: var(--c-redline);
 }
 
 /* Sketch: tiles draw on, staggered by --i. */

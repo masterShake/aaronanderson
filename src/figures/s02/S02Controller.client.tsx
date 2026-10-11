@@ -16,6 +16,7 @@ import { SERVICE_3D_QUERY } from '@/stage/host'
 import type { StageEvent } from '@/stage/types'
 import type { FigureConfig } from '@/figures/types'
 import { useFigure } from '@/figures/use-figure.client'
+import { snapToPixels } from './pixel-snap.client'
 
 /**
  * The S-02 controller. Desktop (≥ 1024 px, fine pointer) with the sheet's scrub track:
@@ -78,7 +79,7 @@ export function S02Controller({
     const track = scrub ? trackOf(root) : null
     const pinned = pinnedP()
     const g = () => (root.dataset.family === 'tall' ? geo.tall : geo.wide)
-    const offs: (() => void)[] = []
+    const offs: (() => void)[] = [snapToPixels(root)]
     let p = 0
     let medium: 'svg' | 'webgl' = 'svg'
     let t = 0

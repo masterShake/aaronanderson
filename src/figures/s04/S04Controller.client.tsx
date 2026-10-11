@@ -1,13 +1,15 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { S04_DIALS, S04_QUESTIONS, s04Mech, type S04Question } from '@/drawings/views/s04'
 import { GATE } from '@/motion/timing/global'
 import { S04 } from '@/motion/timing/s04'
 import { drivePlay, driveScroll } from '@/motion/scroll-driver'
 import { gate } from '@/motion/visibility'
 import { SERVICE_3D_QUERY } from '@/stage/host'
+import type { StageEvent } from '@/stage/types'
 import type { FigureConfig } from '@/figures/types'
 import { useFigure } from '@/figures/use-figure.client'
+import { snapToPixels } from '../s02/pixel-snap.client'
 
 /**
  * The S-04 controller. With the sheet's scrub track (≥ 1024 px, fine pointer) --p
@@ -55,7 +57,8 @@ export function S04Controller({
       stage: { scene: 's04', load: 'near', mode: scrub ? 'scrub' : 'timeline' },
     }
   })
-  const api = useFigure('s04', config)
+  const events = useRef<(e: StageEvent) => void>(() => {})
+  const api = useFigure('s04', config, (e) => events.current(e))
 
   useEffect(() => {
     const root = document.getElementById('fig-s04')
@@ -64,8 +67,11 @@ export function S04Controller({
     const track = scrub ? trackOf(root) : null
     const pinned = pinnedP()
     const g = () => (root.dataset.family === 'tall' ? geo.tall : geo.wide)
-    const offs: (() => void)[] = []
+    const offs: (() => void)[] = [snapToPixels(root)]
     const chosen = new Set<string>()
+    const asked = new Map<string, S04Question>()
+    let medium: 'svg' | 'webgl' = 'svg'
+    let settleTimer: ReturnType<typeof setTimeout> | 0 = 0
     let p = 0
     let t = 0
     let running = false
@@ -142,6 +148,7 @@ export function S04Controller({
       if (doneText) api.announce(doneText)
     }
     const startLoops = () => {
+      if (medium === 'webgl') return
       stopLoops()
       done = false
       t = 0
@@ -186,10 +193,42 @@ export function S04Controller({
     else if (pinned !== null) onProgress(pinned)
     else if (document.documentElement.dataset.tier !== 'still')
       offs.push(gate(root, GATE.entry, playFromStart))
+    if (NOT_PROD && pinned !== null) {
+      // Preview only: the gate tests scrub the pinned harness with `ae:progress` events.
+      const onP = (e: Event) => onProgress(Number((e as CustomEvent<number>).detail))
+      root.addEventListener('ae:progress', onP)
+      offs.push(() => root.removeEventListener('ae:progress', onP))
+    }
+
+    events.current = (e) => {
+      if (e.type === 'ready') for (const q of asked.values()) api.command('ask', q)
+      else if (e.type === 'handoff') {
+        medium = 'webgl'
+        resetAll()
+      } else if (e.type === 'handback' || e.type === 'fallback') {
+        const was = medium
+        medium = 'svg'
+        clearTimeout(settleTimer)
+        if (was === 'webgl' && p >= S04.motionFromP && !done && pinned === null) startLoops()
+      } else if (e.type === 'beat') {
+        clearTimeout(settleTimer)
+        if (e.beat === 'running') settleTimer = setTimeout(() => settle(true), S04.settleAt)
+        else if (e.beat === 'built') settle(false)
+        else if (e.beat === 'idle') {
+          settle(true)
+          done = true
+          api.done()
+          if (doneText) api.announce(doneText)
+        }
+      }
+    }
+    offs.push(() => clearTimeout(settleTimer))
 
     const ask = (q: S04Question) => {
       const { dial, reading } = S04_QUESTIONS[q]
       chosen.add(dial)
+      asked.set(dial, q)
+      api.command('ask', q)
       setReading(dial, reading)
       for (const b of root.querySelectorAll<HTMLElement>('[data-q]'))
         b.setAttribute('aria-pressed', String(b.dataset.q === q))
@@ -208,6 +247,7 @@ export function S04Controller({
       const action = btn.dataset.action
       if (action !== 'replay' && action !== 'play' && action !== 'run-again') return
       api.play()
+      if (medium === 'webgl') return
       if (action === 'run-again' || track || pinned !== null) startLoops()
       else playFromStart()
     }
@@ -215,6 +255,7 @@ export function S04Controller({
     offs.push(() => root.removeEventListener('click', onClick))
 
     return () => {
+      events.current = () => {}
       stopLoops()
       offs.forEach((off) => off())
     }

@@ -21,7 +21,7 @@
 
 /* The same for the box size: a whole number of CSS px wide, a multiple of 4 (so 3:4 tall). */
 .s02.s02 {
-  width: calc(round(down, 100% - 2px, 4px) + 2px);
+  width: calc(round(down, 100% - 4px, 4px) + 2px);
 }
 
 /* Scan: deep panel and CAD revealed left to right; the bar rides the edge. */

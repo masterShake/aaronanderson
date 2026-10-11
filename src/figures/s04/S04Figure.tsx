@@ -125,6 +125,7 @@ export function S04Figure() {
       {S04_DIALS.map((d) => (
         <span
           key={`r-${d}`}
+          data-anchor={`reading.${d}`}
           data-dial={d}
           className={`${s.rd} pv fade`}
           style={rectVars(L.wide.readings[d], L.tall.readings[d])}

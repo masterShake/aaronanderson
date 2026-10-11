@@ -62,6 +62,23 @@ export interface S04Layout {
   /** The data store (a capsule in plan) and its risers to the panel's bottom edge. */
   tank: Rect
   risers: readonly (readonly [Pt, Pt])[]
+  /** 3D: slab thickness, tank height, riser pipe radius and centre height. */
+  d3: { slab: number; tankH: number; pipeR: number; pipeY: number }
+}
+
+/** The data store's plan outline: a capsule, its round ends sampled every 180/n degrees. */
+export function capsulePts([x, y, w, h]: Rect, n = 12): Pt[] {
+  const r = h / 2
+  const out: Pt[] = []
+  for (let i = 0; i <= n; i++) {
+    const a = -Math.PI / 2 + (Math.PI * i) / n
+    out.push([x + w - r + r * Math.cos(a), y + r + r * Math.sin(a)])
+  }
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI / 2 + (Math.PI * i) / n
+    out.push([x + r + r * Math.cos(a), y + r + r * Math.sin(a)])
+  }
+  return out
 }
 
 function grid(panel: Rect): Rect[] {
@@ -79,6 +96,7 @@ function build(
   dial: { r: number; nameH: number; readH: number },
   tank: Rect,
   cardOut: number,
+  d3: S04Layout['d3'],
 ): S04Layout {
   const cells = grid(panel)
   const tiles = {} as Record<S04Tile, { at: Rect; from: Pt; rot: number }>
@@ -134,6 +152,7 @@ function build(
     cardOut,
     tank,
     risers,
+    d3,
   }
 }
 
@@ -152,6 +171,7 @@ export const S04_LAYOUT: Readonly<Record<LayoutId, S04Layout>> = {
     { r: 58, nameH: 44, readH: 30 },
     [300, 540, 360, 110],
     72,
+    { slab: 16, tankH: 64, pipeR: 5.4, pipeY: 14 },
   ),
   tall: build(
     [0, 0, 400, 500],
@@ -167,6 +187,7 @@ export const S04_LAYOUT: Readonly<Record<LayoutId, S04Layout>> = {
     { r: 30, nameH: 42, readH: 22 },
     [70, 400, 260, 72],
     56,
+    { slab: 10, tankH: 40, pipeR: 3, pipeY: 8 },
   ),
 }
 
