@@ -114,6 +114,77 @@ test('context loss: back on the SVG within 500 ms', async ({ page, guard }) => {
   expect(guard.errors).toEqual([])
 })
 
+/** stage-hero §5.2's 3D window at 4× CPU: [3d:init, 3d:ready:<scene> + 500 ms]. */
+async function window4x(page: Page, path: string, scene: string) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __lt: { s: number; d: number }[] }
+    w.__lt = []
+    new PerformanceObserver((l) =>
+      w.__lt.push(...l.getEntries().map((e) => ({ s: e.startTime, d: e.duration }))),
+    ).observe({ type: 'longtask', buffered: true })
+  })
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  await page.goto(path)
+  await page.waitForFunction(
+    (s) => performance.getEntriesByName(`3d:ready:${s}`).length > 0,
+    scene,
+    { timeout: 30_000 },
+  )
+  await page.waitForTimeout(600)
+  const r = await page.evaluate((s) => {
+    const at = (n: string) => performance.getEntriesByName(n)[0]?.startTime ?? NaN
+    const init = at('3d:init')
+    const ready = at(`3d:ready:${s}`)
+    const env = performance.getEntriesByName('3d:env')[0]?.duration ?? NaN
+    const named = performance
+      .getEntriesByType('measure')
+      .filter((m) => m.name.startsWith('3d:'))
+      .map((m) => [m.name, Math.round(m.duration)])
+    const lt = (window as unknown as { __lt: { s: number; d: number }[] }).__lt.filter(
+      (t) => t.s + t.d >= init && t.s <= ready + 500,
+    )
+    return {
+      initToReady: ready - init,
+      env,
+      largest: Math.max(0, ...lt.map((t) => t.d)),
+      over50: lt.reduce((s, t) => s + Math.max(0, t.d - 50), 0),
+      tasks: lt.map((t) => [Math.round(t.s - init), Math.round(t.d)]),
+      named,
+    }
+  }, scene)
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+  return r
+}
+
+test('the 3D window at 4× CPU: init → ready, the largest task, the work over 50 ms', async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(120_000)
+  void page
+  // each in a fresh context (no shared code cache); the stage lane's demo is the runtime's
+  // own cost before any scene
+  const measure = async (path: string, scene: string) => {
+    const c = await browser.newContext(test.info().project.use)
+    const p = await c.newPage()
+    const out = await window4x(p, path, scene)
+    await c.close()
+    return out
+  }
+  const demo = await measure('/kit/stage?tier=webgl', '_demo')
+  const r = await measure('/?tier=webgl', 'hero')
+  test
+    .info()
+    .annotations.push({ type: '3d-window', description: JSON.stringify({ hero: r, demo }) })
+  // stage-hero §5.2: env and init → ready are gated here. The largest task and the work over
+  // 50 ms are recorded (annotation) for the W3 perf lens: on Home they include the page's own
+  // work in the same window, and the runtime's first task alone is about 70 ms (the demo).
+  expect(r.env).toBeLessThanOrEqual(80)
+  expect(r.initToReady).toBeLessThanOrEqual(1200)
+  expect(r.largest).toBeLessThanOrEqual(demo.largest + 50)
+})
+
 test('five route round-trips: no leaks, one context', async ({ page, guard }) => {
   test.setTimeout(150_000)
   await page.goto('/?tier=webgl')

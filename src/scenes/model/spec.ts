@@ -71,7 +71,8 @@ export interface HeroSceneData {
   symbols: Readonly<Record<string, readonly string[]>>
 }
 
-const r1 = (d: string) => d.replace(/-?\d+\.\d+/g, (n) => String(Math.round(Number(n) * 10) / 10))
+/** Whole units: the cut-outs are drawn about 35 CSS px tall, so finer coordinates buy nothing. */
+const r1 = (d: string) => d.replace(/-?\d+\.\d+/g, (n) => String(Math.round(Number(n))))
 
 export function buildHeroSceneData(family: LayoutId): HeroSceneData {
   const model = buildHeroModel(family)

@@ -22,7 +22,7 @@ import { S06 } from '@/motion/timing/s06'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { S06_EXTRA } from './model/s06-data'
-import { isSolid, outline, partLines, quarterEdges, type LiteLine } from './model/frame-lite'
+import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -143,8 +143,13 @@ const mod: SceneModule = {
     three.add(decal)
     own.push({ geometry: decalGeo, material: decalMat }, tex)
 
+    let painted = ''
     function paint() {
       const s = rig.scale * ctx.renderer.getPixelRatio()
+      // a re-fit at the same size and stroke scale keeps the finished decal
+      const key = `${s}:${ctx.strokePx('050')}`
+      if (key === painted) return
+      painted = key
       cv.width = Math.round(vb[2] * s)
       cv.height = Math.round(vb[3] * s)
       const g = cv.getContext('2d')
@@ -158,11 +163,11 @@ const mod: SceneModule = {
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
         g.stroke()
       }
-      const img = g.getImageData(0, 0, cv.width, cv.height)
-      quarterEdges(img.data, cv.width)
-      g.putImageData(img, 0, 0)
       tex.needsUpdate = true
+      quarter()
+      quarter = quarterLater(g, () => (tex.needsUpdate = true))
     }
+    let quarter = () => {}
 
     const mkLine = (l: LiteLine, y: number, order: number, parent: Object3D) => {
       const m = lineMat({
@@ -357,6 +362,7 @@ const mod: SceneModule = {
         paint()
       },
       dispose() {
+        quarter()
         for (const o of own) {
           o.geometry?.dispose()
           if (o.material && !o.material.userData.shared) o.material.dispose()

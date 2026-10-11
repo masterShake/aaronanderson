@@ -90,5 +90,25 @@ export function quarterEdges(d: Uint8ClampedArray, w: number): void {
     if (s[i]! % 255 && (near(i, r) || near(i, 4))) d[i] = Math.round(s[i]! / 63.75) * 63.75
 }
 
+/**
+ * quarterEdges over a painted canvas, 128 rows a task (off the 3D window's long tasks), then
+ * `done` (re-upload the texture). Returns a cancel.
+ */
+export function quarterLater(g: CanvasRenderingContext2D, done: () => void): () => void {
+  const { width: w, height: h } = g.canvas
+  let y = 1
+  let id: ReturnType<typeof setTimeout>
+  const step = () => {
+    const img = g.getImageData(0, y - 1, w, Math.min(130, h - y + 1))
+    quarterEdges(img.data, w)
+    g.putImageData(img, 0, y - 1)
+    y += 128
+    if (y < h - 1) id = setTimeout(step)
+    else done()
+  }
+  id = setTimeout(step)
+  return () => clearTimeout(id)
+}
+
 /** Solid parts get a filled footprint (planFrame: not a pipe, not a line, closed). */
 export const isSolid = (p: ModelPart) => p.kind !== 'pipe' && p.material !== 'line'

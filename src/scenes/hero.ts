@@ -20,7 +20,7 @@ import type { ModelPart, Pen, Pt } from '@/drawings/types'
 import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
-import { isSolid, outline, partLines, quarterEdges, type LiteLine } from './model/frame-lite'
+import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -162,8 +162,14 @@ const mod: SceneModule = {
     three.add(decal)
     own.push({ geometry: decalGeo, material: decalMat }, tex)
 
+    let quarter = () => {}
+    let painted = ''
     function paint() {
       const s = rig.scale * ctx.renderer.getPixelRatio()
+      // a re-fit at the same size and stroke scale keeps the finished decal
+      const key = `${s}:${ctx.strokePx('050')}`
+      if (key === painted) return
+      painted = key
       cv.width = Math.round(vb[2] * s)
       cv.height = Math.round(vb[3] * s)
       const g = cv.getContext('2d')
@@ -177,10 +183,9 @@ const mod: SceneModule = {
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
         g.stroke()
       }
-      const img = g.getImageData(0, 0, cv.width, cv.height)
-      quarterEdges(img.data, cv.width)
-      g.putImageData(img, 0, 0)
       tex.needsUpdate = true
+      quarter()
+      quarter = quarterLater(g, () => (tex.needsUpdate = true))
     }
 
     const mkLine = (l: LiteLine, y: number, order: number, parent: Object3D) => {
@@ -197,8 +202,8 @@ const mod: SceneModule = {
       return m
     }
 
-    function* build() {
-      spec.parts.forEach((p, order) => {
+    function addPart(p: ModelPart, order: number) {
+      {
         const top = p.depth
         const z0 = p.z ?? 0
         for (const c of p.prims)
@@ -250,8 +255,15 @@ const mod: SceneModule = {
           anchors.set(p.anchor, a)
           three.add(a)
         }
-      })
-      yield
+      }
+    }
+
+    function* build() {
+      // one part per unit (the runtime slices at 8 ms)
+      for (const [order, p] of spec.parts.entries()) {
+        addPart(p, order)
+        yield
+      }
       // packets on the pipe centre lines; the ticket line's every fourth waits at the valve
       const pipe = part('pipe')
       const y = (pipe?.z ?? 0) + (pipe?.depth ?? 9) / 2
@@ -452,6 +464,7 @@ const mod: SceneModule = {
         paint()
       },
       dispose() {
+        quarter()
         for (const o of own) {
           o.geometry?.dispose()
           if (o.material && !o.material.userData.shared) o.material.dispose()
