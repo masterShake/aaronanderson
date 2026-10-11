@@ -1,0 +1,391 @@
+/*
+ * S-04 (owner: scenes-a). Everything runs on --p and the --s04-* timing vars FigureFrame
+ * writes from src/motion/timing/s04.ts:
+ *   --sc       the scan, 0 to 1 over [scan-a, scan-b] (deep panel and CAD revealed, pencil
+ *              erased to its ghost)
+ *   .tile      each pencil tile squares up and slides into its cell over the lock window
+ *              (the controller writes its --dx, --dy and --rot)
+ * Root attributes from the controller: data-cost / data-schedule / data-hours (the
+ * reading each needle points to; none is LOW), data-card, data-loop, data-asked.
+ */
+
+.s04 {
+  --sc: clamp(0, (var(--p, 1) - var(--s04-scan-a)) / (var(--s04-scan-b) - var(--s04-scan-a)), 1);
+  --scan-at: calc(var(--sc) * 110%);
+}
+
+/* Whole-pixel strip lines and box width, so the art box sits on whole CSS px: the Stage's
+   canvas is pixel-snapped, the SVG is not. */
+.s04 :global(.strip) :is(p, span) {
+  line-height: 16px;
+}
+
+.s04.s04 {
+  width: calc(round(down, 100% - 4px, 4px) + 2px);
+}
+
+/* WebGL: the Stage projects the panel's anchors; hidden ones stay hidden. */
+.s04[data-labels='iso'] :is(.dn, .rd, .st, .rp) {
+  width: auto;
+  height: auto;
+  translate: -50% -50%;
+  padding: 1px 6px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+}
+
+.s04[data-stage='webgl'] :global(.labels) > :global([data-hidden]) {
+  visibility: hidden !important;
+}
+
+/* The still tier shows the finished labels over the still image. */
+:global(html[data-tier='still']) .s04:not(:global([data-user-play])),
+.s04:global([data-phase='still']) {
+  --p: 1 !important;
+}
+
+.s04 :global(svg.l-panel),
+.s04 :global(svg.l-cad) {
+  clip-path: inset(0 calc(100% - min(var(--scan-at), 100%)) 0 0);
+}
+
+.s04 :global(.scan-bar) {
+  --scan: var(--scan-at);
+  background: transparent;
+  opacity: calc(min(var(--sc) * 40, 1) * min((1 - var(--sc)) * 40, 1));
+}
+
+.s04.s04 :global(svg.l-ghost) {
+  opacity: 1;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    #000 var(--scan-at)
+  );
+  mask-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    #000 var(--scan-at)
+  );
+}
+
+/* Fills: figures.css's `:not([fill]) { fill: none }` outranks FigureFrame's .f-* rules
+   (request filed), so this figure restates the fills it uses. */
+.s04.s04 :global(.box svg .f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+.s04.s04 :global(.box svg .f-paper) {
+  fill: var(--c-paper);
+}
+.s04.s04 :global(.box svg .f-asphalt) {
+  fill: var(--c-asphalt);
+}
+.s04.s04 :global(.box svg .f-alu-300) {
+  fill: var(--c-alu-300);
+}
+.s04.s04 :global(.box svg .f-cyan-dim) {
+  fill: var(--c-cyan-dim);
+}
+.s04.s04 :global(.box svg .f-alu-500) {
+  fill: var(--c-alu-500);
+}
+.s04.s04 :global(.box svg .f-cad) {
+  fill: var(--c-blueprint);
+}
+.s04.s04 :global(.box svg .f-redline) {
+  fill: var(--c-redline);
+}
+
+/* Sketch: tiles draw on, staggered by --i. */
+.s04 :global(.w-sk) {
+  --a: calc(var(--s04-sketch-a) + var(--i) * 0.03);
+  --b: calc(var(--a) + 0.07);
+}
+
+.s04 :global(.w-sc) {
+  --a: calc(var(--s04-sketch-a) + 0.06 + var(--i) * 0.03);
+  --b: calc(var(--a) + 0.05);
+}
+
+/* Lock: square up and slide into the cell (machine ease). */
+.s04 :global(.tile) {
+  --a: var(--s04-lock-a);
+  --b: var(--s04-lock-b);
+  translate: calc((1 - var(--e)) * var(--dx, 0) * 1px) calc((1 - var(--e)) * var(--dy, 0) * 1px);
+  rotate: calc((1 - var(--e)) * var(--rot, 0) * 1deg);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* The data store and its risers draw in under the grid. */
+.s04 :global(.w-tk) {
+  --a: calc(var(--s04-tank-a) + var(--i) * 0.012);
+  --b: calc(var(--s04-tank-b) - 0.03 + var(--i) * 0.01);
+}
+
+/* Needles: straight up is IN RANGE; none chosen is LOW. */
+.s04 :global(.needle) {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  rotate: -80deg;
+  transition: rotate var(--s04-needle-ms, 600ms) var(--ease-settle, ease);
+}
+
+.s04[data-cost='in'] :global([data-part='needle.cost']),
+.s04[data-schedule='in'] :global([data-part='needle.schedule']),
+.s04[data-hours='in'] :global([data-part='needle.hours']) {
+  rotate: 0deg;
+}
+
+.s04[data-cost='check'] :global([data-part='needle.cost']),
+.s04[data-schedule='check'] :global([data-part='needle.schedule']),
+.s04[data-hours='check'] :global([data-part='needle.hours']) {
+  rotate: 80deg;
+}
+
+/* The owner's report comes out of the printer slot, top down. */
+.s04 :global(.card) {
+  clip-path: inset(0 0 calc((1 - var(--s04-card, 1)) * 100%) 0);
+}
+
+.s04 :global(.pk) {
+  stroke-dasharray: calc(14 / var(--len, 100)) 2;
+  stroke-dashoffset: 0;
+  stroke-width: calc(7px * var(--k));
+  opacity: 0;
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+.tl,
+.dn,
+.rd,
+.st,
+.rp {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: calc(var(--lw) * 1%);
+  height: calc(var(--lh) * 1%);
+  padding: 2px 4px;
+  text-align: center;
+  white-space: normal !important;
+}
+
+@container fig (width < 440px) {
+  .tl,
+  .dn,
+  .rd,
+  .st,
+  .rp {
+    width: calc(var(--lwt) * 1%);
+    height: calc(var(--lht) * 1%);
+  }
+}
+
+/* Tile labels ride their tiles, then hand over to the panel's names. */
+.s04.s04.s04 :global(.labels) > .tl {
+  --a: var(--s04-lock-a);
+  --b: var(--s04-lock-b);
+  inset-inline-start: calc((var(--lx) + (1 - var(--e)) * var(--dxw)) * 1%);
+  inset-block-start: calc((var(--ly) + (1 - var(--e)) * var(--dyw)) * 1%);
+  rotate: calc((1 - var(--e)) * var(--rot) * 1deg);
+  color: color-mix(in srgb, var(--c-label-on-deep) calc(var(--sc) * 100%), var(--c-asphalt));
+}
+
+@container fig (width < 440px) {
+  .s04.s04.s04 :global(.labels) > .tl {
+    inset-inline-start: calc((var(--lxt) + (1 - var(--e)) * var(--dxt)) * 1%);
+    inset-block-start: calc((var(--lyt) + (1 - var(--e)) * var(--dyt)) * 1%);
+  }
+}
+
+.tl {
+  /* the e-machine curve, written out (a label is not a .pv path) */
+  --lp: clamp(0, (var(--p, 1) - var(--a)) / (var(--b) - var(--a)), 1);
+  --e: calc(var(--lp) * var(--lp) * (3 - 2 * var(--lp)));
+}
+
+.tlt {
+  --a: var(--s04-names-a);
+  --b: var(--s04-names-b);
+  opacity: calc(1 - var(--e));
+}
+
+.dn,
+.rd {
+  --a: var(--s04-names-a);
+  --b: var(--s04-names-b);
+  color: var(--c-label-on-deep);
+}
+
+.dn {
+  place-items: end center;
+}
+
+.rd {
+  font-size: 0.6875rem;
+}
+
+.st {
+  --a: var(--s04-tank-a);
+  --b: var(--s04-tank-b);
+  color: var(--c-label-on-deep);
+}
+
+.rp {
+  visibility: hidden;
+  color: var(--c-asphalt);
+  font-size: 0.6875rem;
+}
+
+@container fig (width < 440px) {
+  .rp {
+    font-size: 0.5625rem;
+    letter-spacing: 0;
+    line-height: 1.15;
+  }
+}
+
+.s04[data-card] .rp,
+.s04:global([data-phase='done']) .rp,
+:global(html[data-tier='still']) .s04 .rp {
+  visibility: visible;
+}
+
+/* The reading word under each dial follows its needle. */
+.rd > [data-v] {
+  display: none;
+}
+
+.s04:not([data-cost]) .rd[data-dial='cost'] > [data-v='low'],
+.s04:not([data-schedule]) .rd[data-dial='schedule'] > [data-v='low'],
+.s04:not([data-hours]) .rd[data-dial='hours'] > [data-v='low'],
+.s04[data-cost='in'] .rd[data-dial='cost'] > [data-v='in'],
+.s04[data-schedule='in'] .rd[data-dial='schedule'] > [data-v='in'],
+.s04[data-hours='in'] .rd[data-dial='hours'] > [data-v='in'],
+.s04[data-cost='check'] .rd[data-dial='cost'] > [data-v='check'],
+.s04[data-schedule='check'] .rd[data-dial='schedule'] > [data-v='check'],
+.s04[data-hours='check'] .rd[data-dial='hours'] > [data-v='check'],
+.s04[data-cost='low'] .rd[data-dial='cost'] > [data-v='low'],
+.s04[data-schedule='low'] .rd[data-dial='schedule'] > [data-v='low'],
+.s04[data-hours='low'] .rd[data-dial='hours'] > [data-v='low'] {
+  display: block;
+}
+
+/* The still image's needles are IN RANGE. */
+:global(html[data-tier='still']) .s04:not(:global([data-user-play])) .rd > [data-v],
+.s04:global([data-phase='still']) .rd > [data-v] {
+  display: none;
+}
+
+:global(html[data-tier='still']) .s04:not(:global([data-user-play])) .rd > [data-v='in'],
+.s04:global([data-phase='still']) .rd > [data-v='in'] {
+  display: block;
+}
+
+/* ── Question chips and the answer card (below the box) ─────────────────── */
+.ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3) 0;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 4px var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  border-radius: 999px;
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-small);
+  text-align: start;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+}
+
+.chip:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (pointer: coarse) {
+  .chip {
+    min-height: 44px;
+  }
+}
+
+.answers {
+  padding: var(--s-2) var(--s-3) var(--s-3);
+}
+
+.answer {
+  display: none;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+  animation: s04-in var(--dur-micro, 120ms) var(--ease-ui, ease) both;
+}
+
+.answer[data-on],
+:global(html[data-tier='still']) .s04:not([data-asked]) .answer[data-first],
+.s04:global([data-phase='still']):not([data-asked]) .answer[data-first] {
+  display: block;
+}
+
+@keyframes s04-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.stamp {
+  display: inline-block;
+  margin-block-end: var(--s-1);
+  padding: 2px 6px;
+  border: 2px solid currentColor;
+  rotate: -2deg;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--fs-small);
+}
+
+.runAgain {
+  display: none;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+}
+
+.runAgain:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.s04:global([data-phase='done']) .runAgain {
+  display: inline-block;
+}
+
+@media (pointer: coarse) {
+  .runAgain {
+    min-height: 44px;
+  }
+}

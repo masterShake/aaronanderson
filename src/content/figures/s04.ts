@@ -30,6 +30,9 @@ export const s04Figure = {
     'dial.hours': 'HOURS',
     report: "OWNER'S REPORT",
   },
+  live: {
+    done: 'Runs done. Every dial reads from the one data store.',
+  },
   revs: {
     sketch: 'REV 0 · SCATTERED',
     locked: 'REV 1 · ONE STORE',

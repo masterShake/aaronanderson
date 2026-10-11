@@ -36,6 +36,7 @@ export const s02Figure = {
   ui: {
     lead: 'NEW LEAD',
     failed: 'SYNC FAILED → ALERT SENT',
+    api: 'API: the socket a program offers so others can plug in',
     arrives: 'ENTERED ONCE → ARRIVES IN {places} PLACES',
   },
 } satisfies FigureCopy
