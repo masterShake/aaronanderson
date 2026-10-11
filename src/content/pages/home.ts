@@ -1,7 +1,10 @@
 import { confirm } from '../hold'
 import type { HomeContent } from '../types'
 
-/** Home, sheet G-01 (cover sheet). */
+/**
+ * Home, sheet G-01 (cover sheet). Section A (hero) is final from W1: the hero
+ * lane files requests against it. No pricing on the first screen.
+ */
 export const home: HomeContent = {
   hero: {
     eyebrow: {
@@ -10,17 +13,19 @@ export const home: HomeContent = {
     },
     h1: 'Your company, wired to run itself.',
     signoff: '*You still sign off on anything that matters.',
-    deck: 'We draw how work really moves through your firm, wire up the software you already pay for, and hand the paperwork to AI. Your people stop retyping and get back to the calls only they can make.',
+    deck: 'We map how work moves through your firm, connect the software you already pay for, and hand the retyping to AI. Your people get back to the calls only they can make.',
     seeDrawing: { label: 'See the drawing ↓', href: '/#fig-hero' },
     specLine: 'FIXED SCOPE · SMALL SENIOR CREW · NO RIP-AND-REPLACE',
   },
   wiring: {
     id: 'wiring',
     h2: 'Right now, your people are the wiring.',
+    /** [0] the point; [1] the pointer hint. bodyTouch replaces [1] on touch screens. */
     body: [
-      'Estimates live in a spreadsheet, jobs in the project software, costs in accounting. What connects them is a person with two windows open. Hover any tool to see what it touches, and how much of that happens by hand.',
+      'Estimates live in a spreadsheet, jobs in project software, costs in accounting. What connects them is a person with two windows open.',
+      'Hover or focus any tool to see what it touches, and how much of that is done by hand.',
     ],
-    bodyTouch: 'Tap any tool to see what it touches, and how much of that happens by hand.',
+    bodyTouch: 'Tap any tool to see what it touches, and how much of that is done by hand.',
     kicker: "When they're on holiday, so is your data.",
     newNote: '(E) your software stays. (N) we add the plumbing.',
   },
@@ -52,7 +57,7 @@ export const home: HomeContent = {
     id: 'crew',
     h2: 'The person on the call is the person on the tools.',
     body: [
-      'A small crew with backgrounds in engineering, construction and software. No account managers and no junior bench: whoever scopes your project builds it.',
+      'A small crew from engineering, construction and software. No account managers and no junior bench: whoever scopes your project builds it.',
     ],
     approvedBy: { label: 'APPROVED BY', value: 'YOU' },
     link: { label: 'Meet the crew →', href: '/about' },
@@ -61,7 +66,7 @@ export const home: HomeContent = {
     id: 'as-builts',
     h2: 'As-builts: finished work, on the record.',
     body: [
-      'We only publish projects a client has agreed to put their name to, with their real numbers.',
+      'We only publish projects a client has agreed to put their name to, with their real numbers. Until then, these sheets stay on hold.',
     ],
   },
   closing: {

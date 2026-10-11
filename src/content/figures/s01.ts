@@ -1,7 +1,12 @@
 import type { FigureCopy } from '../types'
 import { site } from '../site'
 
-/** Figure copy, DETAIL 1 / S-01 (owner: services). The owning lane adds label keys as the drawing grows. */
+/**
+ * S-01 Systems Survey, DETAIL 1 / S-01 (owner: services). SVG only. Tool label
+ * keys follow the firm graph. Render-time vars: {tools}, {handoffs},
+ * {bottlenecks} from counts(graph); {nn} and {k} per tool in ui.toolTag; {n}
+ * for roadmap ticks. Hand notes: 2 of the site's 12.
+ */
 export const s01Figure = {
   id: 's01',
   detail: 'DETAIL 1 / S-01',
@@ -9,8 +14,43 @@ export const s01Figure = {
   tag: site.exampleTag,
   caption: 'A survey walks every hand-off and marks where someone retypes, chases or waits.',
   longDescription: [
-    'A surveyor sweeps the example firm, rings each problem in a revision cloud, and ranks what to fix first on a ninety-day roadmap.',
+    'A surveyor maps {tools:word} tools and {handoffs:word} hand-offs, marks the {bottlenecks:word} worst bottlenecks, and turns them into a ranked list and a 90-day roadmap.',
   ],
-  labels: {},
-  controls: { replay: 'Replay' },
+  labels: {
+    'tool.inbox': 'Inbox',
+    'tool.estimate': 'Estimate_FINAL_v7.xlsx',
+    'tool.pm': 'Project management',
+    'tool.accounting': 'Accounting',
+    'tool.payroll': 'Payroll and HR',
+    'tool.timesheets': 'Timesheets',
+    'tool.drive': 'Shared drive',
+    'tool.field': 'Field phones',
+    'cloud.1': 'Δ1',
+    'cloud.2': 'Δ2',
+    'cloud.3': 'Δ3',
+    'spec.written': 'WRITTEN DOWN',
+    'spec.oneSource': 'ONE SOURCE',
+    instrument: 'SURVEY',
+  },
+  notes: {
+    head: "It's all in someone's head",
+    version: 'Which version did accounting get?',
+  },
+  controls: { replay: 'Replay', playDrawing: 'Play the drawing' },
+  ui: {
+    toolTag: 'TOOL {nn} · {k} BY HAND',
+    listTitle: 'WHAT TO FIX FIRST',
+    listTag: 'EXAMPLE',
+    effort: 'EFFORT',
+    payoff: 'PAYOFF',
+    small: 'SMALL',
+    medium: 'MEDIUM',
+    large: 'LARGE',
+    'item.1': 'Delivery tickets read into accounting',
+    'item.2': 'RFIs routed between site and office',
+    'item.3': "Owner's report built from one data store",
+    roadmap: '90-DAY ROADMAP',
+    dayTick: '{n}',
+    days: 'DAYS',
+  },
 } satisfies FigureCopy

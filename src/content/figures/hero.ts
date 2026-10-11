@@ -1,7 +1,12 @@
 import type { FigureCopy } from '../types'
 import { site } from '../site'
 
-/** Home hero figure, DETAIL 1 / G-01 (owner: hero lane). Labels follow the firm graph's keys. */
+/**
+ * Home hero figure, DETAIL 1 / G-01 (owner: hero lane). Label keys follow the
+ * firm graph (src/drawings/graphs/firm.ts): tool.<ToolId>, sym.*, place.*.
+ * Render-time vars in longDescription: {tools}, {lines}, {people} from
+ * counts(graph) for the hero view. Hand notes: 4 of the site's 12.
+ */
 export const heroFigure = {
   id: 'hero',
   detail: 'DETAIL 1 / G-01',
@@ -9,9 +14,9 @@ export const heroFigure = {
   tag: site.exampleTag,
   caption: 'How work moves through a typical firm, before and after the rewire.',
   longDescription: [
-    'As found: seven tools drawn in pencil, with people standing on the lines between them, retyping the same records from one tool into the next.',
-    'Rewired: a scan turns the sketch into a clean drawing. The people step off the lines; an AI reader sits on the ticket line and a sign-off valve waits for a person.',
-    "Running: records flow on their own. Every fourth one stops at the valve for a person to approve, the data tank fills, and the owner's report prints itself.",
+    'As found: {tools:word} tools drawn in pencil, joined by {lines:word} hand-carry lines, with {people:word} people standing on them, retyping the same records from one tool into the next.',
+    'Rewired: a scan turns the sketch into a clean drawing. The people step off the lines. An AI reader sits on the ticket line, and a sign-off valve waits for a person.',
+    "Running: records flow on their own. Every fourth one stops at the valve for a person to approve, the data store fills, and the owner's report prints itself.",
   ],
   labels: {
     'tool.field': 'Field phones',
@@ -19,20 +24,26 @@ export const heroFigure = {
     'tool.crm': 'CRM',
     'tool.estimate': 'Estimate_FINAL_v7.xlsx',
     'tool.pm': 'Project management',
-    'tool.acct': 'Accounting',
+    'tool.accounting': 'Accounting',
     'tool.report': "Owner's report",
     'sym.ai': 'AI reader',
     'sym.ai-sub': 'reads, never signs',
     'sym.valve': 'Sign-off',
-    'sym.valve-sub': 'a person decides',
+    'sym.valve-sub': 'a person decides (HV)',
+    'sym.store': 'One data store',
+    'sym.store-sub': 'DATA',
     'place.estimating': 'Estimating',
     'place.site': 'On site',
+    'spec.estimate': 'ONE CURRENT COPY',
+    'spec.inbox': 'FILED ON ARRIVAL',
+    'spec.field': 'ANSWER SENT TO SITE',
+    'spec.report': 'REPORT WRITES ITSELF',
   },
   notes: {
-    current: 'Which one is current??',
-    fridays: 'Retyped Fridays',
+    estimate: 'Which one is current??',
     inbox: "Lives in someone's inbox",
-    office: 'Ask the office',
+    field: 'Ask the office',
+    report: 'Copy-paste Mondays',
   },
   revs: {
     asFound: 'REV 0 · AS FOUND',
@@ -46,5 +57,10 @@ export const heroFigure = {
     runAgain: 'Run again',
     playDrawing: 'Play the drawing',
     pause: 'Pause motion',
+  },
+  ui: {
+    idle: 'BATCH DONE · WAITING FOR PAPERWORK',
+    inset: 'AS FOUND',
+    approved: 'APPROVED',
   },
 } satisfies FigureCopy

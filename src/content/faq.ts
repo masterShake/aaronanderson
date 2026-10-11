@@ -1,21 +1,26 @@
-import { hold } from './hold'
-import { services } from './services'
-import type { FaqItem } from './types'
+import { confirm, hold } from './hold'
+import type { FaqItem, Rich } from './types'
 
-const s01Price = services[0]!.shape.price!.value
-const s06Price = services[5]!.shape.price!.value
-
-/** Questions people ask before they book, styled as an RFI log. */
+/**
+ * Questions people ask before they book, styled as an RFI log. Answers that
+ * promise something are CONFIRMs; answers only the owner can give are HOLDs.
+ */
 export const faq: readonly FaqItem[] = [
   {
     id: 'switch',
     q: 'Do we have to switch software?',
-    a: "Usually not. If a tool is genuinely holding you back we'll say so and say why, and it's your call.",
+    a: confirm<Rich>(
+      "Usually not. If a tool is really holding you back, we'll say so and say why. It's your call.",
+      { id: 'faq.switch' },
+    ),
   },
   {
     id: 'ai-wrong',
     q: 'What if the AI gets it wrong?',
-    a: 'It will sometimes, like a new hire. That is why every workflow has a tolerance, a sign-off valve and a log.',
+    a: confirm<Rich>(
+      'It will sometimes, like a new hire. That is why every workflow has a [[human-in-the-loop|person in the loop]], a tolerance and a log.',
+      { id: 'faq.aiWrong' },
+    ),
   },
   {
     id: 'ownership',
@@ -29,7 +34,7 @@ export const faq: readonly FaqItem[] = [
   {
     id: 'data',
     q: 'Is our data safe with you?',
-    a: hold('Data handling answer: access, storage and deletion', {
+    a: hold('Data answer: access, storage, which AI providers see it, and deletion', {
       id: 'faq.data',
       kind: 'policy',
       prodFallback: null,
@@ -38,14 +43,23 @@ export const faq: readonly FaqItem[] = [
   {
     id: 'cost',
     q: 'What does it cost?',
-    a: {
-      text: 'A fixed fee agreed before work starts. The survey starts at {survey}. Run & Improve starts at {monthly} a month.',
-      vars: { survey: s01Price, monthly: s06Price },
-    },
+    a: confirm<Rich>(
+      'A fixed fee, agreed before work starts. Each service sheet shows how its price is set.',
+      { id: 'faq.cost' },
+    ),
+  },
+  {
+    id: 'on-site',
+    q: 'Do you come to site?',
+    a: hold('On-site answer: where you travel to, and what you do remotely', {
+      id: 'faq.onSite',
+      kind: 'policy',
+      prodFallback: null,
+    }),
   },
   {
     id: 'fit',
     q: 'Do you only work with contractors?',
-    a: "We work with engineering firms, contractors, developers and people-operations teams. If your work is projects, people and paperwork, we're probably a fit.",
+    a: "No. We're set up for engineering firms, contractors, developers and people-operations teams. If your work is projects, people and paperwork, we're probably a fit.",
   },
 ]

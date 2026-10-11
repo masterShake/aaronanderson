@@ -4,6 +4,9 @@ import type { SiteConfig } from './types'
 /**
  * Site-wide copy and facts. next.config.ts reads this file (the booking link
  * feeds the CSP), so it imports only ./hold and types.
+ *
+ * Facts used inside sentences (callLength, replyTime) must read right with
+ * their production fallback: "A {callLength} call" and "We reply {replyTime}."
  */
 export const site: SiteConfig = {
   name: 'Actual Engineer',
@@ -15,7 +18,11 @@ export const site: SiteConfig = {
     kind: 'name',
     prodFallback: 'Actual Engineer',
   }),
-  email: hold('Public email address', { id: 'site.email', kind: 'email', essential: true }),
+  email: hold('Public email address, e.g. hello@actualengineer.com', {
+    id: 'site.email',
+    kind: 'email',
+    essential: true,
+  }),
   phone: hold('Phone number (optional; hidden until filled)', { id: 'site.phone', kind: 'phone' }),
   location: hold('Where we work: city, region and whether we come to site', {
     id: 'site.location',
@@ -23,7 +30,7 @@ export const site: SiteConfig = {
   }),
   areaServed: [],
   sameAs: [],
-  callLength: hold('Intro call length, e.g. 30-minute', {
+  callLength: hold('Intro call length as an adjective, e.g. 30-minute', {
     id: 'site.callLength',
     kind: 'duration',
     essential: true,
@@ -32,7 +39,7 @@ export const site: SiteConfig = {
   replyTime: hold('Reply-time promise, e.g. within one working day', {
     id: 'site.replyTime',
     kind: 'duration',
-    prodFallback: 'quickly',
+    prodFallback: 'by email',
   }),
   exampleTag: 'EXAMPLE FIRM — NOT A CLIENT',
   sampleTag: 'SAMPLE',
@@ -111,13 +118,18 @@ export const site: SiteConfig = {
       }),
     },
     approvedBy: { label: 'APPROVED BY', value: 'YOU' },
-    revisions: { label: 'REVISIONS', columns: ['REV', 'DATE', 'CHANGE'], rows: [] },
+    revisions: {
+      label: 'REVISIONS',
+      columns: ['REV', 'DATE', 'CHANGE'],
+      rows: [{ rev: 'REV 0', date: '2026-10', note: 'First issue' }],
+    },
     labels: { email: 'EMAIL', phone: 'PHONE', location: 'LOCATION', motion: 'MOTION' },
     notes: {
       title: 'GENERAL NOTES',
       items: [
         'Every company drawing on this site is an example, not a client.',
-        'Sample data is stamped as sample. We do not invent numbers, clients or quotes.',
+        'Demo data is marked SAMPLE. We never invent numbers, clients or quotes.',
+        'Anything not yet confirmed is left off this site.',
       ],
     },
     northArrow: 'Back to top',

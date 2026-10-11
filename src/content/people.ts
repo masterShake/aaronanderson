@@ -3,10 +3,11 @@ import type { PeopleContent } from './types'
 
 /** The crew. Every fact is a HOLD until the owner fills it in; names are essential. */
 export const people: PeopleContent = {
-  teamSize: hold('How many people the crew is, in words', {
+  /** Reads "Actual Engineer is {teamSize} people." */
+  teamSize: hold('How many people the crew is, as a word, e.g. three', {
     id: 'people.teamSize',
     kind: 'count',
-    prodFallback: 'a few',
+    prodFallback: 'a handful of',
   }),
   people: [
     {

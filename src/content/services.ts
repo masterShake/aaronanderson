@@ -1,7 +1,15 @@
 import { confirm, hold } from './hold'
 import type { Service, ServiceId } from './types'
 
-/** The six service sheets, S-01 to S-06, faithful to the brief. */
+/**
+ * The six service sheets, S-01 to S-06, faithful to the brief. Each has a
+ * promise, a two-sentence explanation, three or four examples, a "You receive"
+ * list and an engagement shape; S-02 to S-04 also have plain terms.
+ *
+ * Prices: the price chip reads "{label} {value}". A price HOLD's prodFallback
+ * stands alone (it is also the schedule's pricing cell), so a renderer shows the
+ * fallback without the label when fact(value) is undefined in production.
+ */
 export const services: readonly Service[] = [
   {
     id: 'S-01',
@@ -30,7 +38,7 @@ export const services: readonly Service[] = [
       span: { weeks: [2, 2] },
       price: {
         label: 'Fixed fee, starting at',
-        value: hold('S-01 starting fee', {
+        value: hold('S-01 starting fee, written as it should appear, with currency', {
           id: 'price.s01',
           kind: 'price',
           essential: true,
@@ -56,13 +64,16 @@ export const services: readonly Service[] = [
     plainTerms:
       'An [[integration]] is plumbing between programs. What goes in one end comes out the other, and nobody carries buckets.',
     examples: [
-      'Project-management software synced with accounting, such as Procore with QuickBooks or Sage.',
+      'Project-management software synced with accounting, such as Procore, QuickBooks or Sage.',
       'CRM leads turned into estimates and projects automatically.',
       'HR and payroll systems sharing onboarding data.',
       'Shared folders kept in sync with the project record.',
     ],
     receive: [
-      { item: 'Working integrations', note: "Through each tool's API or an automation platform" },
+      {
+        item: 'Working integrations',
+        note: "Through each tool's API or an automation platform",
+      },
       { item: 'Documentation' },
       { item: 'Alerts when something breaks' },
     ],
@@ -79,11 +90,11 @@ export const services: readonly Service[] = [
     name: 'AI Workflow Automation',
     promise: 'Hand the repetitive paperwork to AI, and keep people on the decisions.',
     explanation: [
-      '[[ai-agent|AI agents]] built into your workflows that read, draft, sort and route work.',
+      'AI agents built into your workflows that read, draft, sort and route work.',
       'A person approves anything that matters.',
     ],
     plainTerms: confirm(
-      "Think of a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk. It doesn't sign, pay or send anything unless you've decided it may.",
+      "Think of an [[ai-agent|AI agent]] as a sharp new hire who never gets bored. It reads the document, fills in the fields and puts anything it isn't sure about on a person's desk. It doesn't sign, pay or send anything unless you've decided it may.",
       { id: 'claim.s03.plainTerms' },
     ),
     examples: [
@@ -117,7 +128,7 @@ export const services: readonly Service[] = [
       'You can also ask your data questions in plain English.',
     ],
     plainTerms:
-      'Every system drains into one tank, so every report draws the same water. Ask where a project stands and the answer is built from your own records.',
+      'Every system drains into one tank, so every report draws the same water. Ask where a project stands and the answer comes from your own records.',
     examples: [
       'A job-cost [[dashboard]] that updates itself.',
       "A weekly owner's report that writes and sends itself.",
@@ -125,7 +136,7 @@ export const services: readonly Service[] = [
       'A "where are we on this project?" assistant.',
     ],
     receive: [
-      { item: 'A unified [[data-layer|data layer]]' },
+      { item: 'A unified data layer' },
       { item: 'Dashboards and scheduled reports' },
       { item: 'A short handover session' },
     ],
@@ -183,25 +194,28 @@ export const services: readonly Service[] = [
     receive: [
       { item: 'Monitoring' },
       { item: 'A monthly health report' },
-      { item: 'Improvement hours', note: '{hours} each month' },
+      { item: 'Improvement hours', note: '{hours} hours each month' },
     ],
     shape: {
       summary: 'Monthly. Cancel anytime.',
       span: { monthly: true },
       price: {
         label: 'Monthly from',
-        value: hold('S-06 monthly price', {
+        value: hold('S-06 monthly price, written as it should appear, with currency', {
           id: 'price.s06',
           kind: 'price',
           essential: true,
-          prodFallback: 'Quoted on the first call',
+          prodFallback: 'Monthly, quoted on the first call',
         }),
       },
-      improvementHours: hold('Improvement hours per month', {
-        id: 'hours.s06',
-        kind: 'count',
-        prodFallback: 'a set number of',
-      }),
+      improvementHours: hold(
+        'Improvement hours per month, as a capitalized word (it starts the line)',
+        {
+          id: 'hours.s06',
+          kind: 'count',
+          prodFallback: 'A set number of',
+        },
+      ),
     },
     lengthLabel: 'Monthly, cancel anytime',
     walkAwayWith: 'Somebody minding the machine',

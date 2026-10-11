@@ -15,14 +15,18 @@ export const legendSymbols: readonly LegendSymbol[] = [
   },
   { id: 'packet', term: 'Packet', plain: 'One record moving: an invoice, a lead, a timesheet.' },
   { id: 'ai-step', term: 'AI reader', plain: 'Reads, drafts, sorts or routes. Never signs.' },
-  { id: 'sign-off', term: 'Sign-off valve', plain: 'A person approves before work goes on.' },
+  { id: 'sign-off', term: 'Sign-off valve (HV)', plain: 'A person approves before work goes on.' },
   {
     id: 'tolerance',
     term: 'Tolerance',
     plain: 'How sure the AI must be before work skips the valve.',
   },
-  { id: 'data-store', term: 'Data tank', plain: 'The one place reports read from.' },
-  { id: 'monitor', term: 'Monitor', plain: 'Watches every connection and raises the alarm.' },
+  { id: 'data-store', term: 'One data store (DATA)', plain: 'The one place reports read from.' },
+  {
+    id: 'monitor',
+    term: 'Monitor (MON)',
+    plain: 'Watches every connection and raises the alarm.',
+  },
   { id: 'logbook', term: 'Logbook', plain: 'Every step the machine took, written down.' },
   { id: 'revision-cloud', term: 'Revision cloud', plain: 'A problem we found.' },
   { id: 'hold', term: 'HOLD', plain: 'Information still to come. Never a made-up number.' },
@@ -84,7 +88,7 @@ export const glossary: readonly GlossaryTerm[] = [
     id: 'hallucination',
     term: 'Hallucination',
     plain:
-      'When an AI states something confidently that is not true. Tolerances and sign-off valves catch it.',
+      'When an AI states something confidently that is not true. Tolerances and sign-off valves are there to catch it.',
   },
   {
     id: 'human-in-the-loop',
