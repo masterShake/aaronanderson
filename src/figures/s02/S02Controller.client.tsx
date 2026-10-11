@@ -223,6 +223,12 @@ export function S02Controller({
     else if (pinned !== null) onProgress(pinned)
     else if (document.documentElement.dataset.tier !== 'still')
       offs.push(gate(root, GATE.entry, playFromStart))
+    if (NOT_PROD && pinned !== null) {
+      // Preview only: the gate tests scrub the pinned harness with `ae:progress` events.
+      const onP = (e: Event) => onProgress(Number((e as CustomEvent<number>).detail))
+      root.addEventListener('ae:progress', onP)
+      offs.push(() => root.removeEventListener('ae:progress', onP))
+    }
 
     events.current = (e) => {
       if (e.type === 'handoff') {

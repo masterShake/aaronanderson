@@ -13,6 +13,17 @@
   --scan-at: calc(var(--sc) * 110%);
 }
 
+/* Whole-pixel strip lines, so the art box starts on a whole CSS px: the Stage's canvas is
+   pixel-snapped, the SVG is not, and a fractional box top shows as a seam. */
+.s02 :global(.strip) :is(p, span) {
+  line-height: 16px;
+}
+
+/* The same for the box size: a whole number of CSS px wide, a multiple of 4 (so 3:4 tall). */
+.s02.s02 {
+  width: calc(round(down, 100% - 2px, 4px) + 2px);
+}
+
 /* Scan: deep panel and CAD revealed left to right; the bar rides the edge. */
 .s02 :global(svg.l-panel),
 .s02 :global(svg.l-cad) {
@@ -86,7 +97,7 @@
 }
 
 .s02 :global(.w-fl) {
-  --a: calc(var(--s02-flange-a) + var(--i) * 0.02);
+  --a: calc(var(--s02-flange-a) + var(--i) * 0.01);
   --b: calc(var(--a) + 0.01);
 }
 
@@ -173,11 +184,20 @@
   border: 1px solid var(--c-orange);
 }
 
+/* Plan: under the accounting pipe, ending at its flange. Iso: to the left of the flange. */
 .fail {
-  translate: calc(-100% + 8px) calc(-100% - 10px);
+  translate: calc(-100% + 8px) 14px;
   border: 1px solid var(--c-orange);
   background: var(--c-asphalt);
   color: var(--c-paper);
+}
+
+.s02[data-labels='iso'] .fail {
+  translate: calc(-100% - 10px) -50%;
+}
+
+.callout {
+  translate: -50% calc(-100% - 16px);
 }
 
 .callout {

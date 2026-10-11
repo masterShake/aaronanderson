@@ -56,7 +56,10 @@ const box = (t: S02Tool) => {
   return at([wx, wy], [tx, ty], { wide: [ww, wh], tall: [tw, th] })
 }
 
-const flangeAt = (f: LayoutId, k: 'pm' | 'acct'): Pt => s02Flanges(fam(f))[k].at
+const flangeAt = (f: LayoutId, k: 'pm' | 'acct'): Pt => {
+  const [x, y] = s02Flanges(fam(f))[k].at
+  return [x - fam(f).flangeIn, y]
+}
 
 /** Timing vars for the CSS windows (unitless; cssVars would suffix ms). */
 const VARS = {

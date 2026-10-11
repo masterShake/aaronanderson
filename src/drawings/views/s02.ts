@@ -42,6 +42,12 @@ export interface S02Layout {
   /** Flange tick half length (plan) and disc radius (3D). */
   flangeHalf: number
   flangeR: number
+  /**
+   * How far upstream of each place's inlet its flange sits. The inlets are on the west
+   * faces, which the south-east iso camera cannot see; upstream, the flange (and the loop-3
+   * stall) stays in view above the pipe.
+   */
+  flangeIn: number
   /** The hand-carry line (pencil) and the carrier's walk along its middle leg. */
   carry: readonly Pt[]
   walkFrom: Pt
@@ -93,6 +99,7 @@ const WIDE: S02Layout = {
   pipeY: 21.6,
   flangeHalf: 11,
   flangeR: 10,
+  flangeIn: 52,
   carry: [
     [168, 300],
     [168, 264],
@@ -102,7 +109,7 @@ const WIDE: S02Layout = {
   walkFrom: [196, 264],
   walkTo: [716, 264],
   rows,
-  stallBack: 16,
+  stallBack: 66,
 }
 
 const TALL: S02Layout = {
@@ -140,6 +147,7 @@ const TALL: S02Layout = {
   pipeY: 12,
   flangeHalf: 7,
   flangeR: 6,
+  flangeIn: 26,
   carry: [
     [84, 214],
     [84, 176],
@@ -149,7 +157,7 @@ const TALL: S02Layout = {
   walkFrom: [100, 176],
   walkTo: [290, 176],
   rows,
-  stallBack: 10,
+  stallBack: 34,
 }
 
 export const S02_LAYOUT: Readonly<Record<LayoutId, S02Layout>> = { wide: WIDE, tall: TALL }
@@ -214,7 +222,7 @@ export function s02Model(family: LayoutId): ModelSpec {
   const fl = s02Flanges(l)
   for (const k of ['crm', ...S02_DESTS] as const) {
     const { at, dir } = fl[k]
-    const x = at[0] + dir[0] * (k === 'crm' ? 4 : -4)
+    const x = at[0] + dir[0] * (k === 'crm' ? 4 : -l.flangeIn)
     parts.push({
       id: `flange.${k}`,
       kind: 'flange',
