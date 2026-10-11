@@ -1,42 +1,24 @@
-import type { SvgDoc, SvgNode } from '@/drawings/types'
+import type { LayoutId, SvgDoc } from '@/drawings/types'
 import { LAYERS } from '@/drawings/types'
+import { layerMarkup } from '@/drawings/lib/svg-string'
 import { layerClass } from './types'
 
 /**
- * The hero's inline drawing: one HTML-level <svg> per layer, server-rendered.
- * Only the hero is inline (the RSC payload repeats inline SVG). W0 minimal;
- * owner: drawings lane, which swaps in lib/svg-string.ts.
+ * The hero's inline drawing: one HTML-level <svg> per layer, server-rendered
+ * through lib/svg-string (the same markup the layer bundles carry). Only the
+ * hero is inline, because the RSC payload repeats inline SVG. With a tall doc,
+ * both families render and the figure's container query shows one.
  */
 
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
-
-function node(n: SvgNode): string {
-  if (n.el === 'path') {
-    return `<path d="${esc(n.d)}" pathLength="1" class="${esc(n.cls)}" data-part="${esc(n.part)}" style="--i:${n.i};--len:${n.len}"/>`
-  }
-  const attrs = [
-    n.cls ? ` class="${esc(n.cls)}"` : '',
-    n.part ? ` data-part="${esc(n.part)}"` : '',
-    n.transform ? ` transform="${esc(n.transform)}"` : '',
-  ].join('')
-  return `<g${attrs}>${n.children.map(node).join('')}</g>`
-}
-
-function Layers({ doc, family }: { doc: SvgDoc; family: 'wide' | 'tall' }) {
+function Layers({ doc, family }: { doc: SvgDoc; family?: LayoutId }) {
   return (
     <>
       {LAYERS.map((layer) => {
-        const groups = doc.groups.filter((g) => g.layer === layer)
-        if (!groups.length) return null
-        const html = groups
-          .map(
-            (g) =>
-              `<g data-layer="${layer}"${g.rev ? ` data-rev="${esc(g.rev)}"` : ''}>${g.children.map(node).join('')}</g>`,
-          )
-          .join('')
+        const html = layerMarkup(doc, layer)
+        if (!html) return null
         return (
           <svg
-            key={layer}
+            key={`${family ?? 'any'}-${layer}`}
             className={layerClass(layer)}
             data-family={family}
             viewBox={doc.viewBox.join(' ')}
@@ -54,7 +36,8 @@ function Layers({ doc, family }: { doc: SvgDoc; family: 'wide' | 'tall' }) {
 export function InlineDrawing({ doc, tall }: { doc: SvgDoc; tall?: SvgDoc }) {
   return (
     <>
-      <Layers doc={doc} family="wide" />
+      {/* without a tall doc the wide layers show in both families */}
+      <Layers doc={doc} family={tall ? 'wide' : undefined} />
       {tall ? <Layers doc={tall} family="tall" /> : null}
     </>
   )

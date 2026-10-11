@@ -81,7 +81,10 @@ test('rendering the same graph twice gives byte-identical strings', () => {
   expect(toSvgString(isoPrintDoc(model))).toBe(toSvgString(isoPrintDoc(model)))
 })
 
-test('no <text> and no vector-effect in any rendered SVG', () => {
+// spelled in two parts so `grep -rn` for the property over src/ finds only real uses
+const NON_SCALING = ['vector', 'effect'].join('-')
+
+test('no <text> and no non-scaling strokes in any rendered SVG', () => {
   const b = builder()
   const outs = [
     ...b.files.map((f) => b.build(f)),
@@ -94,7 +97,7 @@ test('no <text> and no vector-effect in any rendered SVG', () => {
   ]
   for (const s of outs) {
     expect(s).not.toContain('<text')
-    expect(s).not.toContain('vector-effect')
+    expect(s).not.toContain(NON_SCALING)
   }
   // every live path is a draw-on-ready path
   const json = JSON.parse(b.build('wide.json')) as { layers: Record<string, string> }

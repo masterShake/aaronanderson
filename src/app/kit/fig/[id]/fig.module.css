@@ -1,0 +1,6 @@
+/* The /kit/fig harness sheet: one figure, generous, centred. */
+.sheet {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--s-6) var(--page-margin);
+}

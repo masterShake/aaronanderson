@@ -15,7 +15,7 @@ import { r2 } from './geometry'
  *   d-{dash}    hand-carry | hidden | center | signal dash patterns (in k units)
  *   cap-sq      square caps (default round)
  * Paths always carry pathLength="1", data-part, and --i (stagger) and --len (user units).
- * No <text>, no vector-effect.
+ * No <text>, and strokes are never non-scaling.
  */
 
 const esc = (s: string) =>
