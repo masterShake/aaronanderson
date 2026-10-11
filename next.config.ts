@@ -44,6 +44,9 @@ const nextConfig: NextConfig = {
   // Inlined into server and client bundles at build time.
   env: { SHOW_HOLDS, SITE_ENV: VERCEL_ENV },
   images: { formats: ['image/avif', 'image/webp'], qualities: [60, 75] },
+  // Turbopack's cost-based CSS grouping: each route's render-blocking CSS stays close to the
+  // CSS it imports, instead of one shared chunk of every page's modules (W3 perf-8).
+  experimental: { cssChunking: 'graph' },
   async headers() {
     return [
       {
