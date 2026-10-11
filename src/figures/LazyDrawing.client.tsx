@@ -9,7 +9,8 @@ import { LAYERS } from '@/drawings/types'
  * the container, injects each layer into its own stacked HTML-level <svg>, and
  * marks the figure data-layers="ready" (data-family names the family loaded).
  *
- * Still tier: it fetches nothing and the figure's still image shows. If the
+ * Still tier: it fetches nothing and the figure's still image shows, until the
+ * visitor asks for this figure (Play the drawing sets data-user-play). If the
  * visitor turns motion back on (html[data-tier] goes from still to svg, with
  * an `ae:state` event on document), it loads the layers then, with no reload.
  * If the container later crosses the family minimum, it loads the other
@@ -40,10 +41,17 @@ export function LazyDrawing({
     let loaded: string | null = null
     let loading: string | null = null
     const famMin = Number(fig.dataset.famMin ?? 560)
-    const want = () => (tallSrc && fig.clientWidth < famMin ? tallSrc : src)
+    // the content-box width the `fig` container query sees (fractional, no border)
+    const width = () => {
+      const cs = getComputedStyle(fig)
+      const edges = ['borderLeftWidth', 'borderRightWidth', 'paddingLeft', 'paddingRight'] as const
+      return fig.getBoundingClientRect().width - edges.reduce((n, k) => n + parseFloat(cs[k]), 0)
+    }
+    const want = () => (tallSrc && width() < famMin ? tallSrc : src)
 
     const load = () => {
-      if (cancelled || !near || tier() === 'still') return
+      // Play the drawing in the still tier sets data-user-play: load then too
+      if (cancelled || !near || (tier() === 'still' && !('userPlay' in fig.dataset))) return
       const url = want()
       if (url === loaded || url === loading) return
       loading = url
@@ -83,10 +91,13 @@ export function LazyDrawing({
     // the container crossed the family minimum
     const ro = tallSrc ? new ResizeObserver(() => load()) : null
     ro?.observe(fig)
+    const mo = new MutationObserver(() => load())
+    mo.observe(fig, { attributeFilter: ['data-user-play'] })
     return () => {
       cancelled = true
       io.disconnect()
       ro?.disconnect()
+      mo.disconnect()
       document.removeEventListener(STATE_EVENT, onState)
     }
   }, [src, tallSrc])
