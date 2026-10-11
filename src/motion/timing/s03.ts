@@ -32,8 +32,6 @@ export const S03 = {
   tiltToP: 0.6,
   /** Play mode (below 1024 px): the 2D phases, then the batch. */
   playMs: 3000,
-  /** Timeline mode with 3D: the model builds over this long before the batch. */
-  modelMs: 1600,
   /** One document: drop and feed, read, then out to the tray (or the gate and the chute). */
   feedMs: 800,
   readMs: 500,

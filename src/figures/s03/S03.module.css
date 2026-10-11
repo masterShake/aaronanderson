@@ -26,6 +26,21 @@
   --u: 0.5;
 }
 
+/* A sticky, scrubbed figure must fit the viewport: the 4:3 box is capped by its height. */
+.root:global(.fig) {
+  /* whole 8 px steps plus the 2 px border, so the 4:3 box has whole-pixel sides */
+  max-inline-size: max(442px, calc(round(down, (100svh - 12rem) * 4 / 3, 8px) + 2px));
+  margin-inline: auto;
+}
+
+/* A whole-pixel strip, so the box below it starts on a whole pixel when the figure does. */
+@media (min-width: 1024px) {
+  .root :global(.strip) {
+    box-sizing: border-box;
+    min-block-size: 6rem;
+  }
+}
+
 /* Fills by class. The global `.fig .box :is(path…):not([fill]) { fill: none }` outranks the
    frame's `.box .f-*` rules, so they are restated here with enough weight (see issues). */
 .root.root :global(.drawing path.f-deep) {
@@ -314,6 +329,7 @@
   min-block-size: 36px;
   padding: 4px 6px;
   white-space: normal;
+  overflow-wrap: normal;
   background: color-mix(in srgb, var(--c-blueprint-deep) 88%, transparent);
   color: var(--c-label-on-deep);
   opacity: clamp(0, (var(--p, 1) - var(--s03-labels-from-p)) * 30, 1);

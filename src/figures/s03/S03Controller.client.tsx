@@ -242,6 +242,28 @@ export function S03Controller({
     mo.observe(root, { attributes: true, attributeFilter: ['data-rev'] })
     offs.push(() => mo.disconnect())
 
+    // With a Stage, nudge the figure (paint only) so the art box sits on whole device pixels:
+    // the canvas is drawn on the pixel grid, so the SVG under it must be too, or the hand-off
+    // shows a sub-pixel jump.
+    if (pick.mode !== 'play') {
+      const box = root.querySelector<HTMLElement>('.box')
+      const snap = () => {
+        if (!box) return
+        root.style.translate = ''
+        const r = box.getBoundingClientRect()
+        const d = window.devicePixelRatio || 1
+        const fx = Math.round(r.left * d) / d - r.left
+        const fy = Math.round(r.top * d) / d - r.top
+        if (Math.abs(fx) > 0.01 || Math.abs(fy) > 0.01)
+          root.style.translate = `${fx.toFixed(3)}px ${fy.toFixed(3)}px`
+      }
+      snap()
+      const ro = new ResizeObserver(snap)
+      ro.observe(document.documentElement)
+      ro.observe(root)
+      offs.push(() => ro.disconnect())
+    }
+
     if (isStill()) held(false)
     else if (pick.mode === 'pinned') {
       root.style.setProperty('--p', String(p))

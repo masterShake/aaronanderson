@@ -174,8 +174,9 @@ for (const [family, width] of [
     expect(r.vectorEffect).toBe(false)
     expect(r.labels.length).toBeGreaterThanOrEqual(8)
     for (const l of r.labels) {
-      expect(l.w, `${l.key} width`).toBeGreaterThanOrEqual(104)
-      expect(l.h, `${l.key} height`).toBeGreaterThanOrEqual(36)
+      // (sub-pixel slack: rects are measured after layout rounding)
+      expect(l.w, `${l.key} width`).toBeGreaterThanOrEqual(104 - 0.01)
+      expect(l.h, `${l.key} height`).toBeGreaterThanOrEqual(36 - 0.01)
       expect(l.x, `${l.key} left`).toBeGreaterThanOrEqual(0)
       expect(l.y, `${l.key} top`).toBeGreaterThanOrEqual(0)
       expect(l.x + l.w, `${l.key} right`).toBeLessThanOrEqual(r.box.w + 0.5)
