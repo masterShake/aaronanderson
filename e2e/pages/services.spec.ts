@@ -46,6 +46,46 @@ test('the schedule is a captioned table with header cells', async ({ page }) => 
   await expect(table.locator('tbody th[scope="row"]')).toHaveCount(services.length)
 })
 
+// craft-18: every length starts at week 0 on the shared 0–8 scale (S-01 "about two weeks"
+// draws 0 to 2, not a zero-length bar), and the length column head carries the week scale.
+test('lengths draw from week 0 on the 0–8 scale, with the scale on the column head', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/services')
+  const bar = (dim: import('@playwright/test').Locator) =>
+    dim.evaluate((el) => {
+      const track = el.querySelector(':scope > [aria-hidden="true"]')!
+      const line = track.lastElementChild!
+      const t = track.getBoundingClientRect()
+      const l = line.getBoundingClientRect()
+      return { start: l.left - t.left, len: l.width, track: t.width }
+    })
+  for (const s of services) {
+    if (!('weeks' in s.shape.span)) continue
+    const lo = s.shape.span.weeks[0]
+    const where = [
+      page.locator(`#${servicesPage.schedule.id} tbody tr`).nth(services.indexOf(s)),
+      page.locator(`section#${s.slug}`),
+    ]
+    for (const scope of where) {
+      const m = await bar(scope.locator('[data-dim]').first())
+      expect(m.start, `${s.id} starts at week 0`).toBeLessThan(1)
+      expect(m.len, `${s.id} solid length is ${lo} weeks`).toBeGreaterThan((m.track * lo) / 8 - 2)
+      expect(m.len, `${s.id} solid length is ${lo} weeks`).toBeLessThan((m.track * lo) / 8 + 2)
+    }
+  }
+  const head = page.locator(`#${servicesPage.schedule.id} thead th`).nth(2)
+  const scale = await head.evaluate((el) => ({
+    ticks: getComputedStyle(el, '::after').content,
+    unit: getComputedStyle(el, '::before').content,
+  }))
+  expect(scale.ticks).toContain('0 2 4 6 8')
+  expect(scale.unit).toContain(servicesPage.schedule.chart.unit)
+  // the scale is drawing, not text: the column head still reads as its label
+  await expect(head).toHaveText(servicesPage.schedule.columns.length)
+})
+
 for (const width of [390, 320]) {
   test(`schedule rows stack and nothing scrolls sideways at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 })
