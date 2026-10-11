@@ -1,0 +1,15 @@
+.worktrees
+.next
+node_modules
+package-lock.json
+next-env.d.ts
+playwright-report
+test-results
+artifacts
+.lighthouse
+shots
+src/app/fonts
+src/assets
+PLACEHOLDERS.md
+*.woff2
+*.ttf

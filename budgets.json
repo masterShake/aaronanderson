@@ -1,0 +1,19 @@
+{
+  "routes": ["/", "/services", "/how-it-works", "/about", "/contact"],
+  "lab": {
+    "lcpTargetMs": 2000,
+    "lcpFailMs": 2500,
+    "clsFail": 0.05,
+    "tbtTargetMs": 150,
+    "tbtFailMs": 200
+  },
+  "bytes": {
+    "initialJsGzip": 133120,
+    "htmlBrotli": 61440,
+    "preloadFonts": 76800,
+    "runtime3dGzip": 168960,
+    "scene3dGzip": 6144,
+    "route3dGzip": 184320,
+    "route3dGzipJustified": 204800
+  }
+}
