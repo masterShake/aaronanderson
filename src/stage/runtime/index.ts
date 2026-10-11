@@ -15,6 +15,7 @@ import {
 } from '../types'
 import type { ViewBox } from '@/drawings/types'
 import { DUR, ENV, GATE, SCRUB } from '@/motion/timing/global'
+import { MOTION_FROM_P } from '@/motion/timing'
 import { yieldToMain } from '@/motion/visibility'
 import { PEN, SCENE, SCENE_TOKENS } from '@/styles/tokens'
 import { coarsePointer } from '../probe'
@@ -98,6 +99,16 @@ function handoffPOf(f: { root: HTMLElement; id: AnySceneId }): number {
   if (Number.isFinite(d)) return d
   const v = parseFloat(getComputedStyle(f.root).getPropertyValue(`--${f.id}-handoff-p`))
   return Number.isFinite(v) ? v : 0
+}
+
+/**
+ * Where a late hand-off may still happen: up to the scene's MOTION_FROM_P, while the SVG
+ * holds its finished 2D frame (no 2D phase runs between HANDOFF_P and MOTION_FROM_P).
+ * Scenes without one (the preview demo) keep the plain window.
+ */
+function lateUntilOf(f: { id: AnySceneId }, pH: number): number {
+  const m = (MOTION_FROM_P as Partial<Record<AnySceneId, number>>)[f.id]
+  return m !== undefined && m > pH ? m : pH + SCRUB.handoffWindow
 }
 
 class Runtime implements RuntimeApi {
@@ -759,14 +770,18 @@ class Runtime implements RuntimeApi {
     })
   }
 
-  /** Scrub windows (§B8): in at [pH, pH+0.04]; back when raw p < pH−0.01 and smoothed p ≤ pH+0.005. */
+  /**
+   * Scrub windows (§B8): in at [pH, pH+0.04]; back when raw p < pH−0.01 and smoothed p ≤ pH+0.005.
+   * A scroll step can jump the whole window, and a scene can arm after p passed it, so an armed
+   * figure still hands off at its next static frame up to MOTION_FROM_P. That late hand-off
+   * shows the hand-off pose and eases from pH to p, so the 3D never pops.
+   */
   private scrubCheck(f: Fig) {
     if (f.hold || f.rec.mode !== 'scrub') return
     const pH = handoffPOf(f)
     const p = f.rec.p
-    if (f.arm === 'armed' && f.stage === 'svg' && p >= pH && p <= pH + SCRUB.handoffWindow) {
-      f.pSmooth = p
-      this.handoff(f, 'scrub', 0)
+    if (f.arm === 'armed' && f.stage === 'svg' && p >= pH && p <= lateUntilOf(f, pH)) {
+      if (this.handoff(f, 'scrub', 0)) f.pSmooth = p <= pH + SCRUB.handoffWindow ? p : pH
     } else if (
       f.arm === 'live' &&
       f.stage === 'webgl' &&
