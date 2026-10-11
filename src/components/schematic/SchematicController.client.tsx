@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { KEY_DIR, nearest } from './nearest'
+import { lineBoxes, placeAll, type Box } from './place'
 
 /**
  * The Home schematic's client half (pages-drawings §3.2–3.5). Everything it
@@ -30,9 +31,21 @@ export interface SchematicControllerProps {
   chips: Readonly<Record<string, string>>
   /** The state the server rendered. */
   initial: string
+  /** viewBox width and height per family. */
+  viewBox?: Readonly<Record<Family, readonly [number, number]>>
+  /** What labels stay clear of, per family and state: flat [x, y, w, h, …] in viewBox units. */
+  obstacles?: SchematicObstacles
+  /** Route lines per family and state, as flat polylines in viewBox units (labels avoid crossing them). */
+  lines?: SchematicLines
 }
 
+type Family = 'wide' | 'tall'
+export type SchematicObstacles = Record<Family, Record<string, number[]>>
+export type SchematicLines = Record<Family, Record<string, number[][]>>
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
 const CLOSE_DELAY = 250
+const PAD = 3
 
 export function SchematicController({
   figure,
@@ -41,6 +54,9 @@ export function SchematicController({
   touch,
   chips,
   initial,
+  viewBox,
+  obstacles,
+  lines,
 }: SchematicControllerProps) {
   useEffect(() => {
     const fig = document.getElementById(figure)
@@ -136,6 +152,81 @@ export function SchematicController({
       }, CLOSE_DELAY)
     }
 
+    // labels and detail bubbles, placed again at the real width with measured sizes
+    const boxEl = fig.querySelector<HTMLElement>('.box')
+    const leaderSvg = fig.querySelector<SVGSVGElement>('.labels > svg[data-leaders]')
+    let placements = 0
+    const layout = () => {
+      if (!boxEl || !viewBox || !obstacles) return
+      const bw = boxEl.clientWidth
+      const bh = boxEl.clientHeight
+      if (!bw || !bh) return
+      const fam: Family = fig.clientWidth < Number(fig.dataset.famMin ?? 560) ? 'tall' : 'wide'
+      const [vw, vh] = viewBox[fam]
+      const sx = bw / vw
+      const sy = bh / vh
+      const br = boxEl.getBoundingClientRect()
+      const obs: Box[] = []
+      const o = obstacles[fam]?.[state] ?? []
+      for (let i = 0; i + 3 < o.length; i += 4)
+        obs.push({ x: o[i]! * sx, y: o[i + 1]! * sy, w: o[i + 2]! * sx, h: o[i + 3]! * sy })
+      for (const b of buttons) {
+        const r = b.getBoundingClientRect()
+        if (r.width) obs.push({ x: r.left - br.left, y: r.top - br.top, w: r.width, h: r.height })
+      }
+      const els = [
+        ...fig.querySelectorAll<HTMLElement>('.ui li[data-place]'),
+        ...fig.querySelectorAll<HTMLElement>('.labels > [data-place]'),
+      ].filter((el) => el.offsetWidth > 0)
+      const t = fam === 'tall' ? 2 : 0
+      const items = els.map((el) => {
+        const at = (el.dataset.at ?? '').split(' ').map(Number)
+        const gap = (el.dataset.gap ?? '').split(' ').map(Number)
+        const r = el.getBoundingClientRect()
+        return {
+          ax: (at[t] ?? 0) * sx,
+          ay: (at[t + 1] ?? 0) * sy,
+          gap: (gap[t / 2] ?? 0) * sx,
+          w: Math.ceil(r.width),
+          h: Math.ceil(r.height),
+        }
+      })
+      const soft = lineBoxes(
+        (lines?.[fam]?.[state] ?? []).map((l) => l.map((v, i) => v * (i % 2 ? sy : sx))),
+        2,
+      )
+      const out = placeAll(
+        items,
+        obs,
+        { x: 0, y: 0, w: bw, h: bh },
+        { pad: PAD, step: 6, rings: 40 },
+        soft,
+      )
+      const leaders: string[] = []
+      els.forEach((el, i) => {
+        const b = out[i]!
+        el.style.insetInlineStart = `${Math.round((b.x / bw) * 10000) / 100}%`
+        el.style.insetBlockStart = `${Math.round((b.y / bh) * 10000) / 100}%`
+        // a leader from the anchor to the item's nearest edge, once it sits off its anchor
+        const it = items[i]!
+        if (el.dataset.place?.startsWith('note-') || el.dataset.leader === 'none') return
+        const nx = Math.min(Math.max(it.ax, b.x), b.x + b.w)
+        const ny = Math.min(Math.max(it.ay, b.y), b.y + b.h)
+        if (Math.hypot(nx - it.ax, ny - it.ay) > it.gap + 10)
+          leaders.push(`M${it.ax.toFixed(1)} ${it.ay.toFixed(1)}L${nx.toFixed(1)} ${ny.toFixed(1)}`)
+      })
+      if (leaderSvg) {
+        leaderSvg.setAttribute('viewBox', `0 0 ${bw} ${bh}`)
+        leaderSvg.replaceChildren()
+        if (leaders.length) {
+          const path = document.createElementNS(SVG_NS, 'path')
+          path.setAttribute('d', leaders.join(''))
+          leaderSvg.append(path)
+        }
+      }
+      fig.dataset.placed = `${fam}-${state}-${++placements}`
+    }
+
     const setState = (v: string) => {
       state = v
       fig.dataset.toggle = v
@@ -143,6 +234,7 @@ export function SchematicController({
       if (chip && chips[v]) chip.textContent = chips[v]
       for (const s of states) s.setAttribute('aria-pressed', String(s.dataset.stateValue === v))
       for (const b of buttons) b.setAttribute('aria-describedby', `${prefix}-d-${idOf(b)}-${v}`)
+      layout()
       render()
     }
 
@@ -257,12 +349,29 @@ export function SchematicController({
     })
 
     if (fig.dataset.toggle && fig.dataset.toggle !== initial) setState(fig.dataset.toggle)
-    else render()
+    else {
+      layout()
+      render()
+    }
+    // the width decides the family and the px per unit; web fonts change label widths
+    let lastW = fig.clientWidth
+    const ro = new ResizeObserver(() => {
+      if (fig.clientWidth === lastW) return
+      lastW = fig.clientWidth
+      layout()
+    })
+    ro.observe(fig)
+    let live = true
+    document.fonts?.ready.then(() => {
+      if (live) layout()
+    })
     return () => {
+      live = false
+      ro.disconnect()
       cancelClose()
       offs.forEach((off) => off())
     }
-  }, [figure, prefix, tools, touch, chips, initial])
+  }, [figure, prefix, tools, touch, chips, initial, viewBox, obstacles, lines])
 
   return null
 }

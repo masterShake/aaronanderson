@@ -12,7 +12,7 @@ import { site } from '../site'
 export const firmFigure = {
   id: 'firm',
   detail: 'DETAIL 2 / G-01',
-  title: 'THE EXAMPLE FIRM',
+  title: 'WHO CARRIES WHAT',
   tag: site.exampleTag,
   caption: 'Every tool and every hand-off between them. Pick a tool to see what it touches.',
   longDescription: [
