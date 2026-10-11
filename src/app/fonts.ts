@@ -10,7 +10,7 @@ import localFont from 'next/font/local'
 export const display = localFont({
   src: './fonts/big-shoulders-opsz72-800.latin.woff2',
   weight: '800',
-  display: 'swap',
+  display: 'optional',
   variable: '--font-display',
 })
 
