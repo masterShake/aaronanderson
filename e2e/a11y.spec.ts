@@ -113,6 +113,8 @@ for (const r of routes) {
             'the webgl tier is judged only in the gpu project (real GPU)',
           )
           const settle = tier === 'still' ? 300 : tier === 'svg' ? 1500 : 4000
+          // 1 + STATES loads, each settling, plus axe: webgl alone is about 31 s
+          test.setTimeout(tier === 'webgl' ? 120_000 : 60_000)
           const report: Record<string, Finding[] | 'not applicable'> = {}
           const load = async () => {
             await gotoTier(page, r.path, tier)
