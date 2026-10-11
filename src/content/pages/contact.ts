@@ -123,3 +123,28 @@ export const contact: ContactContent = {
     body: "Pick a time above, or write to us and we'll find one.",
   },
 }
+
+/**
+ * Contact strings outside ContactContent (types.ts is frozen): the drawn
+ * month grid's day letters, the spam-check status line, and the preview-only
+ * booking bench at /kit/contact.
+ */
+export const contactUi = {
+  weekdays: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+  verifying: "Checking you're not a bot…",
+  bench: {
+    h1: 'Booking calendar bench',
+    deck: 'Preview only. The booking facade with a sample Cal.com link, so the tests can load it without the real one.',
+  },
+} as const
+
+/** The message the crew receives. Plain text; {name}, {company} and {sheet} are filled per message. */
+export const contactMail = {
+  subject: 'RFI · {name} · {company} · {sheet}',
+  noCompany: 'no company',
+  notSure: 'not sure yet',
+  divider: '—',
+  signals: 'Spam signals',
+  none: 'none',
+  possibleSpam: '[possible spam]',
+} as const
