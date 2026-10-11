@@ -73,6 +73,8 @@ type Hooks = {
   dead(reason: FallbackReason): void
   /** The runtime destroyed itself after 30 s with no figure: probe again on the next register. */
   reset(): void
+  /** A released figure was disposed: drop its record. */
+  forget(rec: FigRec): void
 }
 export type RuntimeFactory = (probe: Probe, hooks: Hooks) => RuntimeApi
 
@@ -263,6 +265,9 @@ class Host {
       dead: (reason) => {
         this.failed = reason
         downgrade(reason)
+      },
+      forget: (rec) => {
+        this.recs.delete(rec)
       },
       reset: () => {
         this.rt = null
