@@ -123,6 +123,8 @@ class Runtime implements RuntimeApi {
   private guard = new FrameGuard()
   private guardDpr = Infinity
   private dpr = 1
+  /** devicePixelRatio at the last fit. */
+  private devDpr = 0
   private env: Promise<WebGLRenderTarget> | null = null
   private envTarget: WebGLRenderTarget | null = null
   private envMs = 0
@@ -568,6 +570,7 @@ class Runtime implements RuntimeApi {
     }
     const dpr = this.dprFor(w, h)
     this.dpr = dpr
+    this.devDpr = window.devicePixelRatio
     const r = this.r
     r.setPixelRatio(dpr)
     r.setSize(w, h, false)
@@ -616,6 +619,8 @@ class Runtime implements RuntimeApi {
     const next = this.pick()
     if (next !== this.active) this.activate(next)
     const f = this.active
+    // The window moved to a screen with another pixel ratio: re-fit (no resize event fires).
+    if (f && window.devicePixelRatio !== this.devDpr) this.fit(f)
     let animating = false
     let priming = false
     if (f?.scene && !document.hidden) {
