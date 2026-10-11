@@ -46,23 +46,30 @@ export interface StateSpec {
 const remapFor = (ground: StateSpec['ground']): BakeOptions['remap'] =>
   ground === 'deep' ? { panel: 'deep' } : { panel: 'paper' }
 
+/** A state of a drawing that is not graph-shaped: StateSpec without the graph's medium. */
+export type DocStateSpec = Omit<StateSpec, 'medium'>
+
+/** A DrawingBuilder that also hands out its (cached) SvgDocs. */
+export type DocsBuilder = DrawingBuilder & { doc(family: LayoutId, rev: string): SvgDoc }
+
 /**
- * A DrawingBuilder for a graph drawn in several states (as found in pencil,
- * rewired in CAD, …). Files: {family}.json with every state's layer, and one
- * {family}.{rev}.still.svg per state.
+ * A DrawingBuilder from any SvgDoc factory, for figures that are not graph-shaped
+ * (S-05, the strata, the org chart). `make(family, rev)` returns the doc of one state in
+ * one family (same viewBox for every state of a family; each group tagged with its rev);
+ * it is called once per pair. Files: {family}.json with every state's layers, and one
+ * {family}.{rev}.still.svg per state (earlier states ghosted under it when `ghost` is set).
  */
-export function graphBuilder(
-  g: Graph<string, string>,
-  states: readonly StateSpec[],
+export function docsBuilder(
+  make: (family: LayoutId, rev: string) => SvgDoc,
+  states: readonly DocStateSpec[],
   families: readonly LayoutId[] = ['wide', 'tall'],
-): DrawingBuilder & { doc(family: LayoutId, rev: string): SvgDoc } {
+): DocsBuilder {
   const cache = new Map<string, SvgDoc>()
   const doc = (family: LayoutId, rev: string) => {
     const key = `${family}:${rev}`
     let d = cache.get(key)
     if (!d) {
-      const s = states.find((x) => x.rev === rev)!
-      d = graphDoc(g, rev, family, { medium: s.medium })
+      d = make(family, rev)
       cache.set(key, d)
     }
     return d
@@ -94,4 +101,24 @@ export function graphBuilder(
       })
     },
   }
+}
+
+/**
+ * A DrawingBuilder for a graph drawn in several states (as found in pencil,
+ * rewired in CAD, …): docsBuilder over graphDoc. Files: {family}.json with
+ * every state's layer, and one {family}.{rev}.still.svg per state.
+ */
+export function graphBuilder(
+  g: Graph<string, string>,
+  states: readonly StateSpec[],
+  families: readonly LayoutId[] = ['wide', 'tall'],
+): DocsBuilder {
+  return docsBuilder(
+    (family, rev) => {
+      const s = states.find((x) => x.rev === rev)!
+      return graphDoc(g, rev, family, { medium: s.medium })
+    },
+    states,
+    families,
+  )
 }

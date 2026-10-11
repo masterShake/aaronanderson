@@ -1,6 +1,16 @@
 import { GATE } from './timing/global'
 
 /**
+ * The nearest element that contains every step: the first step's parent for
+ * siblings, a shared section or main when they sit in separate sections.
+ */
+export function commonAncestor(els: readonly Element[]): Element | null {
+  let a = els[0]?.parentElement ?? null
+  while (a && !els.every((e) => a!.contains(e))) a = a.parentElement
+  return a
+}
+
+/**
  * Step states (D8): sets the figure's data-rev when a step heading crosses
  * `line` (55% of the viewport by default). The active step is the last heading
  * whose top is above the line; scrolling fast past several sets the last once.
@@ -45,7 +55,8 @@ export function watchSteps(o: {
       removeEventListener('resize', on)
     }
   })
-  const container = o.steps[0]?.parentElement
+  // Steps may sit in separate sections: watch the element that holds them all.
+  const container = commonAncestor(o.steps)
   if (container) io.observe(container)
   on()
   return () => {

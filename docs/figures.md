@@ -15,6 +15,7 @@ graph (src/drawings/graphs/*.ts)       typed nodes, ports, routes, people, label
   ├─ render/table.ts tableRows()       the table alternative, as data
   └─ lib/counts.ts  counts()           every number the copy shows
 render/index.ts graphBuilder()          → DrawingBuilder: {family}.json + {family}.{rev}.still.svg
+render/index.ts docsBuilder()           the same files from any SvgDoc factory (not graph-shaped)
 ```
 
 - **Isomorphic** (`lib/**`, `symbols/**`, `kit/**`, `graphs/**`): no roughjs, no DOM, no three.
@@ -45,6 +46,38 @@ render/index.ts graphBuilder()          → DrawingBuilder: {family}.json + {fam
   ```
 
   The firm's is `export { firmDrawing as drawing } from '@/drawings/render/firm'`.
+
+- A figure that is not graph-shaped (S-05, the strata, the org chart) uses `docsBuilder()` with
+  its own SvgDoc factory instead of copying the build and bake logic:
+
+  ```ts
+  import 'server-only'
+  import { docsBuilder } from '@/drawings/render'
+  export const drawing = docsBuilder(
+    (family, rev) => myDoc(family, rev), // SvgDoc: same viewBox per family, groups tagged rev
+    [
+      { rev: 'empty', ground: 'paper' },
+      { rev: 'filled', ground: 'paper', ghost: 0.22 },
+    ],
+    ['wide', 'tall'], // optional; the default
+  )
+  ```
+
+  ```ts
+  function docsBuilder(
+    make: (family: LayoutId, rev: string) => SvgDoc,
+    states: readonly DocStateSpec[],
+    families?: readonly LayoutId[], // default ['wide', 'tall']
+  ): DocsBuilder // DrawingBuilder & { doc(family, rev): SvgDoc }
+  ```
+
+  `DocStateSpec` is `StateSpec` without `medium`
+  (`{ rev, ground: 'paper' | 'deep', ghost? }`); `make` runs once per family and
+  rev (cached; `builder.doc(family, rev)` returns the same doc). Files: `{family}.json` (every
+  state's groups, merged per layer) and `{family}.{rev}.still.svg` (baked at `STILL_K[family]`;
+  with `ghost`, the earlier states' layers are drawn under it at that opacity, per layer, so put
+  ghosted states in a different layer from the current one). `graphBuilder(g, states, families?)`
+  is `docsBuilder` over `graphDoc(g, rev, family, { medium })`, byte for byte.
 
 - `<LazyDrawing src tallSrc stillSrc />` fetches the bundle for the family that fits when the
   figure is about one viewport away, injects the layers, and sets `data-layers="ready"` and
@@ -155,6 +188,8 @@ Add `?tier=still|svg|webgl` and `?state={rev}`. The firm inlines its layers unti
 - `src/drawings/render/__tests__/render.unit.spec.ts`: determinism, no text or vector-effect,
   rendered counts equal `counts(graph)`, the 104 × 36 px label floor, routing clearance, roughjs
   caps, frames and symbols. Set `DRAWINGS_DUMP=<dir>` to write the firm's files there.
+- `src/drawings/render/__tests__/docs-builder.unit.spec.ts`: `docsBuilder()` files, bundles,
+  ghosted stills, caching, and `graphBuilder()` equal to `docsBuilder()` over `graphDoc()`.
 - `e2e/drawings.spec.ts`: schematic keyboard and 1.4.13 behaviour, the toggle, the table, no
   text in SVG, no layer requests on the still tier, layers after motion comes back on, every
   visible label inside the box (390 and 1280, both states), and screenshots into
