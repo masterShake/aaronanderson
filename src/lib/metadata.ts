@@ -7,11 +7,11 @@ import { PATH } from './routes'
 
 /** Page metadata, all from src/content/seo.ts. Only production is indexable. */
 
-const OG = { siteName: 'Actual Engineer', locale: 'en_US', type: 'website' } as const
+const OG = { siteName: site.name, locale: 'en_US', type: 'website' } as const
 
 export const rootMetadata = (): Metadata => ({
   metadataBase: new URL(site.url),
-  title: { default: seo.home.title, template: '%s · Actual Engineer' },
+  title: { default: seo.home.title, template: `%s · ${site.name}` },
   description: seo.home.description,
   applicationName: site.name,
   openGraph: { ...OG },
