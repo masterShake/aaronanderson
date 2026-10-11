@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures'
 import { ORG_REVS } from '../../src/drawings/views/org-chart'
 
 /**
- * The org chart (About, DETAIL 1 / G-02): served drawing files for both
+ * The org chart (About, DETAIL 2 / G-02): served drawing files for both
  * states, layers that load near the viewport, one set of labels per state,
  * all inside the box, and no text inside the SVG.
  */

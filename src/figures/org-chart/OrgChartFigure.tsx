@@ -12,7 +12,7 @@ import { OrgChartToggle } from './OrgChartToggle.client'
 import s from './org-chart.module.css'
 
 /**
- * The org chart on About (DETAIL 1 / G-02; owner: home-about): the usual
+ * The org chart on About (DETAIL 2 / G-02; owner: home-about): the usual
  * chain against ours, one wire long. Static drawings in two states, switched
  * by a two-button toggle (aria-pressed); the server renders "ours", so no-JS
  * and still-tier visitors see the point. Labels are HTML over the boxes.

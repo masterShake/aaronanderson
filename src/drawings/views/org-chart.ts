@@ -1,7 +1,7 @@
 import type { Graph, GraphNode, GraphRoute, Pt } from '../types'
 
 /**
- * The org chart on About (DETAIL 1 / G-02; pages-drawings §6.9; owner:
+ * The org chart on About (DETAIL 2 / G-02; pages-drawings §6.9; owner:
  * home-about), drawn as a one-line graph in two states:
  *   chain (paper, pencil): YOU → ACCOUNT MANAGER → PROJECT MANAGER → ANALYST →
  *     THE PERSON WHO BUILDS IT, each joint a hand-carry with a paper glyph;

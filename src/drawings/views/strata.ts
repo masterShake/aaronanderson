@@ -3,7 +3,7 @@ import { mulberry32, primD } from '../lib/geometry'
 import { primLength } from '../lib/length'
 
 /**
- * The strata on About (DETAIL 2 / G-02; pages-drawings §6.11; owner:
+ * The strata on About (DETAIL 1 / G-02; pages-drawings §6.11; owner:
  * home-about): a section cut A–A through three bands, code on top, office in
  * the middle, field at the bottom. FIELD is earth hatch (45° lines and dots),
  * OFFICE concrete (stipple and small triangles), CODE a fine square grid.

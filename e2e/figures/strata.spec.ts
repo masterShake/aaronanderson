@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures'
 import { STRATA_REV } from '../../src/drawings/views/strata'
 
 /**
- * The strata (About, DETAIL 2 / G-02): static. Served files, layers that load
+ * The strata (About, DETAIL 1 / G-02): static. Served files, layers that load
  * near the viewport with no draw-on and no controls, labels inside the box,
  * and the still standing in on the still tier.
  */

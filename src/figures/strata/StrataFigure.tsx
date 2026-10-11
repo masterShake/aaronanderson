@@ -8,7 +8,7 @@ import { LazyDrawing } from '@/figures/LazyDrawing.client'
 import s from './strata.module.css'
 
 /**
- * The strata on About (DETAIL 2 / G-02; owner: home-about): a section cut
+ * The strata on About (DETAIL 1 / G-02; owner: home-about): a section cut
  * through field, office and code. Static (no draw-on, no controller): the base
  * state is the finished drawing, and the still stands in until the layers
  * arrive. The band annotations (HOLDs) sit beside the figure in the section.
