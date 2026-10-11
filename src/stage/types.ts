@@ -48,7 +48,8 @@ export type StageEvent =
   | { type: 'fallback'; reason: FallbackReason; atMs?: number }
 
 export interface FigureInit {
-  scene: SceneId
+  /** DevSceneId only on preview routes (/kit/stage). */
+  scene: SceneId | DevSceneId
   mode: Mode
   layout: LayoutId
   /** The <figure>. The Stage writes data-stage, data-labels and the label CSS vars on it. */
