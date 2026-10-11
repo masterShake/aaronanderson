@@ -25,4 +25,8 @@ export const orgChartFigure = {
     lost: 'Context lost',
   },
   revs: { chain: 'THE USUAL CHAIN', ours: 'OURS' },
+  ui: {
+    /** Accessible name of the two-button toggle (The usual chain / Ours, in pages/about.ts). */
+    toggleLabel: 'Which org chart to show',
+  },
 } satisfies FigureCopy

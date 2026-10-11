@@ -1,0 +1,90 @@
+/*
+ * The org chart: data-toggle on the figure is chain (pencil on paper) or ours
+ * (CAD on blueprint-deep, scanned in left to right). Static drawings: until
+ * the layers arrive, the matching still stands in. Labels sit over the boxes.
+ */
+
+.org[data-toggle='ours'] :global(.box) {
+  --panel: var(--c-blueprint-deep);
+}
+
+.org :global(.box) {
+  transition: background-color var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+.org :global(.drawing .l-cad) {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+.org[data-toggle='ours'] :global(.drawing .l-cad) {
+  clip-path: inset(0);
+}
+
+.org :global(.drawing .l-pencil) {
+  transition: opacity var(--dur-ui, 200ms) linear;
+}
+
+.org[data-toggle='ours'] :global(.drawing .l-pencil) {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .org :global(.box),
+  .org :global(.drawing .l-cad),
+  .org :global(.drawing .l-pencil) {
+    transition: none;
+  }
+}
+
+/* Elements tied to one state */
+.org:not([data-toggle='chain']) [data-show='chain'],
+.org[data-toggle='chain'] [data-show='ours'] {
+  display: none !important;
+}
+
+/* Until the layers arrive, the matching still stands in for them. */
+.org:not([data-layers='ready']) :global(.still-wrap) {
+  display: block;
+}
+
+.org :global(.still-wrap) > img {
+  position: absolute;
+  inset: 0;
+}
+
+/* Box labels: centered in the box, wrapping inside it */
+.org :global(.labels) > .node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--lw) * 1%);
+  height: calc(var(--lh) * 1%);
+  padding: 2px 6px;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: normal;
+  color: var(--c-asphalt);
+}
+
+.org[data-toggle='ours'] :global(.labels) > .node {
+  color: var(--c-label-on-deep);
+}
+
+@container fig (width < 560px) {
+  .org :global(.labels) > .node {
+    width: calc(var(--lwt) * 1%);
+    height: calc(var(--lht) * 1%);
+  }
+}
+
+.org :global(.labels) > .note {
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand);
+  line-height: var(--lh-hand);
+  letter-spacing: 0.02em;
+  color: var(--c-graphite);
+  transform-origin: left top;
+}

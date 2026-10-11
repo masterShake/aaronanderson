@@ -145,6 +145,27 @@
   overflow-wrap: anywhere;
 }
 
+/* About's full cards take the same shape on phones, so a 4:5 photo never fills the screen */
+@media (width < 640px) {
+  .card {
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  .card .photo {
+    border-block-end: 0;
+    border-inline-end: 1px solid var(--c-asphalt);
+  }
+
+  .card .photo :global([data-hold-cloud]) {
+    aspect-ratio: auto;
+    min-block-size: 100%;
+    padding: var(--s-5) var(--s-1) var(--s-2);
+    font-size: 0.6875rem;
+    overflow-wrap: anywhere;
+  }
+}
+
 .compact .name {
   font-size: var(--fs-lead);
 }
