@@ -123,7 +123,7 @@ function ServiceSheet({ service: sv }: { service: Service }) {
           <div className={s.shape}>
             <LengthChart service={sv} />
             {sv.shape.price ? (
-              <p className={s.priceChip}>
+              <p className={s.priceChip} data-price-chip="">
                 <PriceText price={sv.shape.price} />
               </p>
             ) : null}

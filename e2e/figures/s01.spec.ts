@@ -1,0 +1,99 @@
+import { test, expect } from '../fixtures'
+import { gotoTier } from '../helpers/tier'
+import { S01_TOOLS } from '../../src/drawings/views/s01'
+
+/**
+ * S-01 THE SURVEY (SVG only): its files are served, its layers load, --p
+ * drives the beats (pinned with ?p= on /kit/fig), the still tier shows the
+ * final still with the finished labels, the sheet scrubs it at 1280 with a
+ * fine pointer, and a phone plays it on entry to the end.
+ */
+
+const pOf = (fig: import('@playwright/test').Locator) =>
+  fig.evaluate((el) => Number(getComputedStyle(el).getPropertyValue('--p')))
+
+test('drawing files are served', async ({ request }) => {
+  for (const f of ['wide', 'tall']) {
+    const json = await request.get(`/drawings/s01.${f}.json`)
+    expect(json.status()).toBe(200)
+    const b = await json.json()
+    expect(b.v).toBe(1)
+    expect(Object.keys(b.layers)).toEqual(expect.arrayContaining(['panel', 'pencil', 'cad', 'pkt']))
+    const still = await request.get(`/drawings/s01.${f}.surveyed.still.svg`)
+    expect(still.headers()['content-type']).toContain('image/svg+xml')
+    const svg = await still.text()
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('vector-effect')
+  }
+})
+
+test('layers load and --p drives the beats', async ({ page, guard }) => {
+  await gotoTier(page, '/kit/fig/s01?p=0', 'svg')
+  const fig = page.locator('#fig-s01')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  expect(await fig.locator('svg.l-pencil path').count()).toBeGreaterThan(20)
+  expect(await fig.locator('svg.l-cad path').count()).toBeGreaterThan(10)
+  await expect(fig.locator('.labels > span').filter({ hasNotText: /^$/ })).not.toHaveCount(0)
+  const listOpacity = () =>
+    fig.locator('.labels > div').evaluate((el) => Number(getComputedStyle(el).opacity))
+  expect(await listOpacity()).toBe(0)
+  await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  expect(await listOpacity()).toBe(1)
+  // the long description has its counts filled in
+  const desc = await page.locator('#fig-s01-desc').innerText()
+  expect(desc).not.toMatch(/[{}]/)
+  expect(desc.toLowerCase()).toContain('eight tools')
+  expect(guard.errors).toEqual([])
+})
+
+test('tool labels and survey tags cover every tool', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
+  const n = await page.locator('#fig-s01 .labels > span').count()
+  // a name and a tag per tool, three Δ tags, two notes, two specs
+  expect(n).toBe(S01_TOOLS.length * 2 + 3 + 2 + 2)
+})
+
+test('still tier shows the final still and the finished labels', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s01', 'still')
+  const fig = page.locator('#fig-s01')
+  await expect(fig).toHaveAttribute('data-phase', 'still')
+  const img = fig.locator('img.still-img').filter({ visible: true }).first()
+  await expect(img).toBeVisible()
+  await expect
+    .poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0))
+    .toBe(true)
+  expect(await pOf(fig)).toBe(1)
+})
+
+test('the sheet scrubs it at 1280 with a fine pointer', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'scrub is desktop only')
+  await gotoTier(page, '/services', 'svg')
+  const fig = page.locator('#fig-s01')
+  const track = page.locator('section#s-01 [data-scrub-track]')
+  const box = await track.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top + scrollY, h: r.height }
+  })
+  // scroll well above, so the driver starts from an unfinished drawing
+  await page.evaluate((y) => scrollTo(0, y), Math.max(0, box.top - 1600))
+  await page.waitForTimeout(300)
+  await page.evaluate((y) => scrollTo(0, y), box.top - 88 + box.h * 0.3)
+  await expect.poll(() => pOf(fig)).toBeGreaterThan(0.05)
+  const mid = await pOf(fig)
+  expect(mid).toBeLessThan(0.95)
+  await page.evaluate((y) => scrollTo(0, y), box.top + box.h)
+  await expect.poll(() => pOf(fig)).toBe(1)
+})
+
+test('a phone plays it on entry, to the end', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile', 'play mode on the phone')
+  await gotoTier(page, '/services', 'svg')
+  const fig = page.locator('#fig-s01')
+  await fig.scrollIntoViewIfNeeded()
+  await expect(fig).toHaveAttribute('data-phase', 'done', { timeout: 10_000 })
+  expect(await pOf(fig)).toBe(1)
+  await fig.locator('[data-action="replay"]').click()
+  await expect.poll(() => pOf(fig)).toBeLessThan(1)
+  await expect(fig).toHaveAttribute('data-phase', 'done', { timeout: 10_000 })
+})

@@ -385,3 +385,90 @@
 .nicList li + li {
   margin-block-start: var(--s-2);
 }
+
+/* ── Print (pages-drawings §7.10; layered on src/styles/print.css) ──────────
+   The schedule fills the first sheet; then one service sheet per page, its
+   finished still at the top right, its length, price chip and the absolute
+   "Talk about" URL (print.css prints a[data-print-url]). No rail, no jump list. */
+@media print {
+  .schedule {
+    break-after: page;
+  }
+
+  .schedule :global(.scroll) {
+    overflow: visible;
+  }
+
+  .jump,
+  .rail {
+    display: none !important;
+  }
+
+  .sheets {
+    display: block;
+    padding: 0;
+  }
+
+  .sheet,
+  .sheets .sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 92mm;
+    column-gap: 6mm;
+    align-items: start;
+    padding-block: 0;
+    padding-inline: 0;
+    border: 0;
+    break-before: page;
+  }
+
+  .text {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .figCol {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .figCol > :global(figure.fig) {
+    position: static;
+  }
+
+  .body {
+    margin-block-start: 4mm;
+  }
+
+  .body > .h3 {
+    margin-block-start: 4mm;
+  }
+
+  .h2 {
+    font-size: 20pt;
+  }
+
+  .promise {
+    font-size: 12pt;
+  }
+
+  .priceChip,
+  .shape,
+  .receive li {
+    break-inside: avoid;
+  }
+
+  .talk {
+    margin-block-start: 4mm;
+  }
+
+  .talkLink {
+    display: inline;
+    min-block-size: 0;
+    text-decoration: none;
+  }
+
+  .nic {
+    break-before: page;
+  }
+}
