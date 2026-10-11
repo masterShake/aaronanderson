@@ -150,6 +150,13 @@ export interface HeroBuild {
   approve: { first: number; every: number }
 }
 
+/**
+ * The tall iso print is small: the AI reader, the store and accounting crowd one corner. These
+ * move the AI reader's label left of it, under the inbox, and the store's below its tank
+ * (viewBox units), so every label sits clear (checked at 360 and 390 px).
+ */
+const TALL_ISO_NUDGE: Readonly<Record<string, Pt>> = { ai: [-44, 0], store: [0, 73] }
+
 const cache = new Map<Fam, HeroBuild>()
 
 export function heroBuild(family: Fam): HeroBuild {
@@ -328,12 +335,14 @@ function build(family: Fam): HeroBuild {
           ? [c[0], c[1] - r - 16]
           : c
     const iso0 = isoAt(c, top + 10)
-    const iso: Pt =
+    const iso1: Pt =
       part.id === 'ai'
         ? [iso0[0] - 18, iso0[1] + 30]
         : part.id === 'valve'
           ? [iso0[0] + 18, iso0[1] - 30]
           : iso0
+    const nudge = family === 'tall' ? TALL_ISO_NUDGE[part.id] : undefined
+    const iso: Pt = nudge ? [iso1[0] + nudge[0], iso1[1] + nudge[1]] : iso1
     const bi = boxes.findIndex((n) => n.id === part.id)
     const scan = crossAt(c[0], W)
     labels.push({

@@ -88,7 +88,8 @@ export function HeroFigure() {
       labels={
         <>
           <HeroLabels wide={wide} tall={tall} copy={copy} />
-          <span className={s.approved} style={box(vx + 70, vy - 6, vxt + 56, vyt - 6)}>
+          {/* wide: under the line, right of the AI reader's label and below accounting */}
+          <span className={s.approved} style={box(vx + 100, vy + 90, vxt + 56, vyt - 6)}>
             {copy.ui.approved}
           </span>
           <span

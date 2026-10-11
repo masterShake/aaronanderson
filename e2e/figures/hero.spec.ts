@@ -184,6 +184,153 @@ test('reduced motion: the iso print, AS FOUND inset and Play the drawing; nothin
   expect(chunks).toEqual([])
 })
 
+/**
+ * The visible text of each hero label (its own text, plus children not hidden or faded), box
+ * relative, with its line count; and the AS FOUND inset when it shows.
+ */
+async function labelBoxes(page: Page, sel: string) {
+  return page.evaluate((s) => {
+    const fig = document.querySelector<HTMLElement>(s)!
+    const box = fig.querySelector('.box')!.getBoundingClientRect()
+    const shown = (el: Element) => {
+      for (let n: Element | null = el; n && n !== fig; n = n.parentElement) {
+        const cs = getComputedStyle(n)
+        if (cs.display === 'none' || cs.visibility !== 'visible') return false
+        if (cs.opacity === '0' || /opacity\(0\)/.test(cs.filter)) return false
+      }
+      return true
+    }
+    const rel = (r: { left: number; top: number; right: number; bottom: number }) =>
+      [r.left - box.left, r.top - box.top, r.right - box.left, r.bottom - box.top].map(
+        (v) => Math.round(v * 10) / 10,
+      )
+    const out: { what: string; at: number[]; lines: number }[] = []
+    for (const el of fig.querySelectorAll<HTMLElement>('.labels > [data-anchor]')) {
+      if (!shown(el)) continue
+      const rects: DOMRect[] = []
+      let lines = 0
+      for (const n of el.childNodes) {
+        if (n.nodeType === Node.TEXT_NODE && n.textContent?.trim()) {
+          const r = document.createRange()
+          r.selectNodeContents(n)
+          rects.push(r.getBoundingClientRect())
+          lines += r.getClientRects().length
+        } else if (n instanceof HTMLElement && shown(n) && n.offsetWidth) {
+          rects.push(n.getBoundingClientRect())
+          lines += 1
+        }
+      }
+      if (!rects.length) continue
+      out.push({
+        what: el.dataset.anchor!,
+        lines,
+        at: rel({
+          left: Math.min(...rects.map((r) => r.left)),
+          top: Math.min(...rects.map((r) => r.top)),
+          right: Math.max(...rects.map((r) => r.right)),
+          bottom: Math.max(...rects.map((r) => r.bottom)),
+        }),
+      })
+    }
+    const inset = fig.querySelector('.box [class*="inset"]')
+    const ir = inset && shown(inset) ? rel(inset.getBoundingClientRect()) : null
+    return { labels: out, inset: ir, box: [box.width, box.height] }
+  }, sel)
+}
+
+const hits = (a: number[], b: number[]) =>
+  Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!) > 0.5 &&
+  Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!) > 0.5
+
+/** craft-8: in the tall viewBox every iso label is one line, inside the frame, clear of the
+ * others and of the AS FOUND inset. */
+for (const [tier, width] of [
+  ['still', 360],
+  ['still', 390],
+  ['svg', 390],
+] as const) {
+  test(`tall iso print @${width} (${tier}): labels one line, inside, apart, clear of the inset`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await gotoTier(page, '/', tier)
+    const fig = page.locator(FIG)
+    await fig.scrollIntoViewIfNeeded()
+    await page.evaluate(() => document.fonts.ready.then(() => undefined))
+    if (tier === 'svg') {
+      await page.waitForTimeout(300)
+      await freezeAt(page, 25000)
+    } else await expect(fig).toHaveAttribute('data-phase', 'still')
+    const { labels, inset, box } = await labelBoxes(page, FIG)
+    expect(labels.length).toBeGreaterThanOrEqual(8)
+    const bad: string[] = []
+    for (const [i, a] of labels.entries()) {
+      if (a.lines > 1) bad.push(`${a.what}: ${a.lines} lines`)
+      if (
+        a.at[0]! < -0.5 ||
+        a.at[1]! < -0.5 ||
+        a.at[2]! > box[0]! + 0.5 ||
+        a.at[3]! > box[1]! + 0.5
+      )
+        bad.push(`${a.what}: outside`)
+      if (inset && hits(a.at, inset)) bad.push(`${a.what}: on the inset`)
+      for (const b of labels.slice(i + 1)) if (hits(a.at, b.at)) bad.push(`${a.what} × ${b.what}`)
+    }
+    expect(bad).toEqual([])
+  })
+}
+
+/** craft-13: REV 2 at 1280 (svg): the report's name is dark on its orange box, REPORT WRITES
+ * ITSELF sits under the box, spec lines sit on a chip, and APPROVED clears every tool box. */
+test('REV 2 mechanism @1280: report text off the orange, APPROVED clear of the boxes', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await gotoTier(page, '/', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  await page.evaluate(() => document.fonts.ready.then(() => undefined))
+  await page.waitForTimeout(300)
+  await freezeAt(page, 4000)
+  const r = await page.evaluate((s) => {
+    const fig = document.querySelector<HTMLElement>(s)!
+    const rect = (el: Element) => {
+      const q = el.getBoundingClientRect()
+      return [q.left, q.top, q.right, q.bottom]
+    }
+    const svg = [...fig.querySelectorAll('.drawing svg.l-cad')].find((v) => v.checkVisibility())!
+    const boxes = [...svg.querySelectorAll('.k-frame path[class^="f-"]')]
+      .filter((p) =>
+        /^M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z$/.test(
+          p.getAttribute('d') ?? '',
+        ),
+      )
+      .map((p) => ({ orange: p.classList.contains('f-orange'), at: rect(p) }))
+    const specs = [...fig.querySelectorAll<HTMLElement>('.labels [class*="spec"]')]
+    const report = specs.find((el) => /report writes itself/i.test(el.textContent ?? ''))!
+    const approved = [...fig.querySelectorAll('.labels [class*="approved"]')][0]!
+    const name = fig.querySelector('.labels [data-anchor="tool.report"]')!
+    return {
+      boxes,
+      report: rect(report),
+      specBg: specs.map((el) => getComputedStyle(el).backgroundColor),
+      approved: rect(approved),
+      nameColor: getComputedStyle(name).color,
+    }
+  }, FIG)
+  const hit = (a: number[], b: number[]) =>
+    Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!) > 0.5 &&
+    Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!) > 0.5
+  const orange = r.boxes.find((b) => b.orange)!
+  expect(r.boxes.length).toBeGreaterThanOrEqual(7)
+  // the label-on-deep tone is light; on orange the name must be the dark ink
+  const [cr, cg, cb] = r.nameColor.match(/\d+/g)!.map(Number)
+  expect(0.2126 * cr! + 0.7152 * cg! + 0.0722 * cb!).toBeLessThan(100)
+  expect(r.report[1]!).toBeGreaterThanOrEqual(orange.at[3]! - 0.5)
+  for (const bg of r.specBg) expect(bg).not.toBe('rgba(0, 0, 0, 0)')
+  expect(r.boxes.filter((b) => hit(r.approved, b.at))).toEqual([])
+})
+
 test('Pause stops every hero animation', async ({ page }) => {
   await gotoTier(page, '/', 'svg')
   const fig = page.locator(FIG)
