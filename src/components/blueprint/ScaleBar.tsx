@@ -1,8 +1,16 @@
-/** A graphic scale bar. Decorative. */
+import s from './blueprint.module.css'
+
+/** A graphic scale bar: alternating filled and open blocks with end ticks. Decorative. */
 export function ScaleBar() {
   return (
-    <svg aria-hidden="true" width="120" height="12" viewBox="0 0 120 12">
-      <path d="M0 6H120M0 2V10M60 2V10M120 2V10" stroke="currentColor" fill="none" />
+    <svg className={s.scaleBar} aria-hidden="true" viewBox="0 0 120 14" focusable="false">
+      <path d="M0.75 4h29.5v6H0.75zM60 4h30v6H60z" fill="currentColor" />
+      <path
+        d="M0.75 4h118.5v6H0.75zM0.75 1v12M30.25 1v12M60 1v12M90 1v12M119.25 1v12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   )
 }

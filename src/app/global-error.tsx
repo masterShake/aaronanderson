@@ -1,33 +1,41 @@
 'use client'
+import './globals.css'
+import { fontVariables } from './fonts'
 import { errorPage } from '@/content/pages/not-found'
 import { site } from '@/content/site'
+import { ErrorSheet } from '@/components/chrome/ErrorSheet'
+import navStyles from '@/components/chrome/chrome.module.css'
 
-/** The root layout itself threw: a bare page with its own <html> (owner: kit lane). */
+/**
+ * The root layout itself threw: global-error replaces it, so it brings its own
+ * <html>, <body>, styles and fonts, and a <title> (metadata is not supported
+ * here). Every link is a plain <a>, since the router may be what broke.
+ */
 export default function GlobalError({
+  retry,
   reset,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry?: () => void
+  reset?: () => void
 }) {
   return (
-    <html lang="en-US">
+    <html lang="en-US" className={fontVariables}>
       <body>
-        <main id="main">
-          <h1>{errorPage.h1}</h1>
-          <p>{errorPage.body}</p>
-          <p>
-            <button type="button" onClick={() => reset()}>
-              {errorPage.retry}
-            </button>
-          </p>
-          <ul>
-            {site.nav.map((it) => (
-              <li key={it.page}>
-                {/* A plain link: the router may be what broke. */}
-                <a href={it.href}>{it.label}</a>
-              </li>
-            ))}
-          </ul>
+        <title>{errorPage.h1}</title>
+        <main id="main" tabIndex={-1}>
+          <ErrorSheet
+            copy={errorPage}
+            strip={`${site.wordmark} · ${site.sheet.label} —`}
+            nav={site.nav}
+            book={{ label: site.cta.book, href: site.cta.href }}
+            onRetry={() => (retry ?? reset)?.()}
+            link={(it) => (
+              <a href={it.href} className={navStyles.errorLink}>
+                <span className={navStyles.indexSheet}>{it.sheet}</span> {it.label}
+              </a>
+            )}
+          />
         </main>
       </body>
     </html>

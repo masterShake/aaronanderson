@@ -1,10 +1,23 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { MouseEvent } from 'react'
 import type { NavItem } from '@/content/types'
 import { transitionTypes } from '@/lib/routes'
+import s from './chrome.module.css'
 
-/** The five sheets, in reading order. The current one gets aria-current="page". */
+/** Closes the menu popover after a sheet is picked (a soft navigation never light-dismisses it). */
+function closeMenu(e: MouseEvent<HTMLAnchorElement>) {
+  const pop = e.currentTarget.closest<HTMLElement>('[popover]')
+  if (pop?.matches(':popover-open')) pop.hidePopover()
+}
+
+/**
+ * The five sheets, in reading order, plain label first. The current one gets
+ * aria-current="page" and a dimension-line underline with end ticks. In the
+ * menu each row also shows its sheet number and title, and the first link
+ * carries autofocus (the popover focuses it when it opens).
+ */
 export function NavLinks({
   items,
   variant,
@@ -13,17 +26,24 @@ export function NavLinks({
   variant: 'bar' | 'menu'
 }) {
   const pathname = usePathname()
+  const menu = variant === 'menu'
   return (
-    <ul data-variant={variant}>
-      {items.map((it) => (
+    <ul className={menu ? s.menuList : s.barList} data-variant={variant}>
+      {items.map((it, i) => (
         <li key={it.page}>
           <Link
             href={it.href}
+            className={s.navLink}
             aria-current={pathname === it.href ? 'page' : undefined}
             transitionTypes={transitionTypes(pathname, it.href)}
+            {...(menu ? { onClick: closeMenu, autoFocus: i === 0 } : {})}
           >
-            {it.label}
-            {variant === 'menu' ? <span aria-hidden="true"> · {it.sheet}</span> : null}
+            <span className={s.navLabel}>{it.label}</span>
+            {menu ? (
+              <span className={s.navSheet}>
+                {it.sheet} · {it.sheetTitle}
+              </span>
+            ) : null}
           </Link>
         </li>
       ))}

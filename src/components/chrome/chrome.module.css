@@ -1,4 +1,9 @@
-/* Header and title-block footer (W0 minimal; owner: kit lane). */
+/*
+ * Chrome: the sticky header, the mobile menu and the title-block footer (D1).
+ * Radius 0, no soft shadows; orange only on Book a call.
+ */
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
 .header {
   position: sticky;
   top: 0;
@@ -10,106 +15,273 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: var(--s-4);
+  gap: var(--s-2);
   min-height: var(--header-h);
 }
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s-3);
+  min-height: 44px;
   margin-inline-end: auto;
-  text-decoration: none;
   color: inherit;
+  text-decoration: none;
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
   font-family: var(--ff-display);
   font-weight: 800;
-  font-size: 1.5rem;
-  line-height: 1;
+  font-size: 1.125rem;
+  line-height: 0.9;
   letter-spacing: 0.02em;
   color: var(--c-asphalt);
 }
 
+/* The footer size always sits on a dark surface. */
+.wordmark[data-size='footer'] {
+  color: var(--c-paper);
+}
+
+/* Narrow phones: the wordmark stacks on two lines, like a title-block cell. */
+.word {
+  inline-size: min-content;
+}
+
+.mark {
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+.faceTop {
+  fill: var(--c-alu-100);
+}
+
+.faceLeft {
+  fill: var(--c-alu-300);
+}
+
+.faceRight {
+  fill: var(--c-alu-500);
+}
+
+.markLine {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
 .chip {
+  display: none;
+  flex: none;
+  white-space: nowrap;
+  padding: 2px var(--s-2);
+  border: 1px solid var(--c-asphalt);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  line-height: var(--lh-label);
   letter-spacing: var(--tr-label);
-  color: var(--c-graphite);
+  color: var(--c-asphalt);
 }
 
-.nav ul {
-  display: flex;
-  gap: var(--s-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Book a call: one line, at least 44 px tall on phones. */
+.bar .book {
+  flex: none;
+  white-space: nowrap;
+  min-height: 44px;
+  padding-inline: var(--s-3);
+  font-size: 0.8125rem;
 }
 
-.nav a {
+.menuButton {
+  flex: none;
+  min-height: 44px;
+  min-width: 44px;
+  padding-inline: var(--s-3);
+  border: var(--line-frame) solid var(--c-asphalt);
+  border-radius: var(--radius);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
   font-family: var(--ff-ui);
-  font-size: var(--fs-nav);
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: var(--tr-ui);
   text-transform: uppercase;
-  text-decoration: none;
-  color: var(--c-asphalt);
-  padding-block: var(--s-2);
+  cursor: pointer;
 }
 
-.nav a[aria-current='page'] {
-  border-bottom: 2px solid var(--c-asphalt);
+.menuButton:hover {
+  background: var(--c-paper-sunk);
 }
 
 .wide {
   display: none;
 }
 
-.menuButton {
-  min-height: 44px;
-  padding-inline: var(--s-3);
-  border: 2px solid var(--c-asphalt);
-  background: var(--c-paper);
-  font-family: var(--ff-ui);
-  font-weight: 700;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.menu {
+/* ── Nav links: the current sheet gets a dimension line with end ticks ──── */
+.barList,
+.menuList {
   margin: 0;
-  inset: var(--header-h) 0 auto auto;
-  width: min(100vw, 360px);
-  padding: var(--s-5);
-  border: 2px solid var(--c-asphalt);
-  background: var(--c-paper);
-}
-
-.menu ul {
-  display: grid;
-  gap: var(--s-3);
-  margin: 0 0 var(--s-5);
   padding: 0;
   list-style: none;
 }
 
-@media (max-width: 419px) {
-  .bar {
-    gap: var(--s-2);
+.barList {
+  display: flex;
+  gap: clamp(var(--s-3), 1.6vw, var(--s-5));
+}
+
+.navLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--c-asphalt);
+  white-space: nowrap;
+}
+
+/* The dimension line: a 1.5 px rule between two 9 px end ticks. */
+.navLink::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 4px;
+  block-size: 9px;
+  border-inline: 1.5px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) center / 100% 1.5px no-repeat;
+  opacity: 0;
+}
+
+.navLink:hover::after {
+  opacity: 0.35;
+}
+
+.navLink[aria-current='page']::after {
+  opacity: 1;
+}
+
+/* ── Mobile menu (a non-modal popover dialog under the header) ─────────── */
+.menu {
+  position: fixed;
+  inset: var(--header-h) 0 auto auto;
+  inline-size: min(100vw, 420px);
+  max-block-size: calc(100dvh - var(--header-h));
+  margin: 0;
+  padding: var(--s-4) var(--page-margin) var(--s-5);
+  overflow: auto;
+  border: 0;
+  border-block-start: var(--line-frame) solid var(--c-asphalt);
+  border-inline-start: var(--line-frame) solid var(--c-asphalt);
+  border-block-end: var(--line-frame) solid var(--c-asphalt);
+  border-radius: var(--radius);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  z-index: var(--z-menu);
+}
+
+.menu::backdrop {
+  background: rgb(31 33 35 / 0.24);
+}
+
+.menuHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-block-end: var(--s-3);
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.menuTitle {
+  margin: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+.menuList li {
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.menuList .navLink {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--s-3);
+  min-height: 56px;
+  padding-block: var(--s-2);
+  font-size: var(--fs-ui);
+  white-space: normal;
+}
+
+.menuList .navLink::after {
+  bottom: 2px;
+}
+
+.navSheet {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 400;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.menuFoot {
+  padding-block-start: var(--s-4);
+}
+
+/* The narrowest phones (360-389 px): tighter type and padding keep one line. */
+@media (max-width: 389px) {
+  .bar .book,
+  .bar .menuButton {
+    padding-inline: var(--s-2);
+    font-size: 0.75rem;
+  }
+}
+
+/* Under 360 px (320 px reflow) the header drops the drawn mark. */
+@media (max-width: 359px) {
+  .header .mark {
+    display: none;
+  }
+}
+
+@media (min-width: 480px) {
+  .word {
+    inline-size: auto;
+    white-space: nowrap;
   }
 
   .wordmark {
-    font-size: 1.125rem;
+    font-size: 1.375rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .bar {
+    gap: var(--s-4);
   }
 
   .chip {
-    display: none;
+    display: inline-block;
   }
 
-  .bar a,
-  .bar button {
-    padding-inline: var(--s-2);
+  .bar .book {
+    padding-inline: var(--s-5);
+    font-size: var(--fs-ui);
   }
 }
 
@@ -117,47 +289,63 @@
   .wide {
     display: flex;
     align-items: center;
-    gap: var(--s-5);
   }
 
   .narrow {
     display: none;
   }
+
+  .bar {
+    gap: clamp(var(--s-3), 1.2vw, var(--s-5));
+  }
+
+  .barList {
+    gap: clamp(var(--s-3), 1.2vw, var(--s-5));
+  }
+
+  .wordmark {
+    font-size: 1.5rem;
+  }
+
+  .bar .book {
+    min-height: 44px;
+    padding-inline: var(--s-4);
+  }
 }
 
+/* Between 1024 and 1279 px the switch keeps its name but hides its words, so the bar fits. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .wide [data-variant='header'] > span:last-child {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .chip {
+    display: none;
+  }
+
+  .word {
+    inline-size: min-content;
+    white-space: normal;
+  }
+}
+
+/* ── Footer: the title block ─────────────────────────────────────────────── */
 .footer {
+  --c-focus: var(--c-focus-on-dark);
+  --hold-c: var(--c-alu-300);
+  --hold-on: var(--c-asphalt-deep);
   background: var(--c-asphalt-deep);
   color: var(--c-paper);
   padding-block: var(--s-8) var(--s-6);
 }
 
-.footer a {
+.footer a:not([class]) {
   color: var(--c-cyan);
-}
-
-.footer :focus-visible {
-  outline-color: var(--c-focus-on-dark);
-}
-
-.block {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  border: 1px solid var(--c-graphite);
-}
-
-.cell {
-  padding: var(--s-4);
-  border: 1px solid var(--c-graphite);
-}
-
-.label {
-  display: block;
-  font-family: var(--ff-mono);
-  font-size: var(--fs-label);
-  letter-spacing: var(--tr-label);
-  text-transform: uppercase;
-  color: var(--c-alu-300);
-  margin-bottom: var(--s-2);
 }
 
 .footer .wordmark {
@@ -165,21 +353,200 @@
   font-size: 2rem;
 }
 
-.footer ul,
-.footer ol {
+.footer .word {
+  inline-size: auto;
+}
+
+.block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  border: var(--line-frame) solid var(--c-alu-700);
+}
+
+.cell {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
   margin: 0;
-  padding-inline-start: var(--s-5);
+  padding: var(--s-4);
+  outline: 1px solid var(--c-alu-700);
+  outline-offset: -0.5px;
 }
 
-.footer table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-small);
+.wideCell {
+  grid-column: 1 / -1;
 }
 
-.footer th,
-.footer td {
-  text-align: start;
-  padding: var(--s-1) var(--s-2);
-  border-bottom: 1px solid var(--c-graphite);
+.label {
+  margin: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-alu-300);
+}
+
+.index ul {
+  display: grid;
+  gap: var(--s-1);
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.index a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  min-height: 24px;
+  color: var(--c-paper);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.index a:hover {
+  text-decoration: underline;
+}
+
+.indexSheet {
+  min-inline-size: 4.5ch;
+  font-family: var(--ff-mono);
+  font-weight: 400;
+  color: var(--c-cyan);
+}
+
+.fields {
+  gap: var(--s-3);
+}
+
+.fields dd {
+  margin: var(--s-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.approved {
+  font-family: var(--ff-display);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.actions {
+  align-content: space-between;
+  justify-items: start;
+}
+
+.actions .label {
+  margin-block-end: var(--s-2);
+}
+
+.base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-block-start: var(--s-5);
+}
+
+@media (min-width: 1024px) {
+  .block {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  }
+
+  .wideCell {
+    grid-column: span 2;
+  }
+}
+
+/* ── Error sheets (error.tsx, global-error.tsx) and the 404 sheet ────────── */
+.errorSheet {
+  padding-block: var(--s-8) var(--section-pad);
+}
+
+.errorStrip {
+  margin: 0 0 var(--s-4);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  margin-block: var(--s-6);
+}
+
+.errorNav {
+  max-width: 40rem;
+  padding-block-start: var(--s-5);
+  border-block-start: var(--line-frame) solid var(--c-asphalt);
+}
+
+.errorLinksTitle {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.errorNav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.errorNav li {
+  max-width: none;
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+.errorLink {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding-block: var(--s-3);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.errorLink:hover {
+  text-decoration: underline;
+}
+
+.errorLink .indexSheet {
+  color: var(--c-blueprint);
+}
+
+.notFoundHead {
+  padding-block: var(--s-6) var(--s-5);
+}
+
+.notFound {
+  display: grid;
+  gap: var(--s-6);
+  padding-block: var(--s-6) var(--section-pad);
+}
+
+.notFoundLinks .errorActions {
+  margin-block: var(--s-5) 0;
+}
+
+@media (min-width: 1024px) {
+  .notFound {
+    grid-template-columns: 7fr 5fr;
+    align-items: start;
+  }
 }

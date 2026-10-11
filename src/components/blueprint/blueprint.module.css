@@ -1,198 +1,975 @@
-/* Blueprint component styles (W0 minimal; owner: kit lane). */
+/*
+ * Blueprint components: sheet heads, strips, tables, dimension lines, stamps,
+ * notes, HOLD and CONFIRM marks, the closing CTA plate. Radius 0; no soft
+ * shadows (the CTA plate's offset is a hard edge). Colors come from tokens;
+ * dark surfaces override --hold-c / --tbl-* through custom properties.
+ */
+
+/* ── Shared mono strip ───────────────────────────────────────────────────── */
+.strip {
+  margin: 0 0 var(--s-4);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+}
+
+/* ── HOLD and CONFIRM (preview only) ─────────────────────────────────────── */
 .holdChip {
+  --hc: var(--hold-c, var(--c-graphite));
   display: inline;
-  padding: 0 var(--s-1);
+  padding: 0 var(--s-1) 0 0;
+  border: 1px dashed var(--hc);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   overflow-wrap: anywhere;
-  border: 1px dashed var(--c-graphite);
-  color: var(--c-graphite);
+  color: var(--hc);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  font-weight: 400;
+  line-height: 1.6;
   letter-spacing: var(--tr-label);
+  text-transform: none;
 }
 
 .holdTab {
+  display: inline-block;
+  margin-inline-end: var(--s-1);
   padding: 0 var(--s-1);
-  background: var(--c-graphite);
-  color: var(--c-paper);
+  background: var(--hold-c, var(--c-graphite));
+  color: var(--hold-on, var(--c-paper));
+  font-family: var(--ff-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: var(--tr-label);
 }
 
 .holdCloud {
+  --hc: var(--hold-c, var(--c-graphite));
+  position: relative;
   display: grid;
   place-content: center;
-  gap: var(--s-2);
-  min-height: 120px;
-  padding: var(--s-5);
-  border: 2px dashed var(--c-graphite);
-  border-radius: 24px;
-  color: var(--c-graphite);
+  min-block-size: 120px;
+  padding: var(--s-6) var(--s-5) var(--s-5);
+  border: 1.5px dashed var(--hc);
+  color: var(--hc);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
   text-align: center;
 }
 
+.holdCloud > .holdTab {
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline-start: -1px;
+}
+
+.holdNote {
+  margin: 0;
+  max-width: 36ch;
+}
+
+/* A photo HOLD is hatched, at portrait proportions. */
+.holdCloud[data-hold-cloud='photo'] {
+  aspect-ratio: 4 / 5;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 var(--hatch),
+    rgb(85 89 95 / 0.18) var(--hatch) calc(var(--hatch) + 1px)
+  );
+}
+
+.holdCloud[data-hold-cloud='logo'] {
+  aspect-ratio: 3 / 1;
+  min-block-size: 0;
+}
+
+.holdCloud[data-hold-cloud='stat'] {
+  min-block-size: 96px;
+}
+
+.holdCloud[data-hold-cloud='quote'] {
+  border-inline-start-width: 4px;
+  border-inline-start-style: solid;
+  text-align: start;
+}
+
 .confirm {
-  display: inline;
   outline: 1px dotted var(--c-blueprint);
   outline-offset: 2px;
 }
 
 .confirmMark {
+  display: inline-block;
   margin-inline-start: var(--s-2);
   padding: 0 var(--s-1);
   border: 1px solid var(--c-blueprint);
   color: var(--c-blueprint);
   font-family: var(--ff-mono);
-  font-size: var(--fs-label);
-  vertical-align: middle;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: var(--tr-label);
+  vertical-align: 0.1em;
 }
 
+/* ── Page head: the only H1, grid bubbles and column lines ──────────────── */
 .pageHead {
   position: relative;
-  padding-block: var(--s-8) var(--s-7);
+  padding-block: var(--s-6) var(--s-7);
   border-bottom: var(--line-frame) solid var(--c-asphalt);
+  isolation: isolate;
 }
 
-.strip {
-  font-family: var(--ff-mono);
-  font-size: var(--fs-label);
-  letter-spacing: var(--tr-label);
-  text-transform: uppercase;
-  color: var(--c-graphite);
-  margin-bottom: var(--s-4);
+.pageHead h1 {
+  max-width: 18ch;
+}
+
+.columns {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--page-margin);
+  z-index: -1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gutter);
+  pointer-events: none;
+}
+
+.columns span {
+  border-inline: 1px solid rgb(28 78 143 / 0.07);
 }
 
 .bubbles {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s-1);
-  margin-bottom: var(--s-5);
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gutter);
+  margin-block-end: var(--s-6);
 }
 
 .bubbles span {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  justify-self: center;
+  inline-size: 20px;
+  block-size: 20px;
   border: 1px solid var(--c-pencil-faint);
   border-radius: 50%;
   font-family: var(--ff-mono);
   font-size: 10px;
+  line-height: 1;
   color: var(--c-pencil);
 }
 
-.cta {
-  background: var(--c-asphalt-deep);
+/* Show as many bubbles and column lines as there are columns (4 / 8 / 12). */
+.bubbles span:nth-child(n + 5),
+.columns span:nth-child(n + 5) {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .bubbles span:nth-child(n + 5) {
+    display: grid;
+  }
+
+  .columns span:nth-child(n + 5) {
+    display: block;
+  }
+
+  .bubbles span:nth-child(n + 9),
+  .columns span:nth-child(n + 9) {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bubbles span:nth-child(n + 9) {
+    display: grid;
+  }
+
+  .columns span:nth-child(n + 9) {
+    display: block;
+  }
+}
+
+.deck {
+  max-width: var(--measure-lead);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+}
+
+/* ── Sheet header: a row of title-block cells ────────────────────────────── */
+.sheetHeader {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 var(--s-4);
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--c-asphalt);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.sheetHeader li {
+  max-width: none;
+  padding: var(--s-1) var(--s-3);
+  border-inline-end: 1px solid var(--c-asphalt);
+}
+
+.sheetHeader li:first-child {
+  background: var(--c-asphalt);
   color: var(--c-paper);
+  font-weight: 600;
 }
 
-.cta h2 {
-  color: var(--c-paper);
+.sheetHeader li:last-child {
+  border-inline-end: 0;
 }
 
-.cta a:not([class]) {
-  color: var(--c-cyan);
+/* ── Sheet tab: stencil numeral plus the real id ─────────────────────────── */
+.sheetTab {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--s-3);
+  padding-block-end: var(--s-2);
+  border-block-end: var(--line-cut) solid var(--c-asphalt);
 }
 
-.cta :focus-visible {
-  outline-color: var(--c-focus-on-dark);
+.numeral {
+  font-family: var(--ff-stencil);
+  font-size: var(--fs-numeral);
+  font-weight: 800;
+  line-height: 0.8;
+  color: var(--c-asphalt);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
+.tabText {
+  padding-block-end: 0.3em;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  font-weight: 600;
+  letter-spacing: var(--tr-label);
+}
+
+/* ── Section head ────────────────────────────────────────────────────────── */
+.sectionHead {
+  margin-block-end: var(--s-6);
+}
+
+.sectionHead > p {
+  max-width: var(--measure);
+}
+
+/* ── Section cut marker: a split bubble on a cut line ───────────────────── */
+.cut {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-block: var(--s-6);
+  color: var(--c-asphalt);
+}
+
+.cutBubble {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  border: var(--line-frame) solid currentColor;
+  border-radius: 50%;
+  overflow: hidden;
+  font-family: var(--ff-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+.cutBubble span {
+  display: grid;
+  place-items: center;
+}
+
+.cutBubble span:first-child {
+  border-block-end: 1.5px solid currentColor;
+  font-size: var(--fs-label-lg);
+}
+
+.cutLine {
+  flex: 1;
+  block-size: 0;
+  border-block-start: var(--line-cut) solid currentColor;
+  border-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0 24px,
+      transparent 24px 30px,
+      currentColor 30px 34px,
+      transparent 34px 40px
+    )
+    1;
+}
+
+/* ── Callouts ────────────────────────────────────────────────────────────── */
+.callout {
+  position: relative;
+  max-width: var(--measure);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--c-asphalt);
+  border-inline-start-width: var(--line-cut);
+  background: var(--c-paper);
+}
+
+.callout[data-variant='machine'] {
+  border-color: var(--c-blueprint);
+  font-family: var(--ff-mono);
   font-size: var(--fs-small);
+  letter-spacing: 0.01em;
 }
 
-.table caption {
-  text-align: start;
+.callout[data-variant='redline'] {
+  border-color: var(--c-redline);
+  color: var(--c-asphalt);
+}
+
+.callout[data-variant='redline']::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 1.5px solid var(--c-redline);
+  pointer-events: none;
+}
+
+.callout[data-variant='detail-ref'] {
+  border-inline-start-width: 1px;
+  border-style: solid;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.callout a {
+  color: var(--c-blueprint);
+}
+
+/* ── Dimension line ──────────────────────────────────────────────────────── */
+.dim {
+  --tick: 10px;
+  position: relative;
+  padding-block: calc(var(--tick) + 2px) var(--s-1);
+  color: var(--c-asphalt);
+}
+
+.dimTrack {
+  position: relative;
+  block-size: var(--tick);
+}
+
+.dimLine,
+.dimExt {
+  position: absolute;
+  inset-block-start: 50%;
+  block-size: 0;
+}
+
+.dimLine {
+  inset-inline-start: var(--a);
+  inline-size: calc(var(--b) - var(--a));
+  border-block-start: 1.5px solid currentColor;
+}
+
+.dimExt {
+  inset-inline-start: var(--b);
+  inline-size: calc(var(--x) - var(--b));
+  border-block-start: 1.5px dashed var(--c-pencil);
+}
+
+/* End ticks (architectural slashes) or arrows. */
+.dimLine::before,
+.dimLine::after {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(var(--tick) / -2);
+  block-size: var(--tick);
+  border-inline-start: 1.5px solid currentColor;
+}
+
+.dimLine::before {
+  inset-inline-start: 0;
+}
+
+.dimLine::after {
+  inset-inline-end: 0;
+}
+
+.dim[data-ends='ticks'] .dimLine::before,
+.dim[data-ends='ticks'] .dimLine::after {
+  rotate: 45deg;
+}
+
+.dim[data-ends='arrows'] .dimLine::before,
+.dim[data-ends='arrows'] .dimLine::after {
+  inset-block-start: -4px;
+  block-size: 8px;
+  inline-size: 8px;
+  border: 0;
+  background: currentColor;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+.dim[data-ends='arrows'] .dimLine::after {
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+}
+
+.dim[data-dim='range'] .dimLine {
+  border-block-start-width: 6px;
+  border-block-start-color: rgb(28 78 143 / 0.35);
+  inset-block-start: calc(50% - 3px);
+}
+
+.dim[data-dim='dots'] .dimLine {
+  border-block-start-style: dotted;
+  border-block-start-width: 2px;
+}
+
+.dim[data-dim='ticks'] .dimLine {
+  background: repeating-linear-gradient(
+      90deg,
+      currentColor 0 1.5px,
+      transparent 1.5px var(--unit, 12.5%)
+    )
+    0 -4px / 100% 8px no-repeat;
+  block-size: 4px;
+}
+
+.dimLabel {
+  display: block;
+  margin-inline-start: var(--a);
+  padding-block-start: var(--s-1);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Dimension chain (process strip) ─────────────────────────────────────── */
+.chain {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.chain li {
+  position: relative;
+  max-width: none;
+  padding: var(--s-3) var(--s-4) var(--s-4) var(--s-6);
+  border-inline-start: 1.5px solid var(--c-asphalt);
+}
+
+/* A tick at every joint of the chain. */
+.chain li::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: -6px;
+  inline-size: 10px;
+  border-block-start: 1.5px solid var(--c-asphalt);
+  rotate: -45deg;
+}
+
+.chainLabel {
+  display: block;
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+}
+
+.chainLength {
+  display: block;
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  padding-block: var(--s-2);
+  color: var(--c-blueprint);
 }
 
-.table th,
-.table td {
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--c-pencil-faint);
-  text-align: start;
-  vertical-align: top;
+.chainYou {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
 }
 
-.table th {
-  font-family: var(--ff-ui);
-  font-weight: 700;
+@media (min-width: 1024px) {
+  .chain {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    border-inline-end: 1.5px solid var(--c-asphalt);
+  }
+
+  .chain li {
+    padding: var(--s-5) var(--s-4) 0;
+    border-inline-start: 1.5px solid var(--c-asphalt);
+  }
+
+  /* The running dimension line along the top of the chain. */
+  .chain li::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    border-block-start: 1.5px solid var(--c-asphalt);
+  }
+}
+
+/* ── Scale bar ───────────────────────────────────────────────────────────── */
+.scaleBar {
+  inline-size: 120px;
+  block-size: 14px;
+  color: var(--c-asphalt);
+}
+
+/* ── North arrow ─────────────────────────────────────────────────────────── */
+.north {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-block-size: 44px;
+  color: inherit;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  letter-spacing: var(--tr-ui);
-  background: var(--c-paper-sunk);
+  text-decoration: none;
 }
 
+.north:hover {
+  text-decoration: underline;
+}
+
+.north svg {
+  flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+.north[data-variant='start-here'] {
+  color: var(--c-blueprint);
+  font-weight: 600;
+}
+
+/* ── Stamp: rotated −4°, asphalt by default, redline only for problems ──── */
 .stamp {
   display: inline-block;
   rotate: -4deg;
-  border: 2px solid currentColor;
   padding: var(--s-1) var(--s-2);
+  border: 2px solid currentColor;
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  color: var(--c-asphalt);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   font-weight: 600;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .redline {
   color: var(--c-redline);
 }
 
-.notes {
-  margin: 0;
-  padding-inline-start: var(--s-5);
-}
-
-.sheetTab {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--s-3);
-}
-
-.numeral {
-  font-family: var(--ff-stencil);
-  font-size: var(--fs-numeral);
-  line-height: 0.85;
-}
-
-.callout {
-  border-inline-start: 3px solid var(--c-blueprint);
-  padding: var(--s-3) var(--s-4);
-  background: var(--c-paper-2);
-}
-
-.callout[data-variant='redline'] {
-  border-color: var(--c-redline);
-}
-
+/* ── Spec grid: We do / You do / How long / You get ──────────────────────── */
 .spec {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   margin: 0;
-  border: 1px solid var(--c-asphalt);
+  border: 1.5px solid var(--c-asphalt);
 }
 
-.spec div {
-  padding: var(--s-3);
-  border: 1px solid var(--c-pencil-faint);
+.spec > div {
+  padding: var(--s-3) var(--s-4);
+  outline: 1px solid var(--c-pencil-faint);
+  outline-offset: -0.5px;
 }
 
 .spec dt {
+  margin-block-end: var(--s-1);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
   text-transform: uppercase;
   color: var(--c-graphite);
 }
 
 .spec dd {
   margin: 0;
+}
+
+/* ── Notes and punch lists ───────────────────────────────────────────────── */
+.notesTitle {
+  margin: 0 0 var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--notes-title, var(--c-graphite));
+}
+
+.notes {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+  counter-reset: note;
+}
+
+.notes li {
+  position: relative;
+  padding-inline-start: 2.25em;
+  counter-increment: note;
+}
+
+.notes li + li {
+  margin-block-start: var(--s-2);
+}
+
+.notes li::before {
+  content: counter(note) '.';
+  position: absolute;
+  inset-inline-start: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  line-height: inherit;
+}
+
+.punch {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.punch label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.punch input {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
+  accent-color: var(--c-asphalt);
+  translate: 0 2px;
+}
+
+.punch li[data-done='true'] span {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  color: var(--c-graphite);
+}
+
+/* ── Tables: schedule, sheet index, revisions, legend ───────────────────── */
+.table {
+  --tbl-line: var(--c-pencil-faint);
+  --tbl-head: var(--c-paper-sunk);
+  --tbl-head-c: var(--c-asphalt);
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid var(--c-asphalt);
+  font-size: var(--fs-small);
+}
+
+.table caption {
+  padding-block: var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-align: start;
+  text-transform: uppercase;
+  color: inherit;
+}
+
+.table th,
+.table td {
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--tbl-line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table thead th {
+  background: var(--tbl-head);
+  color: var(--tbl-head-c);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-label-lg);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody th {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  font-weight: 600;
+  letter-spacing: var(--tr-label);
+  white-space: nowrap;
+}
+
+.table td[data-numeric] {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Footer and other dark surfaces. */
+:global(.on-dark) .table,
+.onDark .table {
+  --tbl-line: var(--c-alu-700);
+  --tbl-head: transparent;
+  --tbl-head-c: var(--c-alu-300);
+  border-color: var(--c-alu-700);
+}
+
+/* Rows stack below 640 px: each cell carries its column label. */
+@media (max-width: 639px) {
+  .table[data-stack] thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table[data-stack],
+  .table[data-stack] tbody,
+  .table[data-stack] tr,
+  .table[data-stack] th,
+  .table[data-stack] td {
+    display: block;
+    inline-size: 100%;
+  }
+
+  .table[data-stack] tr {
+    border-block-end: 1.5px solid var(--c-asphalt);
+  }
+
+  .table[data-stack] tbody th {
+    background: var(--tbl-head);
+    border: 0;
+  }
+
+  .table[data-stack] td {
+    display: grid;
+    grid-template-columns: minmax(7rem, 38%) 1fr;
+    gap: var(--s-3);
+    border: 0;
+    border-block-start: 1px solid var(--tbl-line);
+  }
+
+  .table[data-stack] td::before {
+    content: attr(data-label);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-label);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--c-graphite);
+  }
+}
+
+/* Sheet index: whole rows are links; hover marks the row. */
+.indexTable tbody tr {
+  position: relative;
+}
+
+.indexTable tbody tr:hover {
+  background: var(--c-paper-2);
+}
+
+.rowLink {
+  font-weight: 700;
+  color: var(--c-blueprint);
+}
+
+.rowLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.startHere {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin-inline-start: var(--s-2);
+  color: var(--c-blueprint);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: var(--tr-label);
+}
+
+.startHere svg {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+/* Legend glyphs. */
+.glyph {
+  inline-size: 48px;
+  block-size: 28px;
+  color: var(--c-asphalt);
+}
+
+/* Outside figures orange means Book a call only, so the legend packet is inked. */
+.glyph .pkt {
+  fill: currentColor;
+}
+
+.glyph .rl {
+  stroke: var(--c-redline);
+}
+
+.glossary {
+  display: grid;
+  gap: 0;
+  margin: var(--s-4) 0 0;
+  border-block-start: 1.5px solid var(--c-asphalt);
+}
+
+.glossary > div {
+  display: grid;
+  gap: var(--s-1) var(--s-5);
+  padding-block: var(--s-3);
+  border-block-end: 1px solid var(--c-pencil-faint);
+  scroll-margin-top: var(--sticky-top);
+}
+
+.glossary > div:target {
+  background: var(--c-paper-2);
+}
+
+.glossary dt {
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+}
+
+.glossary dd {
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .glossary > div {
+    grid-template-columns: minmax(10rem, 1fr) 3fr;
+  }
+}
+
+[data-compact] .glossary > div {
+  grid-template-columns: 1fr;
+}
+
+/* ── Closing CTA: an asphalt plate on the sheet ──────────────────────────── */
+.cta {
+  padding-block: var(--section-pad);
+}
+
+.plate {
+  --c-focus: var(--c-focus-on-dark);
+  --hold-c: var(--c-alu-300);
+  --hold-on: var(--c-asphalt-deep);
+  position: relative;
+  display: grid;
+  gap: var(--s-4);
+  justify-items: start;
+  padding: clamp(var(--s-6), 5vw, var(--s-8));
+  border: var(--line-frame) solid var(--c-asphalt-deep);
+  background: var(--c-asphalt-deep);
+  color: var(--c-paper);
+  box-shadow: var(--s-2) var(--s-2) 0 0 var(--c-asphalt);
+}
+
+/* Inner frame line and a corner title-block tick. */
+.plate::before {
+  content: '';
+  position: absolute;
+  inset: var(--s-2);
+  border: 1px solid var(--c-alu-700);
+  pointer-events: none;
+}
+
+.plate h2 {
+  max-width: 20ch;
+  margin: 0;
+  color: var(--c-paper);
+}
+
+.plate p {
+  margin: 0;
+}
+
+.plate a:not([class]) {
+  color: var(--c-cyan);
+}
+
+.plateStrip {
+  margin: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--c-alu-300);
+}
+
+/* ── Accessibility media ─────────────────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  .columns,
+  .bubbles {
+    display: none;
+  }
+
+  .table th,
+  .table td {
+    border-color: var(--c-asphalt);
+  }
+}
+
+@media (forced-colors: active) {
+  .holdChip,
+  .holdCloud,
+  .confirm,
+  .table,
+  .spec,
+  .callout,
+  .plate {
+    border-color: CanvasText;
+  }
+
+  .holdTab {
+    forced-color-adjust: none;
+    background: CanvasText;
+    color: Canvas;
+  }
+
+  .dimLine,
+  .chain li {
+    border-color: CanvasText;
+  }
 }

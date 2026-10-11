@@ -6,104 +6,108 @@ import { BookCallButton } from '@/components/ui/BookCallButton'
 import { MotionSwitch } from '@/components/ui/MotionSwitch'
 import { GeneralNotes } from '@/components/blueprint/GeneralNotes'
 import { NorthArrow } from '@/components/blueprint/NorthArrow'
+import { RevisionTable } from '@/components/blueprint/RevisionTable'
 import { Wordmark } from './Wordmark'
 import s from './chrome.module.css'
 
-/** The footer as a drawing title block. */
+/**
+ * The footer as a drawing title block (D1): wordmark and sheet index; DRAWN,
+ * CHECKED and APPROVED BY: YOU; contact cells (the phone only once it is
+ * filled); Book a call and the motion switch; general notes; the REV table;
+ * the north arrow back to the top; and the ©.
+ */
 export function Footer() {
   const tb = site.titleBlock
   const phone = fact(site.phone)
   const email = resolveHeld(site.email)
   const year = String(new Date().getFullYear())
   return (
-    <footer className={s.footer}>
+    <footer className={`${s.footer} on-dark`}>
       <div className="wrap">
         <div className={s.block}>
-          <div className={s.cell}>
+          <div className={`${s.cell} ${s.cellBrand}`}>
             <Wordmark size="footer" mark />
-            <nav aria-label={tb.sheetIndex}>
-              <span className={s.label}>{tb.sheetIndex}</span>
+            <nav aria-label={tb.sheetIndex} className={s.index}>
+              <p className={s.label}>{tb.sheetIndex}</p>
               <ul>
                 {site.nav.map((it) => (
                   <li key={it.page}>
                     <Link href={it.href}>
-                      {it.sheet} · {it.label}
+                      <span className={s.indexSheet}>{it.sheet}</span> {it.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </nav>
           </div>
-          <div className={s.cell}>
-            <p>
-              <span className={s.label}>{tb.drawnBy.label}</span>
-              <HeldText value={tb.drawnBy.value} />
-            </p>
-            <p>
-              <span className={s.label}>{tb.checkedBy.label}</span>
-              <HeldText value={tb.checkedBy.value} />
-            </p>
-            <p>
-              <span className={s.label}>{tb.approvedBy.label}</span>
-              {tb.approvedBy.value}
-            </p>
-          </div>
-          <div className={s.cell}>
+          <dl className={`${s.cell} ${s.fields}`}>
+            <div>
+              <dt className={s.label}>{tb.drawnBy.label}</dt>
+              <dd>
+                <HeldText value={tb.drawnBy.value} />
+              </dd>
+            </div>
+            <div>
+              <dt className={s.label}>{tb.checkedBy.label}</dt>
+              <dd>
+                <HeldText value={tb.checkedBy.value} />
+              </dd>
+            </div>
+            <div>
+              <dt className={s.label}>{tb.approvedBy.label}</dt>
+              <dd className={s.approved}>{tb.approvedBy.value}</dd>
+            </div>
+          </dl>
+          <dl className={`${s.cell} ${s.fields}`}>
             {email.show !== 'omit' ? (
-              <p>
-                <span className={s.label}>{tb.labels.email}</span>
-                {email.show === 'text' ? (
-                  <a href={`mailto:${email.text}`}>{email.text}</a>
-                ) : (
-                  <HeldText value={site.email} />
-                )}
-              </p>
+              <div>
+                <dt className={s.label}>{tb.labels.email}</dt>
+                <dd>
+                  {email.show === 'text' ? (
+                    <a href={`mailto:${email.text}`}>{email.text}</a>
+                  ) : (
+                    <HeldText value={site.email} />
+                  )}
+                </dd>
+              </div>
             ) : null}
             {phone ? (
-              <p>
-                <span className={s.label}>{tb.labels.phone}</span>
-                <a href={`tel:${phone}`}>{phone}</a>
-              </p>
+              <div>
+                <dt className={s.label}>{tb.labels.phone}</dt>
+                <dd>
+                  <a href={`tel:${phone}`}>{phone}</a>
+                </dd>
+              </div>
             ) : null}
-            <p>
-              <span className={s.label}>{tb.labels.location}</span>
-              <HeldText value={site.location} />
-            </p>
+            <div>
+              <dt className={s.label}>{tb.labels.location}</dt>
+              <dd>
+                <HeldText value={site.location} />
+              </dd>
+            </div>
+          </dl>
+          <div className={`${s.cell} ${s.actions}`}>
             <BookCallButton />
-            <p>
-              <span className={s.label}>{tb.labels.motion}</span>
+            <div>
+              <p className={s.label}>{tb.labels.motion}</p>
               <MotionSwitch variant="footer" label={site.motion.label} />
-            </p>
+            </div>
           </div>
-          <div className={s.cell}>
+          <div className={`${s.cell} ${s.wideCell}`}>
             <GeneralNotes title={tb.notes.title} items={tb.notes.items} />
-            <table>
-              <caption className={s.label}>{tb.revisions.label}</caption>
-              <thead>
-                <tr>
-                  {tb.revisions.columns.map((c) => (
-                    <th key={c} scope="col">
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tb.revisions.rows.map((r) => (
-                  <tr key={r.rev}>
-                    <td>{r.rev}</td>
-                    <td>{r.date}</td>
-                    <td>{r.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          </div>
+          <div className={`${s.cell} ${s.wideCell}`}>
+            <RevisionTable
+              caption={tb.revisions.label}
+              columns={tb.revisions.columns}
+              rows={tb.revisions.rows.map((r) => [r.rev, r.date, r.note])}
+            />
           </div>
         </div>
-        <p>
+        <div className={s.base}>
           <NorthArrow label={tb.northArrow} href="#main" variant="top" />
-        </p>
-        <p className={s.label}>{tb.copyright.replace('{year}', year)}</p>
+          <p className={s.label}>{tb.copyright.replace('{year}', year)}</p>
+        </div>
       </div>
     </footer>
   )

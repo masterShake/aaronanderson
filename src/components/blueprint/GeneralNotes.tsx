@@ -3,7 +3,10 @@ import { resolveClaim } from '@/content/hold'
 import { Claimed } from '@/components/ui/Claimed'
 import s from './blueprint.module.css'
 
-/** Numbered general notes; claims show only once confirmed (or marked, in preview). */
+/**
+ * Numbered general notes, as on a drawing. Claims show only once confirmed
+ * (or with a CONFIRM mark, in preview); numbering skips the ones left out.
+ */
 export function GeneralNotes({
   title,
   items,
@@ -11,17 +14,17 @@ export function GeneralNotes({
   title: string
   items: readonly (string | Claim)[]
 }) {
+  const shown = items.filter((it) => resolveClaim(it).show !== 'omit')
+  if (!shown.length) return null
   return (
     <div>
-      <p className={s.strip}>{title}</p>
+      <p className={s.notesTitle}>{title}</p>
       <ol className={s.notes}>
-        {items
-          .filter((it) => resolveClaim(it).show !== 'omit')
-          .map((it, i) => (
-            <li key={i}>
-              <Claimed value={it}>{(text) => text}</Claimed>
-            </li>
-          ))}
+        {shown.map((it, i) => (
+          <li key={i}>
+            <Claimed value={it}>{(text) => text}</Claimed>
+          </li>
+        ))}
       </ol>
     </div>
   )

@@ -1,38 +1,225 @@
 /*
- * Page-state rules (W0 minimal; the kit lane owns the real ones). The head
- * script writes html[data-motion|data-tier]; nothing here declares --dur-* or
- * --ease-*, which come from <style id="ae-timing">.
+ * Page-state and motion rules (D8, Appendix B §B4). The head script is the only
+ * writer of html[data-js|data-rm|data-motion|data-tier|...]; nothing here
+ * writes state, and nothing here declares --dur-*, --ease-*, --flow-*,
+ * --pencil-* or --gate-* values: they come from <style id="ae-timing">.
+ *
+ *   data-motion  run | paused       (paused freezes things where they are)
+ *   data-tier    still | svg | webgl (still shows each figure's final still)
+ *
+ * A figure the visitor started (Play, Replay, Run again) carries
+ * data-user-play and is exempt from the pause and still-tier rules.
+ * Turning motion back on lifts data-tier from still to svg (head script), and
+ * these rules key on data-tier alone, so the drawings return without a reload.
  */
+
+/* The figure gate, read by figure animations as animation-play-state. */
 @property --gate {
   syntax: 'running | paused';
   inherits: true;
   initial-value: running;
 }
 
-/* Pause: the saved choice, the switch before hydration, and figures off screen.
-   A figure the visitor started (data-user-play) keeps running. */
+/* The scan position (ERASE and INK reveal); not inherited, each consumer animates it. */
+@property --scan {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 110%;
+}
+
+/* ── Pause ────────────────────────────────────────────────────────────────
+   The saved choice; the switch itself (works with JS off, through :has());
+   and anything off screen. */
 html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *),
+html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *)::before,
+html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *)::after,
 html:has(input[data-motion-switch]:checked) :not(.fig[data-user-play], .fig[data-user-play] *),
-[data-offscreen] * {
+html:has(input[data-motion-switch]:checked)
+  :not(.fig[data-user-play], .fig[data-user-play] *)::before,
+html:has(input[data-motion-switch]:checked)
+  :not(.fig[data-user-play], .fig[data-user-play] *)::after,
+[data-offscreen],
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
   animation-play-state: paused !important;
 }
 
-/* Still tier: figures show their still and hide the drawing. */
-html[data-tier='still'] .fig:not([data-user-play]) .still,
-.fig[data-phase='still'] .still {
+/* ── Gate: a time-driven figure waits for its controller to arm it ────────
+   Armed and in view: running. Below 1024 px a figure waits until it is in
+   view (≥ 40%). If no script arms it, CSS releases it after GATE.cssAutoStart. */
+html[data-js] .fig[data-driver='time']:not([data-armed]) {
+  --gate: paused;
+  animation: ae-release 0s linear var(--gate-css-auto-start, 4000ms) both;
+}
+
+@media (width < 1024px) {
+  html[data-js] .fig[data-driver='time'][data-armed]:not([data-inview]) {
+    --gate: paused;
+  }
+}
+
+html:not([data-js]) .fig {
+  --gate: running;
+}
+
+@keyframes ae-release {
+  to {
+    --gate: running;
+  }
+}
+
+/* ── Still tier ──────────────────────────────────────────────────────────
+   Figures show their final still and hide the live drawing, scan and stage
+   slot. The still-tier wrapper is .still-wrap (drawings lane); until that
+   lands, .box > .still is the W0 wrapper. The Stage's canvas.still is never
+   touched here. */
+html[data-tier='still'] .fig:not([data-user-play]) :is(.box > .still, .box > .still-wrap),
+.fig[data-phase='still']:not([data-user-play]) :is(.box > .still, .box > .still-wrap) {
   display: block;
 }
 
-html[data-tier='still'] .fig:not([data-user-play]) .drawing,
-.fig[data-phase='still'] .drawing {
+html[data-tier='still']
+  .fig:not([data-user-play])
+  :is(.box > .drawing, .box > .scan-bar, .box > .slot),
+.fig[data-phase='still']:not([data-user-play])
+  :is(.box > .drawing, .box > .scan-bar, .box > .slot) {
   display: none;
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────
+   Final states at once, unless the visitor chose motion (a saved "run") or
+   pressed Play on that figure. */
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion='run']) *,
-  html:not([data-motion='run']) *::before,
-  html:not([data-motion='run']) *::after {
+  html:not([data-motion='run']) :not(.fig[data-user-play], .fig[data-user-play] *),
+  html:not([data-motion='run']) :not(.fig[data-user-play], .fig[data-user-play] *)::before,
+  html:not([data-motion='run']) :not(.fig[data-user-play], .fig[data-user-play] *)::after {
     animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* ── Shared keyframes (the motion verbs) ─────────────────────────────────
+   Every keyframe starts from the empty state and ends on the finished one
+   (fill "both"), so no-JS and animation:none show the finished drawing. */
+
+/* SKETCH / INK: draw-on for pathLength="1" paths with stroke-dasharray "1 2". */
+.fig[data-run] .draw.t {
+  animation: ae-draw var(--d, var(--pencil-stroke-min, 240ms)) var(--ease-pencil, ease)
+    var(--t, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* Labels and hand notes pop in. */
+.fig[data-run] .pop.t {
+  animation: ae-pop var(--pencil-pop, 160ms) var(--ease-settle, ease) var(--t, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-pop {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+/* SCAN: the bar sweeps left to right, revealing ink and erasing pencil. */
+.fig[data-run] .scan-consumer {
+  animation: ae-scan var(--dur-scan, 1200ms) var(--ease-machine, ease) var(--t-scan, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-scan {
+  from {
+    --scan: 0%;
+  }
+  to {
+    --scan: 110%;
+  }
+}
+
+/* ERASE: pencil fades to its ghost. */
+.fig[data-run] .erase.t {
+  animation: ae-erase var(--dur-state, 900ms) var(--ease-machine, ease) var(--t, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-erase {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: var(--pencil-ghost, 0.22);
+  }
+}
+
+/* FLOW: packets move at constant speed along a path (offset-path set by the figure). */
+.fig[data-run] .flow {
+  animation: ae-flow var(--flow-dur, var(--flow-loop, 6000ms)) var(--ease-flow, linear)
+    var(--t, 0ms) var(--flow-count, 3) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-flow {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+/* STAMP: lands with a little overshoot, ending at −4°. */
+.stamp.is-landing,
+.fig[data-run] .stamp.t {
+  animation: ae-stamp var(--dur-stamp, 240ms) var(--ease-machine, ease) var(--t, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ae-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.3;
+    rotate: -9deg;
+  }
+  60% {
+    opacity: 1;
+    scale: 0.96;
+    rotate: -3.5deg;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: -4deg;
+  }
+}
+
+/* SETTLE / UI: small fades. */
+@keyframes ae-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Loops run three times, then the figure idles on its still with Run again. */
+.fig[data-loop] .loop {
+  animation-iteration-count: var(--flow-loops, 3);
 }

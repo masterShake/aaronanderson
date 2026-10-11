@@ -1,12 +1,20 @@
-/* UI component styles (W0 minimal; owner: kit lane). */
+/*
+ * UI components. Radius 0; no soft shadows. Orange is the Book a call fill
+ * only (with asphalt text, 4.92:1). Buttons and focusable cards show CAD
+ * corner grips: four small squares at the corners of the focus ring.
+ */
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
 .button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
   min-height: 44px;
+  min-width: 44px;
   padding: var(--s-2) var(--s-5);
-  border: 2px solid var(--c-asphalt);
+  border: var(--line-frame) solid var(--c-asphalt);
   border-radius: var(--radius);
   font-family: var(--ff-ui);
   font-size: var(--fs-ui);
@@ -16,6 +24,27 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* CAD grips: drawn on the focus ring's corners while focused or hovered. */
+.button::after {
+  --g: var(--grip);
+  --o: calc(-1 * (var(--focus-offset) + var(--focus-w) / 2 + var(--g) / 2));
+  content: '';
+  position: absolute;
+  inset: var(--o);
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c-focus), var(--c-focus)) 0 0 / var(--g) var(--g) no-repeat,
+    linear-gradient(var(--c-focus), var(--c-focus)) 100% 0 / var(--g) var(--g) no-repeat,
+    linear-gradient(var(--c-focus), var(--c-focus)) 0 100% / var(--g) var(--g) no-repeat,
+    linear-gradient(var(--c-focus), var(--c-focus)) 100% 100% / var(--g) var(--g) no-repeat;
+  opacity: 0;
+}
+
+.button:focus-visible::after {
+  opacity: 1;
 }
 
 .book {
@@ -32,18 +61,53 @@
   color: var(--c-asphalt);
 }
 
+.secondary:hover {
+  background: var(--c-paper-sunk);
+}
+
 .text {
+  min-width: 0;
   border-color: transparent;
   background: none;
   color: var(--c-blueprint);
   padding-inline: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .lg {
   min-height: 52px;
   padding-inline: var(--s-6);
+  font-size: 1rem;
 }
 
+/* ── Text link ───────────────────────────────────────────────────────────── */
+.link {
+  color: var(--c-blueprint);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.ext {
+  display: inline-block;
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  margin-inline-start: 0.2em;
+  vertical-align: 0.05em;
+}
+
+.ext path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+/* ── Motion switch: a native checkbox drawn as a switch ─────────────────── */
 .switch {
   display: inline-flex;
   align-items: center;
@@ -51,62 +115,181 @@
   min-height: 32px;
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  line-height: var(--lh-label);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.switch input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--c-asphalt);
+.switch[data-variant='menu'] {
+  min-height: 44px;
 }
 
-.term {
+.switchInput {
+  flex: none;
+  appearance: none;
   position: relative;
-}
-
-.termButton {
-  font: inherit;
+  inline-size: 36px;
+  block-size: 20px;
+  margin: 0;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius);
+  background: transparent;
   color: inherit;
-  background: none;
-  border: 0;
-  padding: 0;
-  border-bottom: 1px dashed currentColor;
-  cursor: help;
+  cursor: pointer;
 }
 
-.termTip {
+/* The thumb: left = running, right and filled = paused. */
+.switchInput::before {
+  content: '';
   position: absolute;
-  inset-inline-start: 0;
-  top: 100%;
-  z-index: 10;
-  width: max-content;
-  max-width: 32ch;
-  padding: var(--s-2) var(--s-3);
-  background: var(--c-asphalt);
-  color: var(--c-paper);
-  font-size: var(--fs-small);
+  inset-block: 2px;
+  inset-inline-start: 2px;
+  inline-size: 13px;
+  background: currentColor;
+  transition: translate var(--dur-micro, 120ms) var(--ease-ui, ease);
 }
 
+.switchInput:checked {
+  background: var(--c-paper-sunk);
+}
+
+.switchInput:checked::before {
+  translate: 15px 0;
+}
+
+.switchInput:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+[data-variant='footer'] .switchInput:checked,
+[data-variant='strip'] .switchInput:checked {
+  background: transparent;
+}
+
+/* ── Segmented toggle (aria-pressed) ─────────────────────────────────────── */
 .toggle {
   display: inline-flex;
-  border: 2px solid var(--c-asphalt);
+  flex-wrap: wrap;
+  border: var(--line-frame) solid var(--c-asphalt);
 }
 
 .toggle button {
+  position: relative;
   min-height: 44px;
   padding-inline: var(--s-4);
   border: 0;
+  border-radius: var(--radius);
   background: transparent;
+  color: var(--c-asphalt);
   font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
   font-weight: 700;
+  letter-spacing: var(--tr-ui);
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.toggle button + button {
+  border-inline-start: var(--line-frame) solid var(--c-asphalt);
 }
 
 .toggle button[aria-pressed='true'] {
   background: var(--c-asphalt);
   color: var(--c-paper);
+}
+
+.toggle button:focus-visible {
+  z-index: 1;
+}
+
+/* ── Copy email ──────────────────────────────────────────────────────────── */
+.copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.copy a {
+  color: var(--c-blueprint);
+  overflow-wrap: anywhere;
+}
+
+/* ── Term toggletip (WCAG 1.4.13) ────────────────────────────────────────── */
+.term {
+  position: relative;
+  display: inline;
+}
+
+.termButton {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+  cursor: help;
+}
+
+.termButton[aria-expanded='true'] {
+  text-decoration-style: solid;
+}
+
+.termTip {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  inline-size: max-content;
+  max-inline-size: min(34ch, 80vw);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+  font-family: var(--ff-body);
+  font-size: var(--fs-small);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: start;
+  text-transform: none;
+  white-space: normal;
+}
+
+/* A leader from the term to the tip, like a callout. */
+.termTip::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: var(--s-3);
+  bottom: 100%;
+  block-size: 6px;
+  border-inline-start: 1.5px solid var(--c-asphalt);
+}
+
+.termTip[data-align='end'] {
+  inset-inline: auto 0;
+}
+
+@media (forced-colors: active) {
+  .switchInput::before {
+    background: ButtonText;
+  }
+
+  .button::after {
+    background: none;
+  }
+
+  .toggle button[aria-pressed='true'] {
+    outline: 2px solid ButtonText;
+    outline-offset: -4px;
+  }
 }

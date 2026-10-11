@@ -1,14 +1,103 @@
-/* Print (W0 minimal; the kit and services lanes own the real rules). */
+/*
+ * Print base (§7.10). Every sheet prints as a clean drawing: paper white, ink
+ * black, no motion, no chrome controls, figures as their finished stills,
+ * links without decoration. The Services print sheet (scoped by
+ * [data-sheet="S-00"]) belongs to the services lane and layers on top of this.
+ */
 @media print {
-  * {
+  @page {
+    margin: 14mm 12mm 18mm;
+  }
+
+  *,
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
   }
 
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body {
+    display: block;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  /* Chrome and controls that mean nothing on paper. */
   .skip-link,
   [popover],
+  header > .wrap > nav,
+  [data-menu-button],
+  .motion-switch,
+  label:has(> input[data-motion-switch]),
   canvas,
-  input[data-motion-switch] {
+  .fig .controls,
+  .fig .ui,
+  .fig .scan-bar,
+  .fig .slot,
+  footer nav,
+  [data-hold] {
     display: none !important;
+  }
+
+  header {
+    position: static !important;
+  }
+
+  section {
+    padding-block: 8mm;
+  }
+
+  /* Figures print their finished still. */
+  .fig {
+    position: static !important;
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .fig .box > .drawing {
+    display: none !important;
+  }
+
+  .fig .box > :is(.still, .still-wrap),
+  .fig .still-img {
+    display: block !important;
+    opacity: 1 !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  tr,
+  li,
+  dl > div {
+    break-inside: avoid;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a[data-print-url]::after {
+    content: ' (' attr(data-print-url) ')';
+    font-family: var(--ff-mono);
+    font-size: 8pt;
+  }
+
+  /* The CTA plate and the footer print as plain ruled blocks. */
+  footer,
+  .on-dark {
+    background: #fff !important;
+    color: #000 !important;
   }
 }

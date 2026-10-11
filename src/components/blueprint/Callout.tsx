@@ -3,7 +3,10 @@ import Link from 'next/link'
 import type { Route } from 'next'
 import s from './blueprint.module.css'
 
-/** A callout box: a note, a machine spec, a redline problem, or a detail reference link. */
+/**
+ * A callout box: a note, a machine spec (mono, blueprint), a redline problem
+ * (clouded in redline), or a detail reference that links to the detail.
+ */
 export function Callout({
   variant,
   href,
@@ -14,8 +17,8 @@ export function Callout({
   children: ReactNode
 }) {
   return (
-    <aside className={s.callout} data-variant={variant}>
+    <div className={s.callout} data-variant={variant}>
       {href ? <Link href={href}>{children}</Link> : children}
-    </aside>
+    </div>
   )
 }
