@@ -208,6 +208,18 @@
   }
 }
 
+/* instrument and place labels sit on a chip of the panel tone, so no line runs through one */
+@keyframes inkchip {
+  from {
+    color: var(--c-graphite);
+    background-color: transparent;
+  }
+  to {
+    color: var(--c-label-on-deep);
+    background-color: var(--c-blueprint-deep);
+  }
+}
+
 @keyframes labiso {
   0% {
     filter: opacity(1);
@@ -434,6 +446,22 @@
     labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
     ink 160ms linear var(--ts) both,
     labiso 500ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .sym.lab {
+  animation:
+    labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
+    inkchip 160ms linear var(--ts) both,
+    labiso 500ms linear var(--hero-idle-at) both;
+  animation-play-state: var(--gate);
+}
+
+.hero .place.lab {
+  animation:
+    labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
+    inkchip 160ms linear var(--ts) both,
+    labout 200ms linear var(--hero-idle-at) both;
   animation-play-state: var(--gate);
 }
 
