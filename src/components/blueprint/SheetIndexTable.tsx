@@ -22,7 +22,7 @@ export function SheetIndexTable({
   caption?: string
 }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="scroll">
       <table className={s.table}>
         {caption ? <caption>{caption}</caption> : null}
         <thead>

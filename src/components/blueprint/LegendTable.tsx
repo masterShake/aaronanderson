@@ -16,7 +16,7 @@ export function LegendTable({
   compact?: boolean
 }) {
   return (
-    <div>
+    <div className="scroll">
       <table className={s.table}>
         {captions ? <caption>{captions.symbols}</caption> : null}
         <thead>
@@ -36,8 +36,8 @@ export function LegendTable({
           ))}
         </tbody>
       </table>
+      {captions ? <p className={s.strip}>{captions.glossary}</p> : null}
       <dl>
-        {captions ? <p className={s.strip}>{captions.glossary}</p> : null}
         {glossary.map((g) => (
           <div key={g.id} id={`term-${g.id}`}>
             <dt>{g.term}</dt>

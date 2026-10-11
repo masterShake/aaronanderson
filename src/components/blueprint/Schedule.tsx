@@ -14,7 +14,7 @@ export function Schedule({
   stack?: boolean
 }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="scroll">
       <table className={s.table} data-stack={stack ? '' : undefined}>
         <caption>{caption}</caption>
         <thead>

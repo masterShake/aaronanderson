@@ -1,9 +1,10 @@
 /* Blueprint component styles (W0 minimal; owner: kit lane). */
 .holdChip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--s-1);
+  display: inline;
   padding: 0 var(--s-1);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  overflow-wrap: anywhere;
   border: 1px dashed var(--c-graphite);
   color: var(--c-graphite);
   font-family: var(--ff-mono);

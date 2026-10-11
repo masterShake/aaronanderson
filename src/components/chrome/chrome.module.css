@@ -94,6 +94,25 @@
   list-style: none;
 }
 
+@media (max-width: 419px) {
+  .bar {
+    gap: var(--s-2);
+  }
+
+  .wordmark {
+    font-size: 1.125rem;
+  }
+
+  .chip {
+    display: none;
+  }
+
+  .bar a,
+  .bar button {
+    padding-inline: var(--s-2);
+  }
+}
+
 @media (min-width: 1024px) {
   .wide {
     display: flex;

@@ -81,3 +81,9 @@ main:focus {
 section {
   padding-block: var(--section-pad);
 }
+
+/* A horizontal scroller for wide tables; positioned so screen-reader-only text stays inside it. */
+.scroll {
+  position: relative;
+  overflow-x: auto;
+}
