@@ -315,7 +315,13 @@
   stroke-dasharray: calc(4 * var(--k)) calc(3 * var(--k));
 }
 
-.fig .box :is(path, line, rect, circle, ellipse, polyline, polygon):not([fill]) {
+/* Classed fills (.f-*, FigureFrame.module.css) are left to their own rules. */
+.fig
+  .box
+  :is(path, line, rect, circle, ellipse, polyline, polygon):not([fill]):not(
+    [class^='f-'],
+    [class*=' f-']
+  ) {
   fill: none;
 }
 
