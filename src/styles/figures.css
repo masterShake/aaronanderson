@@ -22,11 +22,42 @@
 }
 
 /* ── The box and its stacked layers ──────────────────────────────────────── */
+/* The box never clips: .labels is real text and must stay whole under the WCAG
+   1.4.12 spacing overrides (D10). Each drawing layer clips itself instead, and the
+   scan bar clips to the box (see Scan bar below). Outranks FigureFrame's
+   `.box { overflow: clip }`. */
 .fig .box {
   position: relative;
   aspect-ratio: var(--vbw) / var(--vbh);
-  overflow: clip;
+  overflow: visible;
   background: var(--c-paper-2);
+}
+
+.fig .box > .drawing,
+.fig .box > .slot,
+.fig .box > .still,
+.fig .box > .still-wrap {
+  overflow: clip;
+}
+
+/* Screen-reader text inside the box sits at its corner, so it never widens the page. */
+.fig .box .sr-only {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+
+/* Stopgaps until the figures fit their labels (requests filed): on 320 px screens S-01,
+   S-03, S-04 and S-05 labels pass the box's right edge, so the box still clips across
+   there, or the page would scroll sideways (1.4.10). S-06's inspection band sweeps in
+   from outside the box, so its labels layer keeps the clip. */
+@container fig (width < 300px) {
+  .fig .box {
+    overflow-x: clip;
+  }
+}
+
+.fig[data-figure='s06'] .box > .labels {
+  overflow: clip;
 }
 
 .fig .box > .drawing,
@@ -414,6 +445,17 @@
   }
 }
 
+/* After-contact's tall labels sit at 57% of a narrow box: they take the tall width from
+   the container (not the client's data-family) and may wrap, so the 1.4.12 spacing never
+   pushes them past the page edge. Single-line at normal spacing. (Request: move this into
+   after-contact.module.css.) */
+@container fig (width < 560px) {
+  .fig[data-figure='after-contact'][data-has-tall] .labels > * {
+    max-inline-size: 48%;
+    white-space: normal;
+  }
+}
+
 /* Iso labels follow the Stage's projected anchors; after the tall rules, and more specific
    than them and than FigureFrame's, so they win in every family. */
 .fig.fig[data-labels='iso'] .labels > [data-anchor] {
@@ -438,9 +480,17 @@
   white-space: normal;
 }
 
-/* ── Scan bar and ERASE (§7.5) ───────────────────────────────────────────── */
+/* ── Scan bar and ERASE (§7.5) ───────────────────────────────────────────────
+   The edge sits at --scan of the box. The bar never moves past the box's right
+   edge (that would widen the page now the box does not clip); past 100% its
+   clip-path hides the edge instead. The clip is the box in the bar's own frame:
+   left at 100% - min(scan, 100%), right at scan - 100% (negative keeps the glow). */
 .fig .scan-bar {
-  translate: calc(var(--scan, 110%) - 100%) 0;
+  translate: calc(min(var(--scan, 110%), 100%) - 100%) 0;
+}
+
+.fig .box > .scan-bar {
+  clip-path: inset(0 calc(var(--scan, 110%) - 100%) 0 calc(100% - min(var(--scan, 110%), 100%)));
 }
 
 .fig .scan-bar::after {
