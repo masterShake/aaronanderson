@@ -67,11 +67,10 @@ export const contact: ContactContent = {
       tooShort: { text: 'Write at least {min} characters.', vars: {} },
       tooLong: { text: 'Keep it under {max} characters.', vars: {} },
       verify: "The spam check didn't finish. Press Send again.",
-      rateLimited:
-        'Too many messages from this connection. Try again later, or use the email address on this page.',
-      server: "That didn't send. Your message is still here. Try again, or email us instead.",
+      rateLimited: 'Too many messages from this connection. Try again later.',
+      server: "That didn't send. Your message is still here. Try again in a minute.",
       expired: 'This form sat open too long. Press Send again.',
-      notConfigured: "The form isn't switched on yet. Please email us instead.",
+      notConfigured: "The form isn't switched on yet. Please try again later.",
     },
     success: {
       title: 'Received.',
