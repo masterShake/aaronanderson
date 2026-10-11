@@ -1,4 +1,8 @@
-/* Base styles (W0 minimal; the kit lane owns the real ones). */
+/*
+ * Base styles (D7): paper ground, asphalt ink, radius 0, no soft shadows.
+ * The focus ring is 3 px with a 3 px offset: asphalt on paper, paper on dark
+ * surfaces (a dark surface sets --c-focus: var(--c-focus-on-dark)).
+ */
 *,
 *::before,
 *::after {
@@ -12,32 +16,96 @@ html {
   scroll-padding-top: calc(var(--header-h) + 16px);
   background: var(--c-paper);
   color: var(--c-asphalt);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: var(--ff-body);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   background: var(--c-paper);
+  color: var(--c-asphalt);
+  overflow-wrap: break-word;
+}
+
+main {
+  flex: 1 0 auto;
 }
 
 img,
 svg,
-canvas {
+canvas,
+video {
   display: block;
   max-width: 100%;
 }
 
-a {
-  color: var(--c-blueprint);
+img {
+  height: auto;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--c-blueprint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+ul,
+ol {
+  padding-inline-start: var(--s-5);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--c-pencil-faint);
+}
+
+::selection {
+  background: var(--c-cyan);
+  color: var(--c-asphalt);
+}
+
+/* ── Focus ───────────────────────────────────────────────────────────────── */
 :focus-visible {
   outline: var(--focus-w) solid var(--c-focus);
   outline-offset: var(--focus-offset);
 }
 
+main:focus,
+main:focus-visible {
+  outline: none;
+}
+
+/* Dark surfaces flip the ring (and HOLD marks) to light ink. */
+.on-dark {
+  --c-focus: var(--c-focus-on-dark);
+  --hold-c: var(--c-alu-300);
+  --hold-on: var(--c-asphalt-deep);
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────────── */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -55,18 +123,26 @@ a {
   inset-inline-start: var(--s-4);
   top: var(--s-2);
   z-index: var(--z-skip);
-  padding: var(--s-2) var(--s-4);
+  padding: var(--s-3) var(--s-4);
   background: var(--c-asphalt);
   color: var(--c-paper);
   font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
   translate: 0 -200%;
 }
 
+.skip-link:focus,
 .skip-link:focus-visible {
   translate: 0 0;
-  outline-color: var(--c-focus-on-dark);
+  outline: var(--focus-w) solid var(--c-asphalt);
+  outline-offset: var(--focus-offset);
 }
 
+/* The page column: max width 1440, margins clamp(16px, 4vw, 56px). */
 .wrap {
   width: 100%;
   max-width: var(--page-max);
@@ -74,16 +150,51 @@ a {
   padding-inline: var(--page-margin);
 }
 
-main:focus {
-  outline: none;
-}
-
+/* Section rhythm: clamp(48px, 6vw, 96px), 8 px multiples inside. */
 section {
   padding-block: var(--section-pad);
+}
+
+/* The 12-column page grid (4 / 8 / 12 by breakpoint). */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gutter);
 }
 
 /* A horizontal scroller for wide tables; positioned so screen-reader-only text stays inside it. */
 .scroll {
   position: relative;
   overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Alternate band. */
+.band {
+  background: var(--c-paper-2);
+}
+
+/* ── Accessibility media ─────────────────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  :root {
+    --line-grid: 1px;
+    --line-construction: 1.25px;
+    --line-pencil: 2px;
+    --line-cad: 2.25px;
+    --line-frame: 3px;
+  }
+
+  a {
+    text-decoration-thickness: 2px;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: CanvasText;
+  }
+
+  .skip-link {
+    border: 2px solid ButtonText;
+  }
 }

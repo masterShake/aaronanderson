@@ -1,11 +1,25 @@
-/* Type roles (W0 minimal; the kit lane owns the real ones). */
+/*
+ * Type roles (D7). Big Shoulders for H1 to H3 and the wordmark, Archivo for
+ * body (semi-expanded) and UI (expanded), Martian Mono for labels, Architects
+ * Daughter for hand notes (sentence case in content, capitals here).
+ *
+ * Font-swap shift: the display face swaps in over a wider size-adjusted Arial
+ * fallback, so a heading can lose a line when the face arrives. Each heading
+ * reserves its box in lh units (block size = lines x line height, which is
+ * identical in both faces), so the swap cannot grow it. A heading whose real
+ * line count is known sets --lines (the hero sets it per breakpoint); the
+ * default reserves one line. The fonts.ts request removes the swap itself.
+ */
 h1,
 h2,
 h3 {
+  --lines: 1;
   font-family: var(--ff-display);
   font-weight: 800;
   margin: 0 0 var(--s-4);
   text-wrap: balance;
+  min-block-size: calc(var(--lines) * 1lh);
+  color: inherit;
 }
 
 h1 {
@@ -13,7 +27,6 @@ h1 {
   line-height: var(--lh-h1);
   letter-spacing: var(--tr-h1);
   text-transform: uppercase;
-  min-block-size: 1lh;
 }
 
 h2 {
@@ -26,11 +39,45 @@ h2 {
 h3 {
   font-size: var(--fs-h3);
   line-height: var(--lh-h3);
+  letter-spacing: var(--tr-h2);
+  text-transform: uppercase;
+}
+
+h4,
+h5,
+h6 {
+  margin: 0 0 var(--s-2);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+}
+
+/* Body copy stays within 58 characters. */
+p,
+li,
+dd {
+  max-width: var(--measure);
 }
 
 p {
-  max-width: var(--measure);
   margin: 0 0 var(--s-4);
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+strong,
+b {
+  font-weight: 700;
+}
+
+small,
+.small {
+  font-size: var(--fs-small);
 }
 
 .lead {
@@ -39,17 +86,59 @@ p {
   max-width: var(--measure-lead);
 }
 
-.label {
+/* Mono labels: strips, captions, table heads on drawings. */
+.label,
+.sheet-strip {
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
+  color: var(--c-graphite);
 }
 
+.label-lg {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+/* UI face: nav, buttons, table heads. */
+.ui-text {
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+}
+
+/* Hand notes: real text, capitals by CSS, a slight seeded tilt from --tilt. */
 .hand {
   font-family: var(--ff-hand);
   font-size: var(--fs-hand);
   line-height: var(--lh-hand);
   text-transform: uppercase;
+  rotate: var(--tilt, 0deg);
+}
+
+/* Stencil sheet numerals (decorative; the real text sits beside them). */
+.numeral {
+  font-family: var(--ff-stencil);
+  font-size: var(--fs-numeral);
+  font-weight: 800;
+  line-height: 0.85;
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+@media (prefers-contrast: more) {
+  .label,
+  .sheet-strip {
+    color: var(--c-asphalt);
+  }
 }
