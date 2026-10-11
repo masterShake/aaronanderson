@@ -109,6 +109,11 @@
   z-index: 2;
 }
 
+/* After the hand-off the canvas carries the drawing; the panel and ghost layers stay. */
+.fig[data-stage='webgl'] :is(.l-cad, .l-pencil, .l-pkt) {
+  visibility: hidden;
+}
+
 /* ── Families: wide from 560 px (hero 520, service sheets 440), else tall ── */
 .fig svg[data-family='tall'],
 .fig img.still-img[data-family='tall'] {
