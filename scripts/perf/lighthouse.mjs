@@ -5,7 +5,15 @@
  *
  *   npm run perf:lh -- [--base URL] [--routes /,/services] [--runs 5] [--calibrate]
  *                      [--multiplier 7] [--tier svg|still|webgl|none] [--preset desktop] [--gate]
+ *                      [--method simulate|devtools]
  *
+ * --method     Lighthouse's throttling method (default simulate). Against localhost the
+ *              simulated LCP charges every request that finished before the observed paint
+ *              (all the framework JS and fonts) to the LCP estimate, so it reads far slower
+ *              than a throttled load: in W1, simulated LCP on / was about 3.0 s while devtools
+ *              throttling (the same slow-4G network and CPU multiplier, applied for real)
+ *              measured 1.6 s. Gate LCP on devtools and report simulate alongside it.
+ *              devtools results go to <out>-devtools so the two never overwrite each other.
  * --calibrate  one calibration run on the first route reads Lighthouse's
  *              environment.benchmarkIndex (BI); the CPU multiplier for the real
  *              runs is clamp(round(4 × BI / 1750), 4, 10).
@@ -44,8 +52,14 @@ const preset = arg('--preset', 'mobile')
 const tier = arg('--tier', 'svg')
 const calibrate = flag('--calibrate')
 const gate = flag('--gate')
+const method = arg('--method', 'simulate')
+if (method !== 'simulate' && method !== 'devtools') {
+  console.error(`lighthouse: --method must be simulate or devtools, not ${method}`)
+  process.exit(2)
+}
 const lab = budgets().lab
-const out = outDir(join('lighthouse', preset), join('.lighthouse', preset))
+const sub = method === 'simulate' ? preset : `${preset}-${method}`
+const out = outDir(join('lighthouse', sub), join('.lighthouse', sub))
 
 if (!existsSync(CHROME_PATH)) {
   console.error(`lighthouse: no Chrome at ${CHROME_PATH}; set CHROME_PATH`)
@@ -68,6 +82,7 @@ function lighthouse(route, file, multiplier) {
     '--output=json',
     `--output-path=${file}`,
     '--chrome-flags=--headless=new',
+    `--throttling-method=${method}`,
     ...(preset === 'desktop' ? ['--preset=desktop'] : []),
     ...(multiplier !== null ? [`--throttling.cpuSlowdownMultiplier=${multiplier}`] : []),
   ]
@@ -135,7 +150,7 @@ try {
     }
     results[route] = { median: med, verdict: v, runs: res }
     console.log(
-      `${route}: LCP ${Math.round(med.lcpMs)} ms (${v.lcp}) · TBT ${Math.round(med.tbtMs)} ms (${v.tbt}) · CLS ${med.cls?.toFixed(3)} (${v.cls}) · BI ${med.benchmarkIndex} · ×${multiplier}`,
+      `${route}: LCP ${Math.round(med.lcpMs)} ms (${v.lcp}) · TBT ${Math.round(med.tbtMs)} ms (${v.tbt}) · CLS ${med.cls?.toFixed(3)} (${v.cls}) · BI ${med.benchmarkIndex} · ×${multiplier} · ${method}`,
     )
   }
   const bi = median(allBi)
@@ -143,6 +158,7 @@ try {
     at: new Date().toISOString(),
     base,
     preset,
+    method,
     tier,
     runs,
     multiplier,

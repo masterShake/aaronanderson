@@ -106,6 +106,13 @@ npm run perf:lh -- --runs 5 --calibrate --routes /,/services,/how-it-works,/abou
   adds no query. `--preset desktop` runs the desktop preset.
 - `--gate` exits non-zero when a median is past its fail line; without it the verdicts are
   only reported.
+- `--method devtools` throttles the real load (slow 4G and the CPU multiplier, applied while
+  the page loads) instead of Lighthouse's default simulation, and writes to
+  `lighthouse/mobile-devtools/`. Against localhost the simulation charges every request that
+  finished before the first paint (all the framework JS and fonts) to LCP: in W1 it put `/`
+  at about 3.0 s while the throttled load painted the H1 at 1.6 s. Gate LCP on `devtools`,
+  and gate CLS and TBT on the worse of the two methods (the throttled load is the one that
+  catches late web-font swaps).
 - Writes `summary.json` (per route: medians of LCP, TBT, CLS, FCP, Speed Index and score,
   with every run) plus the multiplier and benchmarkIndex.
 - Lighthouse numbers swing with machine load. Run it with the machine otherwise idle, and

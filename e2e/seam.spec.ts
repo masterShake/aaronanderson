@@ -45,10 +45,12 @@ const SCENES: readonly SeamScene[] = [DEMO, hero, s02, s03, s04, s06]
   .filter((sc): sc is SeamScene => sc !== null)
   .filter((sc) => !gated(sc.scene) || asked.has(sc.scene) || asked.has('all'))
 
+/** The entry's own query (?p=, ?frame=) is kept; tier and ship are added to it. */
 const url = (sc: SeamScene) => {
-  const q = new URLSearchParams({ tier: 'webgl' })
-  if (gated(sc.scene)) q.set('ship', sc.scene)
-  return `${sc.path}?${q}`
+  const u = new URL(sc.path, 'http://seam.invalid')
+  u.searchParams.set('tier', 'webgl')
+  if (gated(sc.scene)) u.searchParams.set('ship', sc.scene)
+  return `${u.pathname}${u.search}`
 }
 
 const LIMIT = { strict: 0.006, tolerant: 0.0005, line: 6, panel: 2 }
