@@ -122,16 +122,16 @@ export type S03LabelKey =
  */
 export const S03_LABELS: Readonly<Record<S03LabelKey, Readonly<Record<LayoutId, Pt>>>> = {
   hopper: { wide: [12, 14], tall: [8, 124] },
-  tolerance: { wide: [442, 14], tall: [150, 124] },
-  section: { wide: [12, 630], tall: [8, 452] },
+  tolerance: { wide: [442, 14], tall: [156, 124] },
+  section: { wide: [12, 620], tall: [8, 450] },
   reader: { wide: [240, 400], tall: [70, 288] },
-  gate: { wide: [636, 330], tall: [266, 190] },
-  output: { wide: [720, 420], tall: [278, 288] },
-  tray: { wide: [536, 630], tall: [176, 452] },
-  'doc.invoice': { wide: [12, 284], tall: [8, 8] },
-  'doc.ticket': { wide: [12, 284], tall: [8, 8] },
-  'doc.submittal': { wide: [12, 284], tall: [8, 8] },
-  card: { wide: [640, 96], tall: [248, 8] },
+  gate: { wide: [646, 340], tall: [253, 190] },
+  output: { wide: [720, 436], tall: [278, 288] },
+  tray: { wide: [349, 584], tall: [176, 430] },
+  'doc.invoice': { wide: [12, 262], tall: [8, 8] },
+  'doc.ticket': { wide: [12, 262], tall: [8, 8] },
+  'doc.submittal': { wide: [12, 262], tall: [8, 8] },
+  card: { wide: [655, 109], tall: [248, 8] },
 }
 
 /** Which labels share a spot (only one shows at a time). */

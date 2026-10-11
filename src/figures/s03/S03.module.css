@@ -307,11 +307,13 @@
 
 /* ── Labels ───────────────────────────────────────────────────────────── */
 
-.label {
+.root :global(.labels) > .label {
   box-sizing: border-box;
   min-inline-size: 104px;
+  max-inline-size: 128px;
   min-block-size: 36px;
   padding: 4px 6px;
+  white-space: normal;
   background: color-mix(in srgb, var(--c-blueprint-deep) 88%, transparent);
   color: var(--c-label-on-deep);
   opacity: clamp(0, (var(--p, 1) - var(--s03-labels-from-p)) * 30, 1);

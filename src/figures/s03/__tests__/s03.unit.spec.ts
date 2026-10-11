@@ -16,30 +16,39 @@ import { s03Doc, s03Drawing, s03Frame } from '../drawing'
 
 const FAMILIES: readonly LayoutId[] = ['wide', 'tall']
 /** The narrowest container per family (CSS px): services wide from 440, tall at 360. */
-const MIN_PX: Readonly<Record<LayoutId, number>> = { wide: 440, tall: 352 }
-/** Mono label face at 12 px with 0.06em tracking (measured 8.5 px a character), plus padding. */
-const CHAR_PX = 8.6
-const PAD_PX = 12
-const CARD_PX = 132
+const MIN_PX: Readonly<Record<LayoutId, number>> = { wide: 440, tall: 360 }
+/**
+ * Label boxes in CSS px as Chrome draws them (Martian Mono 12 px, 0.06em tracking, wrapping
+ * at 128 px; S03.module.css), measured on the /kit/fig/s03 harness, plus 4 px of slack for
+ * font drift. e2e/figures/s03.spec.ts measures the real boxes at the same widths.
+ */
+const SLACK = 4
+const SIZE: Readonly<Record<S03LabelKey, readonly [w: number, h: number]>> = {
+  hopper: [128, 40],
+  tolerance: [123, 36],
+  reader: [128, 57],
+  gate: [128, 40],
+  output: [104, 36],
+  tray: [128, 57],
+  section: [128, 40],
+  'doc.invoice': [104, 36],
+  'doc.ticket': [128, 57],
+  'doc.submittal': [113, 36],
+  card: [128, 100],
+}
 
-function labelText(k: S03LabelKey): string[] {
-  if (k === 'card') return ['VENDOR', 'JOB', 'AMOUNT', 'DATE', 'SAMPLE']
-  const main = copy.labels[k as keyof typeof copy.labels]
-  const sub =
-    k === 'reader' ? copy.labels['reader-sub'] : k === 'tray' ? copy.labels['tray-sub'] : null
-  return sub ? [main, sub] : [main]
+/** The label strings exist in content (keys are not invented here). */
+function labelText(k: S03LabelKey): string {
+  if (k === 'card') return copy.ui['card.vendor'] as string
+  return copy.labels[k as keyof typeof copy.labels]
 }
 
 function box(k: S03LabelKey, f: LayoutId) {
   const vb = S03_FAMILY[f].vb
   const px = MIN_PX[f] / vb[2]
-  const lines = labelText(k)
-  // the data card has a fixed width (CARD_PX in S03.module.css) and five rows
-  const w =
-    k === 'card'
-      ? CARD_PX
-      : Math.max(104, Math.max(...lines.map((l) => l.length)) * CHAR_PX + PAD_PX)
-  const h = k === 'card' ? 100 : Math.max(36, lines.length * 16 + 8)
+  expect(labelText(k), `${k} copy`).toBeTruthy()
+  const w = Math.max(104, SIZE[k][0] + SLACK)
+  const h = Math.max(36, SIZE[k][1] + SLACK)
   const [x, y] = S03_LABELS[k][f]
   return { x: x * px, y: y * px, w, h, W: vb[2] * px, H: vb[3] * px }
 }
