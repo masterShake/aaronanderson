@@ -315,25 +315,43 @@
   }
 }
 
-/* Between 1024 and 1365 px the switch keeps its name but hides its words, so the bar fits
-   on one row (at 1280 the full bar wrapped Book a call onto a second row). */
+/* Between 1024 and 1365 px the bar is compact so it fits on one row with the sheet chip and
+   the switch's words (D1): the wordmark and the switch's words stack on two lines, the type
+   and the gaps tighten. 1024 is the tightest width (about 10 px to spare). */
 @media (min-width: 1024px) and (max-width: 1365px) {
-  .wide [data-variant='header'] > span:last-child {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .bar {
+    gap: var(--s-2);
   }
 
-  .chip {
-    display: none;
+  .brand {
+    gap: var(--s-2);
+  }
+
+  .wordmark {
+    font-size: 1.25rem;
   }
 
   .word {
     inline-size: min-content;
     white-space: normal;
+  }
+
+  .barList {
+    gap: 10px;
+  }
+
+  .navLink {
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+  }
+
+  .wide [data-variant='header'] > span:last-child {
+    inline-size: min-content;
+    white-space: normal;
+  }
+
+  .bar .book {
+    padding-inline: var(--s-3);
   }
 }
 

@@ -93,6 +93,45 @@ test('Book a call is at least 24 by 24 at 1280 and the header has no view-transi
   })
 })
 
+test('desktop header: sheet chip and the switch words show on one row, 1024 to 1440', async ({
+  page,
+}) => {
+  const out: Record<number, { rowH: number; chip: boolean; words: boolean }> = {}
+  for (const w of [1024, 1100, 1280, 1365, 1366, 1440]) {
+    await page.setViewportSize({ width: w, height: 800 })
+    await page.goto('/services')
+    await page.evaluate(() => document.fonts.ready)
+    const m = await page.evaluate(() => {
+      const h = document.querySelector('header')!
+      const bar = h.firstElementChild as HTMLElement
+      const shown = (el: Element | null) => {
+        const r = el?.getBoundingClientRect()
+        return Boolean(
+          r && r.width > 4 && r.height > 4 && getComputedStyle(el!).clipPath === 'none',
+        )
+      }
+      return {
+        rowH: Math.round(bar.getBoundingClientRect().height),
+        minH: parseFloat(getComputedStyle(bar).minHeight),
+        chip: shown(h.querySelector('a[href="/"] > :last-child')),
+        words: shown(h.querySelector('label[data-variant="header"] > span:last-child')),
+      }
+    })
+    out[w] = { rowH: m.rowH, chip: m.chip, words: m.words }
+    expect(m.rowH, `one row at ${w}`).toBeLessThanOrEqual(m.minH + 1)
+  }
+  record('header-desktop', out)
+  for (const [w, m] of Object.entries(out)) {
+    expect(m.chip, `sheet chip shows at ${w}`).toBe(true)
+    expect(m.words, `switch words show at ${w}`).toBe(true)
+  }
+  await page.setViewportSize({ width: 1024, height: 800 })
+  await page.screenshot({
+    path: join(ART, 'header-1024.png'),
+    clip: { x: 0, y: 0, width: 1024, height: 120 },
+  })
+})
+
 // ── 2. Menu ──────────────────────────────────────────────────────────────────
 for (const js of [false, true]) {
   test(`menu popover works ${js ? 'with' : 'without'} JS`, async ({ browser }) => {
