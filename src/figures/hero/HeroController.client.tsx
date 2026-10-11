@@ -28,8 +28,10 @@ const FAMILY_MIN = 520
 /** Every CSS animation in the figure, set to `ms` from the figure's start, and playing. */
 function seek(root: HTMLElement, ms: number) {
   for (const a of root.getAnimations({ subtree: true })) {
-    a.currentTime = ms
+    if (!(a instanceof CSSAnimation)) continue
+    // play() first: on a finished animation it rewinds to 0
     a.play()
+    a.currentTime = ms
   }
 }
 

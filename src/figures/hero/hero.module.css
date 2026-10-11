@@ -384,8 +384,9 @@
   animation-play-state: var(--gate);
 }
 
-/* The scan bar sweeps once. */
+/* The scan bar sweeps once: only its edge (figures.css ::after) shows, never the block. */
 .hero :global(.box > .scan-bar) {
+  background: transparent;
   animation:
     scan var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both,
     bar var(--hero-scan-dur) linear var(--hero-scan-start);

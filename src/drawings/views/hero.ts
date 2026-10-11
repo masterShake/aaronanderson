@@ -180,7 +180,7 @@ export const HERO_NOTES: Readonly<
 > = {
   wide: [
     { key: 'estimate', side: 'n' },
-    { key: 'inbox', side: 's' },
+    { key: 'inbox', side: 'n' },
     { key: 'field', side: 'n' },
     { key: 'report', side: 's' },
   ],
