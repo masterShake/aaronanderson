@@ -109,10 +109,9 @@
   }
 }
 
+/* one value filled forwards: visibility never interpolates */
 @keyframes show {
-  from {
-    visibility: hidden;
-  }
+  from,
   to {
     visibility: visible;
   }
@@ -149,7 +148,7 @@
 
 /* the flange is FIXED halfway through the last sweep, and stays */
 .s06[data-mech] .fixed {
-  animation: show 1ms linear calc(var(--s06-band-ms) * (var(--s06-loops) - 0.5)) both;
+  animation: show 1ms linear calc(var(--s06-band-ms) * (var(--s06-loops) - 0.5)) forwards;
 }
 
 /* ── Health card and the month strip (HTML, labels only) ─────────────────────────── */

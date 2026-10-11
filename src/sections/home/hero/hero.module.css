@@ -58,13 +58,9 @@
   min-block-size: 44px;
 }
 
-/* sm: Book a call runs full width; the figure bleeds to the edges. */
+/* sm: the figure bleeds to the edges. Book a call keeps its own width: at full width it
+   alone would pass D7's 5% orange share of the first screen (with the header's button). */
 @media (width < 640px) {
-  .book {
-    inline-size: 100%;
-    justify-content: center;
-  }
-
   .heroFigure {
     margin-inline: calc(-1 * clamp(16px, 4vw, 56px));
   }

@@ -73,19 +73,18 @@
   }
 }
 
+/* One value, filled forwards from the moment: visibility never interpolates (an animation
+   finished at its end time keeps a from-to pair on "visible" in Chrome). The element's own
+   visibility is the state before the moment. */
 @keyframes show {
-  from {
-    visibility: hidden;
-  }
+  from,
   to {
     visibility: visible;
   }
 }
 
 @keyframes hide {
-  from {
-    visibility: visible;
-  }
+  from,
   to {
     visibility: hidden;
   }
@@ -317,13 +316,14 @@
 .hero :global(.drawing .l-pencil) {
   animation:
     erase var(--hero-scan-dur) var(--ease-machine) var(--hero-scan-start) both,
-    hide 1ms linear var(--hero-idle-at) both;
+    hide 1ms linear var(--hero-idle-at) forwards;
   animation-play-state: var(--gate);
 }
 
 .hero :global(.drawing .l-pkt) {
+  visibility: hidden;
   animation:
-    show 1ms linear var(--hero-decision-at) both,
+    show 1ms linear var(--hero-decision-at) forwards,
     fadeout var(--hero-iso-fade) linear var(--hero-idle-at) both;
   animation-play-state: var(--gate);
 }
@@ -526,7 +526,7 @@
   --lyt: 94;
   color: var(--c-label-on-deep);
   visibility: hidden;
-  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) both;
+  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) forwards;
   animation-play-state: var(--gate);
 }
 
@@ -550,7 +550,7 @@
 
 .chip0 {
   visibility: visible;
-  animation: hide 1ms linear var(--hero-decision-at) both;
+  animation: hide 1ms linear var(--hero-decision-at) forwards;
   animation-play-state: var(--gate);
 }
 
@@ -566,7 +566,7 @@
 }
 
 .chip3 {
-  animation: show 1ms linear var(--hero-idle-at) both;
+  animation: show 1ms linear var(--hero-idle-at) forwards;
   animation-play-state: var(--gate);
 }
 
@@ -582,7 +582,7 @@
   letter-spacing: var(--tr-ui);
   cursor: pointer;
   visibility: hidden;
-  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) both;
+  animation: show 1ms linear calc(var(--hero-idle-at) + var(--hero-iso-fade)) forwards;
   animation-play-state: var(--gate);
 }
 

@@ -28,7 +28,7 @@ export function HomeHero() {
         <p className={s.signoff}>{h.signoff}</p>
         <RichText value={h.deck} className={`lead ${s.deck}`} />
         <p className={s.actions}>
-          <BookCallButton size="lg" className={s.book} />
+          <BookCallButton size="lg" />
           <Link href={h.seeDrawing.href} className={s.see}>
             {h.seeDrawing.label}
           </Link>
