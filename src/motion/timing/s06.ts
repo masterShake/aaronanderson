@@ -7,6 +7,7 @@
  *   monthFromP + n × monthStepP  month n bolts on (n = 1…3: p .55, .70, .85)
  *   bandMs       one inspection sweep; loops sweeps, the flange is FIXED on the last
  *   playMs       phones and the harness: p runs 0 → 1 in this time (drivePlay)
+ *   settleMs     longest wait for the Stage (ready or fallback) before p starts playing
  */
 export const S06 = {
   handoffP: 0.15,
@@ -18,4 +19,5 @@ export const S06 = {
   bandMs: 3000,
   loops: 3,
   playMs: 7000,
+  settleMs: 3000,
 } as const

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFigure } from '@/figures/use-figure.client'
 import type { FigureConfig } from '@/figures/types'
+import type { StageEvent } from '@/stage/types'
 import { drivePlay } from '@/motion/scroll-driver'
 import { gate } from '@/motion/visibility'
 import { GATE } from '@/motion/timing/global'
@@ -43,7 +44,15 @@ export function S06Controller() {
     }),
     [],
   )
-  const api = useFigure('s06', config)
+  // played p sweeps the hand-off window once: start only when the Stage is ready or out
+  const settle = useRef<{ done: boolean; then: (() => void) | null }>({ done: false, then: null })
+  const api = useFigure('s06', config, (e: StageEvent) => {
+    if (e.type !== 'ready' && e.type !== 'fallback') return
+    const s = settle.current
+    s.done = true
+    s.then?.()
+    s.then = null
+  })
   const stop = useRef<() => void>(() => {})
 
   useEffect(() => {
@@ -70,7 +79,18 @@ export function S06Controller() {
       api.setProgress(pin)
       onP(pin)
     } else if (!trackOf()) {
-      if (document.documentElement.dataset.tier !== 'still') offs.push(gate(root, GATE.entry, play))
+      const start = () => {
+        const s = settle.current
+        if (s.done) return play()
+        const id = setTimeout(play, S06.settleMs)
+        s.then = () => {
+          clearTimeout(id)
+          play()
+        }
+        offs.push(() => clearTimeout(id))
+      }
+      if (document.documentElement.dataset.tier !== 'still')
+        offs.push(gate(root, GATE.entry, start))
     } else {
       // scrub: follow --p as the scroll driver writes it
       const mo = new MutationObserver(() => onP(parseFloat(root.style.getPropertyValue('--p'))))

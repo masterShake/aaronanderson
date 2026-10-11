@@ -17,7 +17,10 @@ export const S06_VIEWBOX: Readonly<Record<LayoutId, ViewBox>> = {
 }
 
 /** Month instruments ride these routes (stub off the route's longest run). */
-const MONTH_ON = ['r01', 'r05', 'r09'] as const
+const MONTH_ON: Readonly<Record<LayoutId, readonly string[]>> = {
+  wide: ['r01', 'r05', 'r10'],
+  tall: ['r01', 'r05', 'r09'],
+}
 export const S06_MONTHS = ['m1', 'm2', 'm3'] as const
 /** Label keys of the month instruments, in order. */
 export const S06_ADDS = ['add.report', 'add.alert', 'add.automation'] as const
@@ -68,7 +71,9 @@ export function buildS06Model(family: LayoutId): S06Model {
   })
   // the monitor gauge on its post, beside the store
   const s = hero.store
-  const gauge: Pt = [r2(s.c[0] + s.r + (wide ? 44 : 30)), r2(s.c[1] + (wide ? 0 : -s.r - 20))]
+  const gauge: Pt = wide
+    ? [r2(s.c[0] + s.r + 44), r2(s.c[1] + 56)]
+    : [r2(s.c[0] + s.r + 26), r2(s.c[1] - 40)]
   parts.push({
     id: 'gauge',
     kind: 'cyl',
@@ -77,7 +82,7 @@ export function buildS06Model(family: LayoutId): S06Model {
     material: 'aluminum',
     anchor: 'gauge',
   })
-  const months = MONTH_ON.flatMap((rid, i) => {
+  const months = MONTH_ON[family].flatMap((rid, i) => {
     const pts = hero.routes[rid]
     if (!pts) return []
     const { mid, dir } = longest(pts)

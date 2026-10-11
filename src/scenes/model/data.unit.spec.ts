@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test'
 import type { LayoutId } from '@/drawings/types'
 import { planFrame } from '@/drawings/lib/frame'
 import { HERO_DATA } from './data'
+import { S06_EXTRA } from './s06-data'
+import { buildS06Model } from '@/drawings/views/s06'
 import { buildHeroSceneData } from './spec'
 import { isSolid, partLines } from './frame-lite'
 
@@ -43,6 +45,19 @@ test('frame-lite draws planFrame: same lines, pens, inks and fills', () => {
     const fills = spec.parts.filter(isSolid).flatMap((p) => p.prims.map(() => p.id))
     expect(fills.length).toBe(frame.fills.length)
   }
+})
+
+test('s06-data.ts holds exactly what S-06 adds to the hero model (wide)', () => {
+  const full = buildS06Model('wide').spec.parts
+  const hero = new Set(HERO_DATA.wide.spec.parts.map((p) => p.id))
+  const extra = full.filter((p) => !hero.has(p.id))
+  if (process.env.GEN_OUT) writeFileSync(`${process.env.GEN_OUT}.s06`, JSON.stringify(extra))
+  expect(S06_EXTRA).toEqual(JSON.parse(JSON.stringify(extra)))
+  // and S-06's plan is the hero's plus those parts, in that order
+  expect(full.map((p) => p.id)).toEqual([
+    ...HERO_DATA.wide.spec.parts.map((p) => p.id),
+    ...extra.map((p) => p.id),
+  ])
 })
 
 test('every labelled part keeps its anchor; nothing is a zero-length segment', () => {

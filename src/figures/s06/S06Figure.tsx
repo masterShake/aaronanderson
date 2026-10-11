@@ -85,15 +85,24 @@ export function S06Figure() {
           <span className={s.band}>
             <span className={s.bandTag}>{copy.labels.inspection}</span>
           </span>
-          <span className={`${s.lab} ${s.gauge}`} style={place('gauge', -7, -7)}>
+          <span
+            className={`${s.lab} ${s.gauge}`}
+            data-anchor="gauge"
+            style={place('gauge', -7, -7)}
+          >
             {copy.labels.gauge}
           </span>
-          <span className={`${s.lab} ${s.fixed}`} style={place('fixed', -6, -6)}>
+          <span
+            className={`${s.lab} ${s.fixed}`}
+            data-anchor="fixed"
+            style={place('fixed', -6, -6)}
+          >
             {copy.labels.fixed}
           </span>
           {S06_ADDS.map((key, i) => (
             <span
               key={key}
+              data-anchor={key}
               className={`${s.lab} ${s.add}`}
               style={{ ...place(key, -6, -5), '--a': month(i + 1) } as CSSProperties}
             >

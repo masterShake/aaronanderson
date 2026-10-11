@@ -16,6 +16,23 @@
   );
 }
 
+/* Whole-pixel art box (3:2 wide, 4:5 tall), so the Stage's canvas lands on the SVG's pixels. */
+.s06 :global(.box) {
+  inline-size: round(down, 100%, 3px);
+  margin-inline: auto;
+}
+
+@container fig (width < 440px) {
+  .s06 :global(.box) {
+    inline-size: round(down, 100%, 4px);
+  }
+}
+
+/* WebGL carries the inspection light itself */
+.s06[data-medium='webgl'] .band {
+  display: none;
+}
+
 /* Fills: figures.css's `:not([fill]) { fill: none }` outranks the f-* classes. */
 .s06.s06 :global(.box) :global(.f-deep) {
   fill: var(--c-blueprint-deep);
