@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import s from './blueprint.module.css'
 
-/** A spec grid: We do / You do / How long / You get. */
+/** A spec grid of title-block cells: We do / You do / How long / You get. */
 export function SpecGrid({ cells }: { cells: readonly { label: string; value: ReactNode }[] }) {
   return (
     <dl className={s.spec}>

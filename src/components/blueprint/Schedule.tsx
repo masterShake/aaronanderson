@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import s from './blueprint.module.css'
 
-/** A real <table> schedule; rows stack below 640 px when stack is set. */
+/**
+ * A schedule: a real <table> with a caption, column heads and a row-header
+ * first column. With stack, rows stack below 640 px and each cell shows its
+ * column label (data-label). Numeric columns align to the end.
+ */
 export function Schedule({
   caption,
   columns,
@@ -35,7 +39,11 @@ export function Schedule({
                     {r[c.key]}
                   </th>
                 ) : (
-                  <td key={c.key} data-label={c.label}>
+                  <td
+                    key={c.key}
+                    data-label={c.label}
+                    {...(c.numeric ? { 'data-numeric': '' } : {})}
+                  >
                     {r[c.key]}
                   </td>
                 ),

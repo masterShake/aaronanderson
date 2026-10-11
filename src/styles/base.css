@@ -103,6 +103,7 @@ main:focus-visible {
   --c-focus: var(--c-focus-on-dark);
   --hold-c: var(--c-alu-300);
   --hold-on: var(--c-asphalt-deep);
+  --notes-title: var(--c-alu-300);
 }
 
 /* ── Utilities ───────────────────────────────────────────────────────────── */

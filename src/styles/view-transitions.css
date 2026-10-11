@@ -1,6 +1,14 @@
 /*
- * Sheet transitions (D8): the new sheet prints left to right. The header has
- * no view-transition-name, so it stays clickable; the root group never animates.
+ * Sheet transitions (D8 §7.9): the new sheet "prints" left to right going
+ * forward (right to left going back) with a clip-path over --dur-sheet (420 ms)
+ * and a 2 px blueprint carriage edge riding the print. React's
+ * <ViewTransition> in SheetTransition maps the transition types
+ * sheet-forward / sheet-back to the classes sheet-print / sheet-print-back /
+ * sheet-out.
+ *
+ * The header has no view-transition-name, so it stays live and clickable; the
+ * root group never animates; the overlay never takes pointer events. Off under
+ * reduced motion and while motion is paused.
  */
 ::view-transition {
   pointer-events: none;
@@ -24,9 +32,15 @@
   animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-rtl;
 }
 
+/* The carriage: a 2 px blueprint edge that travels with the print. */
 ::view-transition-image-pair(.sheet-print) {
   background: linear-gradient(var(--c-blueprint), var(--c-blueprint)) no-repeat 0 0 / 2px 100%;
   animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-carriage;
+}
+
+::view-transition-image-pair(.sheet-print-back) {
+  background: linear-gradient(var(--c-blueprint), var(--c-blueprint)) no-repeat 100% 0 / 2px 100%;
+  animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-carriage-back;
 }
 
 @keyframes ae-vt-out {
@@ -62,6 +76,15 @@
   }
 }
 
+@keyframes ae-vt-carriage-back {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
@@ -70,4 +93,12 @@
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
+}
+
+html[data-motion='paused']::view-transition-group(*),
+html[data-motion='paused']::view-transition-old(*),
+html[data-motion='paused']::view-transition-new(*),
+html[data-motion='paused']::view-transition-image-pair(*) {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
 }

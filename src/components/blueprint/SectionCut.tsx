@@ -1,10 +1,17 @@
 import s from './blueprint.module.css'
 
-/** A section-cut marker: letter over sheet, used as a divider and anchor. */
+/**
+ * A section-cut marker: a split bubble (letter over sheet) on a heavy
+ * chain-dash cut line. A divider and an anchor target; decorative.
+ */
 export function SectionCut({ letter, sheet, id }: { letter: string; sheet: string; id?: string }) {
   return (
-    <p className={s.strip} id={id} aria-hidden="true">
-      {letter} / {sheet}
-    </p>
+    <div className={s.cut} id={id} aria-hidden="true">
+      <span className={s.cutBubble}>
+        <span>{letter}</span>
+        <span>{sheet}</span>
+      </span>
+      <span className={s.cutLine} />
+    </div>
   )
 }

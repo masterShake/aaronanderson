@@ -22,7 +22,7 @@ export function Footer() {
   const email = resolveHeld(site.email)
   const year = String(new Date().getFullYear())
   return (
-    <footer className={s.footer}>
+    <footer className={`${s.footer} on-dark`}>
       <div className="wrap">
         <div className={s.block}>
           <div className={`${s.cell} ${s.cellBrand}`}>

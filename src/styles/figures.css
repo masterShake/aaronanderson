@@ -1,9 +1,27 @@
-/* Figure frame basics (W0 minimal; the kit and drawings lanes own the real ones). */
+/*
+ * The figure DOM contract (Appendix B §B5, src/figures/types.ts), in CSS.
+ *
+ *   figure.fig[data-figure] (container "fig")
+ *     .box  – aspect ratio from the layout; carries --k (user units per CSS px)
+ *       .drawing > svg.l-panel · .l-pencil · .l-ghost · .l-cad · .l-pkt · .l-iso
+ *       .scan-bar · .slot[data-stage-slot] > canvas.still · .labels · .ui
+ *       .still (W0) / .still-wrap (drawings lane) > img.still-img
+ *
+ * Strokes: no vector-effect anywhere. stroke-width = calc(var(--pen-*) * var(--k)),
+ * where --k comes from one container-query tier table: wide viewBoxes are 960
+ * wide, tall ones 400 wide, with tiers down to 440 px. Draw-on paths use
+ * pathLength="1" with stroke-dasharray "1 2". Base CSS is always the finished
+ * frame; keyframes (motion.css) start from the empty state with fill "both".
+ */
+
 .fig {
+  --k: 1;
+  --pen-scale: 1;
   margin: 0;
   container: fig / inline-size;
 }
 
+/* ── The box and its stacked layers ──────────────────────────────────────── */
 .fig .box {
   position: relative;
   aspect-ratio: var(--vbw) / var(--vbh);
@@ -11,26 +29,421 @@
   background: var(--c-paper-2);
 }
 
+.fig .box > .drawing,
+.fig .box > .drawing > svg,
 .fig .box > svg,
 .fig .box > .slot,
 .fig .box > .labels,
 .fig .box > .ui,
-.fig .box > .still-img {
+.fig .box > .still,
+.fig .box > .still-wrap,
+.fig .box > .scan-bar {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.fig .box > .labels,
+.fig .box > .scan-bar,
+.fig .box > .slot {
+  pointer-events: none;
+}
+
+.fig .box > .ui {
+  pointer-events: none;
+}
+
+.fig .box > .ui > * {
+  pointer-events: auto;
 }
 
 .fig .slot > canvas {
-  width: 100%;
-  height: 100%;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
-.fig .still {
+/* The still-tier wrapper and its image (the Stage's own canvas.still is left alone). */
+.fig .box > .still,
+.fig .box > .still-wrap {
   display: none;
 }
 
 .fig .still-img {
+  inline-size: 100%;
+  block-size: 100%;
   object-fit: contain;
+}
+
+/* Layer order, bottom to top; the ghost layer is the erased pencil. */
+.fig .l-panel {
+  z-index: 0;
+}
+
+.fig .l-pencil {
+  z-index: 1;
+}
+
+.fig .l-ghost {
+  z-index: 1;
+  opacity: var(--pencil-ghost, 0.22);
+}
+
+.fig .l-cad {
+  z-index: 2;
+}
+
+.fig .l-pkt {
+  z-index: 3;
+}
+
+.fig .l-iso {
+  z-index: 2;
+}
+
+/* ── Families: wide from 560 px (hero 520, service sheets 440), else tall ── */
+.fig svg[data-family='tall'],
+.fig img.still-img[data-family='tall'] {
+  display: none;
+}
+
+@container fig (width < 560px) {
+  .fig:not([data-figure='hero'], [data-figure^='s0']):has(svg[data-family='tall'])
+    :is(svg, img.still-img)[data-family='wide'] {
+    display: none;
+  }
+
+  .fig:not([data-figure='hero'], [data-figure^='s0']) :is(svg, img.still-img)[data-family='tall'] {
+    display: block;
+  }
+
+  .fig:not([data-figure='hero'], [data-figure^='s0']):has([data-family='tall']) .box {
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+}
+
+@container fig (width < 520px) {
+  .fig[data-figure='hero']:has(svg[data-family='tall'])
+    :is(svg, img.still-img)[data-family='wide'] {
+    display: none;
+  }
+
+  .fig[data-figure='hero'] :is(svg, img.still-img)[data-family='tall'] {
+    display: block;
+  }
+
+  .fig[data-figure='hero']:has([data-family='tall']) .box {
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+}
+
+@container fig (width < 440px) {
+  .fig[data-figure^='s0']:has(svg[data-family='tall']) :is(svg, img.still-img)[data-family='wide'] {
+    display: none;
+  }
+
+  .fig[data-figure^='s0'] :is(svg, img.still-img)[data-family='tall'] {
+    display: block;
+  }
+
+  .fig[data-figure^='s0']:has([data-family='tall']) .box {
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+}
+
+/* A figure the client already switched (LazyDrawing sets data-family="tall"). */
+.fig[data-family='tall'] .box {
+  aspect-ratio: var(--vbw-t) / var(--vbh-t);
+}
+
+/* ── The --k tier table ───────────────────────────────────────────────────
+   k ≈ viewBox width / container width, quantised so lines stay within ±8%.
+   Wide (960): 440–519 → 2.0 · 520–559 → 1.78 · 560–619 → 1.6 · 620–739 → 1.4
+               740–879 → 1.18 · ≥ 880 → 1.02
+   Tall (400): < 340 → 1.25 · 340–399 → 1.08 · 400–479 → 0.92 · ≥ 480 → 0.75 */
+@container fig (width >= 440px) {
+  .fig .box {
+    --k: 2;
+  }
+}
+
+@container fig (width >= 520px) {
+  .fig .box {
+    --k: 1.78;
+  }
+}
+
+@container fig (width >= 560px) {
+  .fig .box {
+    --k: 1.6;
+  }
+}
+
+@container fig (width >= 620px) {
+  .fig .box {
+    --k: 1.4;
+  }
+}
+
+@container fig (width >= 740px) {
+  .fig .box {
+    --k: 1.18;
+  }
+}
+
+@container fig (width >= 880px) {
+  .fig .box {
+    --k: 1.02;
+  }
+}
+
+/* The tall family's k, applied wherever tall layers are showing. */
+@container fig (width < 340px) {
+  .fig .box {
+    --k-tall: 1.25;
+  }
+}
+
+@container fig (340px <= width < 400px) {
+  .fig .box {
+    --k-tall: 1.08;
+  }
+}
+
+@container fig (400px <= width < 480px) {
+  .fig .box {
+    --k-tall: 0.92;
+  }
+}
+
+@container fig (width >= 480px) {
+  .fig .box {
+    --k-tall: 0.75;
+  }
+}
+
+.fig svg[data-family='tall'],
+.fig[data-family='tall'] .box svg {
+  --k: var(--k-tall, 1);
+}
+
+/* ── Pens and inks (classes written by the drawing renderers) ─────────────
+   stroke-width = pen × k × pen-scale (1.5 under prefers-contrast: more). */
+.fig .pen-018 {
+  stroke-width: calc(var(--pen-018) * var(--k) * var(--pen-scale));
+}
+
+.fig .pen-025 {
+  stroke-width: calc(var(--pen-025) * var(--k) * var(--pen-scale));
+}
+
+.fig .pen-035 {
+  stroke-width: calc(var(--pen-035) * var(--k) * var(--pen-scale));
+}
+
+.fig .pen-050 {
+  stroke-width: calc(var(--pen-050) * var(--k) * var(--pen-scale));
+}
+
+.fig .pen-070 {
+  stroke-width: calc(var(--pen-070) * var(--k) * var(--pen-scale));
+}
+
+.fig .pen-100 {
+  stroke-width: calc(var(--pen-100) * var(--k) * var(--pen-scale));
+}
+
+.fig .ink-pencil {
+  stroke: var(--c-pencil);
+}
+
+.fig .ink-graphite {
+  stroke: var(--c-graphite);
+}
+
+.fig .ink-cad {
+  stroke: var(--c-blueprint);
+}
+
+.fig .ink-cyan {
+  stroke: var(--c-cyan);
+}
+
+.fig .ink-cyan-dim {
+  stroke: var(--c-cyan-dim);
+}
+
+.fig .ink-redline {
+  stroke: var(--c-redline);
+}
+
+.fig .ink-orange {
+  stroke: var(--c-orange);
+}
+
+.fig .ink-asphalt {
+  stroke: var(--c-asphalt);
+}
+
+.fig .ink-paper {
+  stroke: var(--c-paper);
+}
+
+.fig .ink-hold {
+  stroke: var(--c-graphite);
+  stroke-dasharray: calc(4 * var(--k)) calc(3 * var(--k));
+}
+
+.fig .box :is(path, line, rect, circle, ellipse, polyline, polygon):not([fill]) {
+  fill: none;
+}
+
+.fig .box :is(path, line, polyline) {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Draw-on and progress primitives (§7.3) ───────────────────────────────
+   The finished frame is the base; time keyframes (motion.css) and the --p
+   windows only ever move toward it. */
+.fig .draw {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 0;
+}
+
+.fig .pv {
+  --lp: clamp(0, (var(--p, 1) - var(--a, 0)) / (var(--b, 1) - var(--a, 0)), 1);
+  --e: var(--lp);
+}
+
+.fig .pv.e-machine {
+  --e: calc(var(--lp) * var(--lp) * (3 - 2 * var(--lp)));
+}
+
+.fig .pv.e-pencil {
+  --e: calc(1 - (1 - var(--lp)) * (1 - var(--lp)));
+}
+
+.fig .pv.e-settle {
+  --e: calc(1 - (1 - var(--lp)) * (1 - var(--lp)) * (1 - var(--lp)));
+}
+
+.fig .pv.draw {
+  stroke-dashoffset: calc(1 - var(--e));
+  opacity: clamp(0, var(--e) * 50, 1);
+}
+
+.fig .pv.fade {
+  opacity: var(--e);
+}
+
+.fig .pv.rise {
+  opacity: var(--e);
+  translate: 0 calc((1 - var(--e)) * 24px);
+}
+
+.fig .pv.pop {
+  opacity: clamp(0, (var(--p, 1) - var(--a, 0)) * 40, 1);
+}
+
+/* ── Labels: an HTML overlay, left-anchored so a font swap cannot shift them ─ */
+.fig .labels > * {
+  position: absolute;
+  inset-inline-start: calc(var(--lx, 0) * 100%);
+  inset-block-start: calc(var(--ly, 0) * 100%);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fig[data-labels='iso'] .labels > * {
+  inset-inline-start: calc(var(--ix, var(--lx, 0)) * 100%);
+  inset-block-start: calc(var(--iy, var(--ly, 0)) * 100%);
+}
+
+.fig[data-labels='hidden'] .labels {
+  visibility: hidden;
+}
+
+@container fig (width < 560px) {
+  .fig:not([data-figure='hero'], [data-figure^='s0']):has([data-family='tall']) .labels > * {
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+  }
+}
+
+@container fig (width < 520px) {
+  .fig[data-figure='hero']:has([data-family='tall']) .labels > * {
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+  }
+}
+
+@container fig (width < 440px) {
+  .fig[data-figure^='s0']:has([data-family='tall']) .labels > * {
+    inset-inline-start: calc(var(--lxt, var(--lx, 0)) * 100%);
+    inset-block-start: calc(var(--lyt, var(--ly, 0)) * 100%);
+  }
+}
+
+/* Hand notes on drawings: real text, capitals, a slight tilt. */
+.fig .note,
+.fig .hand {
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand);
+  line-height: var(--lh-hand);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  rotate: var(--tilt, 0deg);
+  white-space: normal;
+}
+
+/* ── Scan bar and ERASE (§7.5) ───────────────────────────────────────────── */
+.fig .scan-bar {
+  translate: calc(var(--scan, 110%) - 100%) 0;
+}
+
+.fig .scan-bar::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 2px;
+  background: var(--c-label-on-deep);
+  box-shadow: 0 0 24px 6px rgb(191 230 245 / 0.45);
+}
+
+/* ── Prefers contrast / forced colors ────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  .fig {
+    --pen-scale: 1.5;
+  }
+
+  .fig .l-ghost,
+  .fig .fig-grid {
+    display: none;
+  }
+
+  .fig .scan-bar::after {
+    box-shadow: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .fig .box :is(path, line, rect, circle, ellipse, polyline, polygon) {
+    stroke: CanvasText;
+  }
+
+  .fig .l-pkt,
+  .fig .scan-bar {
+    display: none;
+  }
+
+  .fig .box {
+    forced-color-adjust: none;
+    background: Canvas;
+  }
 }

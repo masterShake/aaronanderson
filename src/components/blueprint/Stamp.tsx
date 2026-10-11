@@ -1,6 +1,10 @@
 import s from './blueprint.module.css'
 
-/** A rubber stamp, rotated −4°. Asphalt by default; redline only for problems. */
+/**
+ * A rubber stamp, rotated −4°, with a double rule. Asphalt by default; redline
+ * only for problems. live makes it a polite status, for stamps that land after
+ * an action (the figure plays the ae-stamp keyframes from motion.css).
+ */
 export function Stamp({
   text,
   tone = 'asphalt',
@@ -12,7 +16,8 @@ export function Stamp({
 }) {
   return (
     <span
-      className={`${s.stamp} ${tone === 'redline' ? s.redline : ''}`}
+      className={`stamp ${s.stamp} ${tone === 'redline' ? s.redline : ''}`.trim()}
+      data-tone={tone}
       {...(live ? { role: 'status' } : {})}
     >
       {text}
