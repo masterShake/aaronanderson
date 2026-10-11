@@ -1,5 +1,7 @@
-import type { StageDebug } from './types'
-import { host, type AnySceneId } from './host'
+import type { SceneId, StageDebug } from './types'
+import { host, shipped, type AnySceneId } from './host'
+
+const SCENE_IDS: readonly SceneId[] = ['hero', 's02', 's03', 's04', 's06']
 
 /**
  * window.__aeStage, outside production only (cut 9: state, holdAtHandoff,
@@ -18,9 +20,11 @@ export function installDebug(): void {
   const api: StageDebug = {
     state: () => {
       const h = host()
-      return h.rt
-        ? h.rt.debug.state()
+      const ship = Object.fromEntries(SCENE_IDS.map((s) => [s, shipped(s)]))
+      const base = h.rt
+        ? (h.rt.debug.state() as Record<string, unknown>)
         : { loaded: false, figures: [...h.recs].map((r) => r.init.scene) }
+      return { ...base, ship }
     },
     holdAtHandoff: async (scene) => {
       const rt = await runtime()

@@ -22,6 +22,7 @@ import { getTier } from '../tier'
 import { FrameGuard } from './guard'
 import { buildEnv } from './kit/env'
 import { disposeShared } from './kit/materials'
+import * as kit from './kit'
 
 /**
  * The Stage runtime (D9, §1): one WebGLRenderer on the probe's context, one
@@ -101,6 +102,8 @@ function handoffPOf(f: { root: HTMLElement; id: AnySceneId }): number {
 
 class Runtime implements RuntimeApi {
   readonly renderer: string
+  /** Held so the whole kit ships in the runtime group, not in each scene chunk. */
+  readonly kit = kit
   private readonly r: WebGLRenderer
   private readonly gl: WebGL2RenderingContext
   private readonly cv: HTMLCanvasElement
