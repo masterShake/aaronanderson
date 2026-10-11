@@ -21,13 +21,16 @@ export const howItWorks: HowItWorksContent = {
     id: 'sign-off',
     h2: 'Where the machine stops and a person signs.',
     body: [
-      'Anything that spends money, signs something or goes to a client waits at a sign-off valve for a person.',
+      confirm(
+        'Anything that spends money, signs something or goes to a client waits at a sign-off valve for a person.',
+        { id: 'claim.how.control' },
+      ),
     ],
     plates: [
       {
         id: 'guard',
         title: 'GUARD',
-        text: confirm('AI drafts; people decide.', { id: 'plate.guard' }),
+        text: confirm('AI drafts. People decide.', { id: 'plate.guard' }),
       },
       {
         id: 'interlock',
@@ -46,14 +49,15 @@ export const howItWorks: HowItWorksContent = {
       {
         id: 'off-switch',
         title: 'OFF SWITCH',
-        text: confirm('You can stop any automation at any time.', { id: 'plate.off-switch' }),
+        text: confirm('You can stop any automation at any time.', { id: 'plate.offSwitch' }),
       },
       {
         id: 'inspection',
         title: 'INSPECTION',
-        text: confirm('Someone checks the machine every month, and tells you what they found.', {
-          id: 'plate.inspection',
-        }),
+        text: confirm(
+          'On Run & Improve, someone checks the machine every month and tells you what they found.',
+          { id: 'plate.inspection' },
+        ),
       },
     ],
   },

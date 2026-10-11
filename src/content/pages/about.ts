@@ -19,7 +19,22 @@ export const about: AboutContent = {
   strata: {
     id: 'strata',
     h2: 'Field, office and code: where we come from',
-    body: ["That's why we draw before we build: it's how the trades work."],
+    body: [
+      {
+        text: "Between us, we've {between}.",
+        vars: {
+          between: hold(
+            'What the crew has done between them, e.g. run sites and shipped software',
+            {
+              id: 'about.strata.between',
+              kind: 'text',
+              prodFallback: null,
+            },
+          ),
+        },
+      },
+      "That's why we draw before we build: it's how the trades work.",
+    ],
     layers: [
       {
         id: 'field',
@@ -56,20 +71,18 @@ export const about: AboutContent = {
     items: [
       confirm(
         'Scope is fixed before work starts. If it changes, we redraw it and you approve the revision.',
-        {
-          id: 'note.1',
-        },
+        { id: 'note.scope' },
       ),
-      confirm('We build on the tools you already own wherever we can.', { id: 'note.2' }),
+      confirm('We build on the tools you already own wherever we can.', { id: 'note.tools' }),
       confirm(
-        'A person approves anything that matters, and we agree together where the valves go.',
-        {
-          id: 'note.3',
-        },
+        'A person approves anything that matters, and we agree together where the sign-off valves go.',
+        { id: 'note.signOff' },
       ),
-      confirm('Everything gets written down: drawings, guides, logs.', { id: 'note.4' }),
-      confirm('You talk to the people doing the work; nobody sits in between.', { id: 'note.5' }),
-      confirm("If something isn't worth automating, we'll tell you.", { id: 'note.6' }),
+      confirm('Everything gets written down: drawings, guides, logs.', { id: 'note.written' }),
+      confirm('You talk to the people doing the work. Nobody sits in between.', {
+        id: 'note.direct',
+      }),
+      confirm("If something isn't worth automating, we'll tell you.", { id: 'note.honest' }),
     ],
   },
   beliefs: {
@@ -94,6 +107,6 @@ export const about: AboutContent = {
   closing: {
     id: 'call',
     h2: "Talk to the people who'll build it.",
-    body: 'No account managers, no handoffs. The person you book is the person who scopes the work.',
+    body: 'No account managers, no hand-offs. The person you book is the person who scopes the work.',
   },
 }
