@@ -61,7 +61,10 @@ function onTank(pts: readonly Pt[], c: Pt, r: number, atStart: boolean): Pt[] {
 
 /** What the 3D scene ships (src/scenes/model/data.ts holds it precomputed, per family). */
 export interface HeroSceneData {
-  model: HeroModel
+  /** The model; routes, the valve branch and the store are read off its parts. */
+  spec: ModelSpec
+  /** Rewired people: id, symbol and feet. */
+  people: HeroModel['people']
   /** Figure height in user units (the cut-out cards). */
   person: number
   /** Each rewired person's symbol as path data in its own 40 × 72 artboard (feet at y 72). */
@@ -77,7 +80,7 @@ export function buildHeroSceneData(family: LayoutId): HeroSceneData {
     symbols[p.symbol] ??= symbolDef(p.symbol as SymbolId).parts.map((part) =>
       r1(part.prims.map(primD).join('')),
     )
-  return { model, person: HERO_PERSON[family], symbols }
+  return { spec: model.spec, people: model.people, person: HERO_PERSON[family], symbols }
 }
 
 export interface HeroModel {

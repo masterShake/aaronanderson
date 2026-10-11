@@ -23,7 +23,7 @@ test('data.ts equals the live firm model, both families', () => {
 
 test('frame-lite draws planFrame: same lines, pens, inks and fills', () => {
   for (const f of FAMILIES) {
-    const spec = HERO_DATA[f].model.spec
+    const spec = HERO_DATA[f].spec
     const frame = planFrame(spec)
     const lite = spec.parts.flatMap(partLines)
     expect(lite.length).toBe(frame.lines.length)
@@ -47,10 +47,17 @@ test('frame-lite draws planFrame: same lines, pens, inks and fills', () => {
 
 test('every labelled part keeps its anchor; nothing is a zero-length segment', () => {
   for (const f of FAMILIES) {
-    const { model } = HERO_DATA[f]
-    const anchors = model.spec.parts.flatMap((p) => (p.anchor ? [p.anchor] : []))
+    const { spec } = HERO_DATA[f]
+    const anchors = spec.parts.flatMap((p) => (p.anchor ? [p.anchor] : []))
     expect(anchors).toEqual(expect.arrayContaining(['sym.ai', 'sym.valve', 'sym.store']))
-    for (const pts of Object.values(model.routes))
+    // the scene reads routes off the pipe parts and the valve branch off the ticket line
+    const r02 = spec.parts.find((p) => p.id === 'r02')!
+    expect(r02.prims).toHaveLength(2)
+    expect(spec.parts.filter((p) => p.kind === 'tank')).toHaveLength(1)
+    const routes = spec.parts.flatMap((p) =>
+      p.kind === 'pipe' && p.prims[0]!.t === 'poly' ? [p.prims[0]!.pts] : [],
+    )
+    for (const pts of routes)
       for (let i = 1; i < pts.length; i++)
         expect(
           Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]),

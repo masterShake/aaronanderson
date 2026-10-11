@@ -1,9 +1,13 @@
 import {
   BoxGeometry,
+  CanvasTexture,
   Mesh,
   MeshBasicMaterial,
+  NearestFilter,
   Object3D,
+  PlaneGeometry,
   PointLight,
+  SRGBColorSpace,
   Scene,
   Vector3,
   type BufferGeometry,
@@ -12,11 +16,11 @@ import {
 } from 'three'
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import type { Beat, SceneModule } from '@/stage/types'
-import type { ModelPart, Pt } from '@/drawings/types'
+import type { ModelPart, Pen, Pt } from '@/drawings/types'
 import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
-import { isSolid, outline, partLines } from './model/frame-lite'
+import { isSolid, outline, partLines, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -40,71 +44,88 @@ import { ease, span } from '@/stage/runtime/kit/ease'
  * pipes grow, the people stand, and the mechanism runs HERO.loops loops: packets at
  * HERO.packetSpeed, every fourth through the sign-off valve (held there), the DATA tank's
  * sight glass fills and the owner's report slides out. Then idle; Run again replays the loops.
- * Pose 0 draws planFrame(spec) exactly: frame lines in planFrame's order, faces flat at the
- * panel (or orange) tone. No text in the canvas: labels are HTML (--ix/--iy).
+ *
+ * Pose 0 (the hand-off frame): faces flat at the panel (or orange) tone, and planFrame's lines
+ * as a decal painted by the same 2D rasterizer the SVG uses, one texel per device pixel, so
+ * the swap is seamless; it fades as the model tilts and the Line2 edges take over.
+ * No text in the canvas: labels are HTML (--ix/--iy).
  */
 
 type Solid = FlatMixed<ReturnType<typeof aluminum>>
 const SEQ = ['r01', 'r05', 'r02', 'r09', 'r11', 'r08', 'r03', 'r10'] as const
 const HOLD = 600
-const LINE_COVER = 1
 
-/** A plan polyline as Line2 segment positions at height y; fillets as their arcs. */
-function linePositions(pts: readonly Pt[], closed: boolean, r: number | undefined, y: number) {
-  let P: Pt[] = closed ? [...pts, pts[0]!] : [...pts]
-  if (r && P.length > 2) {
-    const path = new RoutePath(P, y, r)
-    P = []
-    // straight runs end to end, each fillet as 16 chords of its arc
-    for (const g of path.segs) {
-      if (g.kind === 'line') P.push([g.a.x, g.a.z], [g.b.x, g.b.z])
-      else
-        for (let k = 0; k <= 16; k++) {
-          const a = g.a0 + (g.da * k) / 16
-          P.push([g.c.x + Math.cos(a) * g.r, g.c.z + Math.sin(a) * g.r])
-        }
-    }
-  }
+/**
+ * A plan polyline as Line2 segment positions at height y. Corners stay sharp: the decal draws
+ * the plan frame, and pipe lines only show while they fade into the grown pipes.
+ */
+function linePositions(pts: readonly Pt[], closed: boolean, y: number) {
+  const P = closed ? [...pts, pts[0]!] : pts
   const out: number[] = []
-  for (let i = 1; i < P.length; i++) {
-    const a = P[i - 1]!
-    const b = P[i]!
-    if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1e-6) continue
-    out.push(a[0], y, a[1], b[0], y, b[1])
-  }
+  for (let i = 1; i < P.length; i++) out.push(P[i - 1]![0], y, P[i - 1]![1], P[i]![0], y, P[i]![1])
   return out
 }
 
+/** A frame line on a 2D context, as lib/geometry's polyD draws it (fillets clamped to half a leg). */
+function trace(g: CanvasRenderingContext2D, l: LiteLine) {
+  const P = l.pts
+  g.moveTo(P[0]![0], P[0]![1])
+  for (let i = 1; i < P.length; i++) {
+    const b = P[i]!
+    const c = P[i + 1]
+    if (l.r && c) {
+      const a = P[i - 1]!
+      const rr = Math.min(
+        l.r,
+        Math.hypot(b[0] - a[0], b[1] - a[1]) / 2,
+        Math.hypot(c[0] - b[0], c[1] - b[1]) / 2,
+      )
+      g.arcTo(b[0], b[1], c[0], c[1], rr)
+    } else g.lineTo(b[0], b[1])
+  }
+  if (l.closed) g.closePath()
+}
+
+/** A part's plan centre: a rect's, a circle's, or (the valve) its bow-tie's shared tip. */
 const centre = (p: ModelPart): Pt => {
   const q = p.prims[0]!
-  if (q.t === 'rect') return [q.at[0] + q.size[0] / 2, q.at[1] + q.size[1] / 2]
-  if (q.t === 'circle') return q.c
-  const pts = p.prims.flatMap((x) => (x.t === 'poly' ? x.pts : []))
-  return [
-    pts.reduce((s, x) => s + x[0], 0) / (pts.length || 1),
-    pts.reduce((s, x) => s + x[1], 0) / (pts.length || 1),
-  ]
+  return q.t === 'rect'
+    ? [q.at[0] + q.size[0] / 2, q.at[1] + q.size[1] / 2]
+    : q.t === 'circle'
+      ? q.c
+      : q.t === 'poly'
+        ? q.pts[1]!
+        : [0, 0]
 }
 
 const mod: SceneModule = {
   id: 'hero',
   create(ctx) {
     const data = HERO_DATA[ctx.layout]
-    const { spec, routes, branch, store, people } = data.model
+    const { spec, people } = data
+    const part = (id: string) => spec.parts.find((p) => p.id === id || p.kind === id)
+    const routes: Record<string, readonly Pt[]> = {}
+    for (const p of spec.parts)
+      if (p.kind === 'pipe' && p.prims[0]?.t === 'poly') routes[p.id] = p.prims[0].pts
+    const b2 = part('r02')?.prims[1]
+    const branch = b2?.t === 'poly' ? b2.pts : []
+    const tank = part('tank')
+    const tc = tank?.prims[0]
     const vb = ctx.viewBox
     const q = ctx.quality
+    const wide = ctx.layout === 'wide'
     const three = new Scene()
     const rig = new OrthoRig('plan')
-    const own: { geometry?: BufferGeometry; material?: Material }[] = []
-    const lines: { m: LineMaterial; pen: ModelPart['kind'] }[] = []
+    const own: { geometry?: BufferGeometry; material?: Material; dispose?(): void }[] = []
+    const lines: { m: LineMaterial; pen: Pen; o: Object3D }[] = []
     const edges: { m: LineMaterial; ink: string }[] = []
     const pipeLines: LineMaterial[] = []
-    const pipeObjs: Object3D[] = []
     const solids: { mesh: Mesh; face: Solid; order: number }[] = []
     const tubes: Mesh<TubeGeometry>[] = []
     const cards: Cutout[] = []
     const anchors = new Map<string, Object3D>()
     const bounds: Vector3[] = []
+    const frame = spec.parts.flatMap((p) => partLines(p))
     let packets: PacketField | null = null
     let plans: PacketPlan[] = []
     let level: Mesh | null = null
@@ -120,25 +141,57 @@ const mod: SceneModule = {
     let beat: Beat | undefined
     const labels: LabelMap = new Map()
     const TILT = HERO.tiltDur
-    const PEN_OF: Record<ModelPart['kind'], '050' | '070' | '035'> = {
-      box: '050',
-      cyl: '050',
-      tank: '050',
-      pipe: '070',
-      flange: '050',
-      valve: '050',
-      card: '035',
-      slot: '035',
+
+    // the plan decal: planFrame's lines, painted by the 2D rasterizer, one texel per device px
+    const cv = document.createElement('canvas')
+    const tex = new CanvasTexture(cv)
+    tex.colorSpace = SRGBColorSpace
+    tex.minFilter = tex.magFilter = NearestFilter
+    tex.generateMipmaps = false
+    const decalMat = new MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      toneMapped: false,
+      depthTest: false,
+      depthWrite: false,
+    })
+    const decalGeo = new PlaneGeometry(vb[2], vb[3])
+      .rotateX(-Math.PI / 2)
+      .translate(vb[0] + vb[2] / 2, 0, vb[1] + vb[3] / 2)
+    const decal = new Mesh(decalGeo, decalMat)
+    decal.renderOrder = 99
+    three.add(decal)
+    own.push({ geometry: decalGeo, material: decalMat }, tex)
+
+    function paint() {
+      const s = rig.scale * ctx.renderer.getPixelRatio()
+      cv.width = Math.round(vb[2] * s)
+      cv.height = Math.round(vb[3] * s)
+      const g = cv.getContext('2d')
+      if (!g) return
+      g.setTransform(cv.width / vb[2], 0, 0, cv.height / vb[3], -vb[0] * s, -vb[1] * s)
+      g.lineCap = g.lineJoin = 'round'
+      for (const l of frame) {
+        g.beginPath()
+        trace(g, l)
+        g.strokeStyle = l.ink === 'orange' ? COLOR.orange : COLOR.cyan
+        g.lineWidth = ctx.strokePx(l.pen) / rig.scale
+        g.stroke()
+      }
+      tex.needsUpdate = true
     }
 
-    const mkLine = (ink: string, kind: ModelPart['kind']) => {
-      // alpha to coverage: analytic edge coverage, as the SVG strokes have
+    const mkLine = (l: LiteLine, y: number, order: number, parent: Object3D) => {
       const m = lineMat({
-        color: ink === 'orange' ? COLOR.orange : COLOR.cyan,
+        color: l.ink === 'orange' ? COLOR.orange : COLOR.cyan,
         width: 1,
         a2c: true,
       })
-      lines.push({ m, pen: kind })
+      const o = segments(linePositions(l.pts, l.closed, y), m)
+      o.renderOrder = 10 + order
+      own.push({ geometry: o.geometry })
+      lines.push({ m, pen: l.pen, o })
+      parent.add(o)
       return m
     }
 
@@ -150,24 +203,18 @@ const mod: SceneModule = {
           for (const pt of outline(c).pts)
             bounds.push(new Vector3(pt[0], z0, pt[1]), new Vector3(pt[0], z0 + top, pt[1]))
         if (p.kind === 'pipe') {
-          for (const l of partLines(p)) {
-            const m = mkLine(l.ink, p.kind)
-            m.depthTest = false
-            pipeLines.push(m)
-            const seg = segments(linePositions(l.pts, l.closed, l.r, 0), m)
-            seg.renderOrder = 10 + order
-            own.push({ geometry: seg.geometry })
-            pipeObjs.push(seg)
-            three.add(seg)
-          }
-          p.prims.forEach((c) => {
-            if (c.t !== 'poly') return
-            const path = new RoutePath(c.pts, z0 + p.depth / 2, c.r ?? 0)
-            const tube = makePipe(path, p.depth / 2, aluminum(q))
+          for (const l of partLines(p)) pipeLines.push(mkLine(l, 0, order, three))
+          for (const c of p.prims) {
+            if (c.t !== 'poly') continue
+            const tube = makePipe(
+              new RoutePath(c.pts, z0 + top / 2, c.r ?? 0),
+              top / 2,
+              aluminum(q),
+            )
             own.push({ geometry: tube.geometry })
             tubes.push(tube)
             three.add(tube)
-          })
+          }
           return
         }
         if (!isSolid(p)) return
@@ -177,29 +224,20 @@ const mod: SceneModule = {
           orange ? COLOR.orange : COLOR.blueprintDeep,
         )
         own.push({ material: face })
-        for (const [i, c] of p.prims.entries()) {
-          const o = outline(c)
+        p.prims.forEach((c, i) => {
           const geo =
             c.t === 'rect'
               ? extrudeRect([c.at[0], c.at[1], c.size[0], c.size[1]], top)
-              : extrudePoly(o.pts, top, 1)
+              : extrudePoly(outline(c).pts, top, 1)
           const mesh = new Mesh(geo, face)
           mesh.position.y = z0
           own.push({ geometry: geo })
           const l = partLines(p)[i]!
-          for (const y of [0, top]) {
-            const m = mkLine(l.ink, p.kind)
-            m.depthTest = false
-            edges.push({ m, ink: l.ink })
-            const seg = segments(linePositions(l.pts, l.closed, l.r, y), m)
-            seg.renderOrder = 10 + order
-            own.push({ geometry: seg.geometry })
-            mesh.add(seg)
-          }
+          for (const y of [0, top]) edges.push({ m: mkLine(l, y, order, mesh), ink: l.ink })
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order })
           three.add(mesh)
-        }
+        })
         if (p.anchor) {
           const a = new Object3D()
           const [cx, cz] = centre(p)
@@ -212,67 +250,68 @@ const mod: SceneModule = {
         }
       })
       yield
-      // packets: field, held, lead, ticket… every fourth through the valve, held there
-      const y = (spec.parts.find((p) => p.kind === 'pipe')?.z ?? 0) + 4.5
-      const wide = ctx.layout === 'wide'
-      const pipeR = (spec.parts.find((p) => p.kind === 'pipe')?.depth ?? 9) / 2
-      packets = new PacketField(48, emissive(), pipeR * 1.5, wide ? 10 : 7)
+      // packets on the pipe centre lines; the ticket line's every fourth waits at the valve
+      const pipe = part('pipe')
+      const y = (pipe?.z ?? 0) + (pipe?.depth ?? 9) / 2
+      packets = new PacketField(48, emissive(), ((pipe?.depth ?? 9) / 2) * 1.5, wide ? 10 : 7)
       three.add(packets.mesh)
       const paths = new Map<string, RoutePath>()
       for (const id of SEQ)
         if (routes[id]) paths.set(id, new RoutePath(routes[id]!, y, wide ? 12 : 10))
       const r02 = routes.r02
       let held: PacketPlan | null = null
-      if (r02 && branch.pts.length === 4) {
-        const pts: Pt[] = [r02[0]!, ...branch.pts, r02[r02.length - 1]!]
-        const path = new RoutePath(pts, y, wide ? 6 : 5)
-        const b = branch.pts
+      if (r02 && branch.length === 4) {
+        const pts: Pt[] = [r02[0]!, ...branch, r02[r02.length - 1]!]
+        const b = branch
         const s =
           Math.hypot(b[0]![0] - pts[0]![0], b[0]![1] - pts[0]![1]) +
           Math.abs(b[1]![1] - b[0]![1]) +
           Math.abs(b[2]![0] - b[1]![0]) / 2
-        held = { path, t0: 0, speed: HERO.packetSpeed, holds: [{ s, ms: HOLD }] }
+        held = {
+          path: new RoutePath(pts, y, wide ? 6 : 5),
+          t0: 0,
+          speed: HERO.packetSpeed,
+          holds: [{ s, ms: HOLD }],
+        }
       }
       plans = []
       const v = HERO.packetSpeed / 1000
       // nothing in flight at a loop boundary
       const fits = (k: number, path: RoutePath, hold = 0) =>
         k + path.length / v + hold <= HERO.loop - 400
+      const r02p = paths.get('r02')
       for (let L = 0; L < HERO.loops; L++) {
         const base = L * HERO.loop
-        // the ticket line: every fourth ticket takes the branch and waits at the valve
-        const r02p = paths.get('r02')
         for (let k = 0, j = 0; k < HERO.loop; k += HERO.packetGap, j++) {
-          if (j % 4 === 1 && held && fits(k, held.path, HOLD)) plans.push({ ...held, t0: base + k })
-          else if (j % 4 !== 1 && r02p && fits(k, r02p))
+          if (j % 4 === 1) {
+            if (held && fits(k, held.path, HOLD)) plans.push({ ...held, t0: base + k })
+          } else if (r02p && fits(k, r02p))
             plans.push({ path: r02p, t0: base + k, speed: HERO.packetSpeed })
         }
-        // every other line runs at twice the gap, phased so the flow reads as one machine
+        // every other line at twice the gap, phased so the flow reads as one machine
         SEQ.forEach((id, i) => {
           const path = id === 'r02' ? null : paths.get(id)
-          if (!path) return
-          for (let k = (i * 170) % HERO.packetGap; k < HERO.loop; k += 2 * HERO.packetGap)
+          for (let k = (i * 170) % HERO.packetGap; path && k < HERO.loop; k += 2 * HERO.packetGap)
             if (fits(k, path)) plans.push({ path, t0: base + k, speed: HERO.packetSpeed })
         })
       }
       yield
       // the DATA tank's sight glass, on its camera-facing side
-      const tank = spec.parts.find((p) => p.kind === 'tank')
-      if (tank) {
+      if (tank && tc?.t === 'circle') {
         const g = new BoxGeometry(wide ? 8 : 6, 1, 2).translate(0, 0.5, 0)
         level = new Mesh(g, emissive())
         own.push({ geometry: g })
         level.position.set(
-          store.c[0] + store.r * Math.SQRT1_2 + 1,
+          tc.c[0] + tc.r * Math.SQRT1_2 + 1,
           tank.depth * 0.12,
-          store.c[1] + store.r * Math.SQRT1_2 + 1,
+          tc.c[1] + tc.r * Math.SQRT1_2 + 1,
         )
         level.rotation.y = Math.PI / 4
         level.userData.h = tank.depth * 0.76
         three.add(level)
       }
       // the owner's report card slides out of the report box's south face
-      const rep = spec.parts.find((p) => p.id === 'report')
+      const rep = part('report')
       const rr = rep?.prims[0]
       if (rep && rr?.t === 'rect') {
         const [x, yy] = rr.at
@@ -292,7 +331,7 @@ const mod: SceneModule = {
         const c = makeCutout(
           { viewBox: [0, 0, 40, 72], d: sym },
           data.person * 1.25,
-          [p.at[0], p.at[1]],
+          p.at,
           ctx.renderer,
         )
         cards.push(c)
@@ -311,22 +350,23 @@ const mod: SceneModule = {
 
     /** Mechanism time m (ms) within the loops, or -1 before. */
     function mechanism(m: number) {
-      const n = m >= 0 && packets ? packets.update(m, plans) : 0
-      if (m < 0) packets?.clear()
-      const done = m >= 0 ? Math.min(1, m / (HERO.loop * loops)) : 0
+      if (m >= 0) packets?.update(m, plans)
+      else packets?.clear()
+      const end = HERO.loop * loops
       if (level) {
         level.visible = m >= 0
-        level.scale.y = Math.max(0.001, (Math.floor(done * 12) / 12) * level.userData.h)
+        level.scale.y = Math.max(
+          0.001,
+          (Math.floor(Math.min(1, m / end) * 12) / 12) * level.userData.h,
+        )
       }
       if (card) {
-        const within = m >= 0 ? m % HERO.loop : 0
-        const out = m < 0 ? 0 : m >= HERO.loop * loops ? 1 : ease.settle(span(within, 4800, 5400))
-        const back =
-          m >= HERO.loop && m < HERO.loop * loops ? 1 - ease.machine(span(within, 0, 300)) : 0
+        const within = m % HERO.loop
+        const out = m >= end ? 1 : ease.settle(span(within, 4800, 5400))
+        const back = m >= HERO.loop && m < end ? 1 - ease.machine(span(within, 0, 300)) : 0
         card.visible = m >= 0
         card.position.lerpVectors(cardIn, cardOut, Math.max(out, back))
       }
-      return n
     }
 
     function pose(at: number) {
@@ -336,6 +376,10 @@ const mod: SceneModule = {
         setExtrude(s.mesh, ease.settle(span(at, 60 * s.order, 60 * s.order + 700)))
         s.face.uFlat.value = 1 - span(at, TILT * 0.2, TILT * 0.7)
       }
+      // the decal holds the plan frame; the Line2 edges take over as it tilts
+      decal.visible = at < TILT * 0.15
+      decalMat.opacity = 1 - span(at, 0, TILT * 0.15)
+      for (const l of lines) l.o.visible = at > 0
       const fade = span(at, TILT * 0.2, TILT * 0.7) * 0.45
       for (const ed of edges) {
         ed.m.depthTest = at > 0
@@ -344,12 +388,11 @@ const mod: SceneModule = {
       const grow = span(at, TILT * 0.45, TILT * 0.8)
       for (const tb of tubes) setGrowth(tb, grow)
       for (const m of pipeLines) {
-        // opaque (planFrame's order) at the plan frame; blended while they fade into the pipes
-        m.transparent = at > 0
+        m.transparent = true
         m.opacity = 1 - grow
       }
       // round caps keep a trace at zero opacity: gone once the pipes are grown
-      for (const o of pipeObjs) o.visible = grow < 1
+      if (grow >= 1) for (const l of lines) if (pipeLines.includes(l.m)) l.o.visible = false
       const stand = ease.settle(span(at, TILT * 0.62, TILT * 0.9))
       for (const c of cards) {
         c.group.visible = at > TILT * 0.62
@@ -390,13 +433,8 @@ const mod: SceneModule = {
         const next: Beat = m >= end ? 'idle' : m >= 0 ? 'running' : 'built'
         const changed = next !== beat
         beat = next
-        const on = e >= 0.999
-        projectAnchors(anchors, rig.camera, w, h, () => on, labels)
-        return {
-          beat: changed ? next : undefined,
-          labels,
-          animating: m < end,
-        }
+        projectAnchors(anchors, rig.camera, w, h, () => e >= 0.999, labels)
+        return { beat: changed ? next : undefined, labels, animating: m < end }
       },
       setPose(p) {
         pose(p === 'iso' ? TILT : 0)
@@ -412,13 +450,14 @@ const mod: SceneModule = {
         w = cw
         h = chh
         rig.fit(vb, cw, chh, bounds)
-        // MSAA covers a line's edge pixels a little less than the SVG's analytic coverage
-        for (const l of lines) l.m.linewidth = ctx.strokePx(PEN_OF[l.pen]) * LINE_COVER
+        for (const l of lines) l.m.linewidth = ctx.strokePx(l.pen)
+        paint()
       },
       dispose() {
         for (const o of own) {
           o.geometry?.dispose()
           if (o.material && !o.material.userData.shared) o.material.dispose()
+          o.dispose?.()
         }
         for (const l of lines) l.m.dispose()
         for (const c of cards) c.dispose()

@@ -617,6 +617,12 @@
   .hero.hero [data-wide-only] {
     display: none;
   }
+
+  /* the iso model is small in the tall box: smaller labels, no sub-lines */
+  .hero.hero[data-labels='iso'] .lab[data-anchor] {
+    font-size: 9px;
+    letter-spacing: 0.02em;
+  }
 }
 
 /* ── WebGL: the canvas carries the machine; beats drive the chip ─────────────────── */
