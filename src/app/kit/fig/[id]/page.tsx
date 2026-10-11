@@ -5,7 +5,7 @@ import type { FigureId } from '@/content/types'
 import { preview } from '@/content/pages/preview'
 import { PREVIEW_PAGES } from '@/lib/env'
 import { pageMetadata } from '@/lib/metadata'
-import { FirmSchematic } from '@/components/schematic/FirmSchematic'
+import { FirmFigure } from '@/figures/firm/FirmFigure'
 import { HeroFigure } from '@/figures/hero/HeroFigure'
 import { S01Figure } from '@/figures/s01/S01Figure'
 import { S02Figure } from '@/figures/s02/S02Figure'
@@ -36,7 +36,7 @@ export const dynamicParams = false
 
 const FIGURES: Readonly<Record<FigureId, () => ReactNode>> = {
   hero: () => <HeroFigure />,
-  firm: () => <FirmSchematic />,
+  firm: () => <FirmFigure />,
   s01: () => <S01Figure />,
   s02: () => <S02Figure />,
   s03: () => <S03Figure />,
