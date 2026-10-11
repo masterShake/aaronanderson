@@ -1,0 +1,380 @@
+/*
+ * The Services sheet (S-00): schedule, jump list, sticky rail, the six service
+ * sheets with their scrub layout, N.I.C. and print.
+ *
+ * Breakpoints: sm < 640 · md 640–1023 · lg 1024–1279 · xl ≥ 1280.
+ * Sticky only from 1024 px (the figures) and 1280 px (the rail); never below.
+ */
+
+/* ── Schedule ─────────────────────────────────────────────────────────────── */
+.schedule :global(.scroll) {
+  margin-block-start: var(--s-5);
+}
+
+/* Fixed column widths: the body face arriving late never reflows the table. */
+.schedule :global(table) {
+  table-layout: fixed;
+}
+
+.schedule :global(thead th) {
+  white-space: normal;
+}
+
+@media (min-width: 640px) {
+  .schedule :global(thead th:nth-child(1)) {
+    inline-size: 12%;
+  }
+  .schedule :global(thead th:nth-child(2)) {
+    inline-size: 21%;
+  }
+  .schedule :global(thead th:nth-child(3)) {
+    inline-size: 29%;
+  }
+  .schedule :global(thead th:nth-child(4)) {
+    inline-size: 22%;
+  }
+  .schedule :global(thead th:nth-child(5)) {
+    inline-size: 16%;
+  }
+}
+
+.schedule :global(td) {
+  overflow-wrap: anywhere;
+}
+
+.schedule :global(td a),
+.schedule :global(tbody th a) {
+  color: var(--c-blueprint);
+}
+
+.paired {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: var(--tr-label);
+}
+
+.paired a {
+  display: inline-block;
+  min-block-size: 24px;
+}
+
+.chartCaption {
+  margin-block-start: var(--s-3);
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
+
+/* ── Jump list (below 1280 px) ────────────────────────────────────────────── */
+.jump {
+  padding-block: 0 var(--s-5);
+}
+
+.jumpList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .jumpList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.jumpLink,
+.railLink {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-1) var(--s-2);
+  min-block-size: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-decoration: none;
+}
+
+.jumpLink:hover,
+.railLink:hover {
+  background: var(--c-paper-2);
+}
+
+.jumpLink:focus-visible,
+.railLink:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.jumpId,
+.railId {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+@media (min-width: 1280px) {
+  .jump {
+    display: none;
+  }
+}
+
+/* ── Sheets and the sticky rail ───────────────────────────────────────────── */
+.rail {
+  display: none;
+}
+
+.railList {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.railLink {
+  border-color: var(--c-pencil-faint);
+  font-size: var(--fs-label-lg);
+}
+
+.railLink[aria-current='true'] {
+  border-color: var(--c-asphalt);
+  box-shadow: inset 3px 0 0 var(--c-blueprint);
+}
+
+@media (min-width: 1280px) {
+  .sheets {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 10fr);
+    column-gap: var(--gutter);
+    max-inline-size: var(--page-max);
+    margin-inline: auto;
+    padding-inline: var(--page-margin);
+  }
+
+  .rail {
+    display: block;
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    padding-block: var(--section-pad);
+  }
+
+  .railNav {
+    position: sticky;
+    top: var(--sticky-top);
+  }
+
+  .sheets .sheet {
+    grid-column: 2;
+    padding-inline: 0;
+  }
+}
+
+/* One sheet: a single column below 1024 px, with the figure after the explanation. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  scroll-margin-top: var(--sticky-top);
+  border-block-start: 1.5px solid var(--c-asphalt);
+}
+
+.text {
+  display: contents;
+}
+
+.lede {
+  order: 1;
+}
+
+.figCol {
+  order: 2;
+  min-inline-size: 0;
+}
+
+.body {
+  order: 3;
+}
+
+@media (min-width: 1024px) {
+  .sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    column-gap: var(--gutter);
+    align-items: stretch;
+  }
+
+  .text {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .figCol {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* The figure itself is the sticky element (driveScroll reads its computed top). */
+  .figCol > :global(figure.fig) {
+    position: sticky;
+    top: var(--sticky-top);
+  }
+
+  .body {
+    margin-block-start: var(--s-6);
+  }
+}
+
+@media (min-width: 1280px) {
+  .sheet {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr);
+  }
+}
+
+.lede > * + *,
+.body > * + * {
+  margin-block-start: var(--s-4);
+}
+
+.h2 {
+  margin-block-start: var(--s-4);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.lede .h2 {
+  margin-block-start: var(--s-4);
+}
+
+.promise {
+  max-inline-size: var(--measure-lead);
+}
+
+.explain {
+  max-inline-size: var(--measure);
+}
+
+.plain {
+  margin: 0;
+}
+
+.body > .h3 {
+  margin-block-start: var(--s-6);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-ui);
+}
+
+.body > .h3:first-child {
+  margin-block-start: 0;
+}
+
+.examples {
+  margin-block-end: 0;
+  padding-inline-start: 1.25em;
+}
+
+.examples li + li {
+  margin-block-start: var(--s-2);
+}
+
+/* You receive, laid out as a schedule: numbered rows from a counter (no digits in content). */
+.receive {
+  margin-block-end: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: item;
+  border-block-start: 1.5px solid var(--c-asphalt);
+}
+
+.receive li {
+  display: grid;
+  grid-template-columns: 3.5ch minmax(0, 1fr);
+  column-gap: var(--s-3);
+  padding-block: var(--s-2);
+  border-block-end: 1px solid var(--c-pencil-faint);
+  counter-increment: item;
+}
+
+.receive li::before {
+  content: counter(item, decimal-leading-zero);
+  grid-row: span 2;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: var(--tr-label);
+  color: var(--c-graphite);
+}
+
+.receiveItem {
+  font-weight: 600;
+}
+
+.receiveNote {
+  grid-column: 2;
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
+
+.shape {
+  display: grid;
+  gap: var(--s-3);
+  max-inline-size: 36rem;
+}
+
+.priceChip {
+  justify-self: start;
+  margin: 0;
+  padding: var(--s-1) var(--s-3);
+  border: 1.5px solid var(--c-asphalt);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label-lg);
+  letter-spacing: var(--tr-label);
+}
+
+.summary {
+  margin: 0;
+}
+
+.talk {
+  margin-block-start: var(--s-6);
+}
+
+.talkLink {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  color: var(--c-blueprint);
+  font-family: var(--ff-ui);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.talkLink:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* ── Not in contract ──────────────────────────────────────────────────────── */
+.nicList {
+  max-inline-size: var(--measure);
+  margin-block: var(--s-4) 0;
+  padding-inline-start: 1.25em;
+}
+
+.nicList li + li {
+  margin-block-start: var(--s-2);
+}
