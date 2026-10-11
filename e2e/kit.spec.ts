@@ -5,6 +5,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { ROUTES } from './routes'
 import { gotoTier } from './helpers/tier'
+import { isProductionBuild } from './helpers/budgets'
 import { site } from '../src/content/site'
 import { notFound } from '../src/content/pages/not-found'
 
@@ -424,6 +425,18 @@ test('footer and 404 sheet lists put the plain label before the sheet number', a
       )
       expect(text).toContain(it.sheet.toUpperCase())
     }
+})
+
+test('production footer leaves out a contact cell with no value (D11)', async ({ page }) => {
+  test.skip(!(await isProductionBuild(page)), 'needs a VERCEL_ENV=production build')
+  await page.goto('/')
+  const cells = page.getByRole('contentinfo').locator('dl > div')
+  const n = await cells.count()
+  for (let i = 0; i < n; i++) {
+    const dd = (await cells.nth(i).locator('dd').innerText()).trim()
+    const dt = (await cells.nth(i).locator('dt').innerText()).trim()
+    expect(dd, `${dt} has a value`).not.toBe('')
+  }
 })
 
 test('links to other sheets prefetch on intent, never on viewport', async ({ page }) => {
