@@ -12,7 +12,7 @@ import type { SceneId } from './types'
 export const SHIP: Readonly<Record<SceneId, 'webgl' | 'svg'>> = {
   hero: 'webgl',
   s02: 'webgl',
-  s03: 'webgl',
+  s03: 'svg',
   s04: 'svg',
   s06: 'svg',
 }
