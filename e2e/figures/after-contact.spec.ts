@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { isProductionBuild } from '../helpers/budgets'
 
 /**
  * DETAIL 1 / G-03, the after-contact figure: one frame per id, four node
@@ -13,6 +14,7 @@ test.skip(Boolean(only) && !only!.split(',').includes('after-contact'), 'FIGURES
 
 for (const path of ['/contact', '/kit/fig/after-contact']) {
   test(`layers load and labels sit inside the box (${path})`, async ({ page, guard }) => {
+    test.skip(path.startsWith('/kit') && (await isProductionBuild(page)), '/kit is preview only')
     await page.goto(`${path}${path.includes('?') ? '&' : '?'}tier=svg`)
     const fig = page.locator('#fig-after-contact')
     await expect(fig).toHaveCount(1)

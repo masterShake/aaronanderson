@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { isProductionBuild } from './helpers/budgets'
 
 /**
  * Contact behaviour (lane w2/contact): the booking facade on the preview-only
@@ -64,6 +65,9 @@ const status = (page: Page) => page.locator('[data-facade-status]')
 
 test.describe('booking facade (/kit/contact)', () => {
   test.use({ bypassCSP: true })
+  test.beforeEach(async ({ page }) => {
+    test.skip(await isProductionBuild(page), '/kit/contact is preview only')
+  })
 
   test('Cal mounts only after the click, then reports ready and booked', async ({ page }) => {
     const hits = await stubCal(page, 'ready')
@@ -157,6 +161,7 @@ test.describe('contact form with JS', () => {
   })
 
   test('a send shows the success panel and fetches a fresh token', async ({ page, guard }) => {
+    test.skip(await isProductionBuild(page), 'production without mail env: not_configured')
     await fresh(page)
     let actions = 0
     page.on('request', (r) => {
@@ -190,6 +195,7 @@ test.describe('contact form with JS', () => {
   })
 
   test('the rate limit shows its message and keeps the values', async ({ page }) => {
+    test.skip(await isProductionBuild(page), 'production without mail env: not_configured')
     await fresh(page)
     await page.goto('/contact')
     const email = `limit.${Date.now()}@example.com`
@@ -204,5 +210,19 @@ test.describe('contact form with JS', () => {
     await expect(summary).toBeFocused()
     await expect(summary).toContainText('Too many messages from this connection.')
     await expect(page.locator('#f-email')).toHaveValue(email)
+  })
+
+  test('production without the mail settings says the form is not switched on', async ({
+    page,
+  }) => {
+    test.skip(!(await isProductionBuild(page)), 'needs a VERCEL_ENV=production build')
+    await fresh(page)
+    await page.goto('/contact')
+    await fill(page, `prod.${Date.now()}@example.com`)
+    await page.getByRole('button', { name: 'Send it' }).click()
+    const summary = page.locator('#form-errors')
+    await expect(summary).toBeFocused()
+    await expect(summary).toContainText("The form isn't switched on yet.")
+    await expect(page.locator('#f-message')).toHaveValue('We retype the weekly report by hand.')
   })
 })

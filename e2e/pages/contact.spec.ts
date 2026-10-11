@@ -21,8 +21,10 @@ test('one H1, the sections in order, and the CTA band last', async ({ page, guar
   await expect(page.locator('h1')).toHaveText('Pick a time. Bring the spreadsheet.')
   const ids = await page.locator('main section[id]').evaluateAll((els) => els.map((e) => e.id))
   expect(ids.at(-1)).toBe('call')
-  for (const id of ['write', 'email', 'next', 'privacy']) expect(ids).toContain(id)
+  for (const id of ['email', 'next', 'privacy']) expect(ids).toContain(id)
   expect(ids.filter((i) => i === 'book').length).toBe(1)
+  // the form section is #write, or #book in production while the link is a HOLD
+  await expect(page.locator('main section:is(#write, #book) form')).toHaveCount(1)
   await expect(page.locator('#fig-after-contact')).toHaveCount(1)
   // the honeypot is inert and hidden from assistive tech
   await expect(page.locator('#extra_notes')).toHaveAttribute('tabindex', '-1')
@@ -72,6 +74,7 @@ test.describe('without JavaScript', () => {
   })
 
   test('a valid POST shows the success panel', async ({ page }) => {
+    test.skip(await isProductionBuild(page), 'production without mail env: not_configured')
     await fresh(page)
     await page.goto('/contact')
     await page.locator('#f-name').fill('Ana Ruiz')
@@ -103,6 +106,8 @@ for (const width of [390, 1280]) {
       await page.getByRole('button', { name: 'Send it' }).click()
       await expect(page.locator('#form-errors')).toBeFocused()
       await clean(page, 'error')
+      // production without the mail settings never reaches the success state
+      if (await isProductionBuild(page)) return
 
       await page.locator('#f-name').fill('Lee Park')
       await page.locator('#f-email').fill(`lee.${width}.${Date.now()}@example.com`)
