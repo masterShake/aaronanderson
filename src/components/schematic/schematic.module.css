@@ -1,0 +1,383 @@
+/*
+ * The interactive schematic. States: data-toggle on the figure (asFound or
+ * rewired). As found is pencil on paper; Rewired is CAD on blueprint-deep,
+ * scanned in left to right, with the pencil left as a 22% ghost.
+ */
+
+.schematic {
+  position: relative;
+}
+
+/* Panels and layers per state */
+.schematic[data-toggle='rewired'] :global(.box) {
+  --panel: var(--c-blueprint-deep);
+}
+
+.schematic :global(.drawing .l-pencil) {
+  transition: opacity var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+.schematic :global(.drawing .l-cad) {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+.schematic[data-toggle='rewired'] :global(.drawing .l-cad) {
+  clip-path: inset(0 0 0 0);
+}
+
+.schematic[data-toggle='rewired'] :global(.drawing .l-pencil) {
+  opacity: 0.22;
+}
+
+/* Elements tied to one state */
+.schematic:not([data-toggle='rewired']) [data-show='rewired'],
+.schematic[data-toggle='rewired'] [data-show='asFound'] {
+  display: none !important;
+}
+
+/* Until the layers arrive, the matching still stands in for them. */
+.schematic:not([data-layers='ready']):not(:has(:global(.drawing svg[data-family])))
+  :global(.still-wrap) {
+  display: block;
+}
+
+.still {
+  position: absolute;
+  inset: 0;
+}
+
+/* Highlight what the active tool touches; fade the rest. */
+.schematic :global(.drawing g[data-layer] > g[data-part]) {
+  transition: opacity var(--dur-micro, 120ms) linear;
+}
+
+.schematic[data-active] :global(.drawing g[data-layer] > g[data-part]:not([data-hl])) {
+  opacity: 0.25;
+}
+
+.schematic[data-active] :global(.drawing g[data-hl] .i-pencil) {
+  stroke: var(--c-asphalt);
+}
+
+.schematic[data-active] :global(.drawing g[data-hl] .i-cyan) {
+  stroke: var(--c-label-on-deep);
+}
+
+/* Segmented toggle in the strip */
+.toggle {
+  display: inline-flex;
+  border: 1px solid var(--c-asphalt);
+}
+
+.seg {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 0;
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+  transition: background-color var(--dur-ui, 200ms) var(--ease-ui, ease);
+}
+
+.seg + .seg {
+  border-left: 1px solid var(--c-asphalt);
+}
+
+.seg[aria-pressed='true'] {
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+}
+
+.seg:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (width < 640px) {
+  .seg {
+    min-height: 44px;
+  }
+}
+
+/* Tool buttons over the boxes */
+.tools {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+}
+
+.tool {
+  position: absolute;
+  left: calc(var(--lx) * 1%);
+  top: calc(var(--ly) * 1%);
+  width: calc(var(--lw) * 1%);
+  height: calc(var(--lh) * 1%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--c-asphalt);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.schematic[data-toggle='rewired'] .tool {
+  color: var(--c-label-on-deep);
+}
+
+.tool:hover,
+.tool[aria-expanded='true'] {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.tool:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+.schematic[data-toggle='rewired'] .tool:focus-visible {
+  outline-color: var(--c-focus-on-dark);
+}
+
+@container fig (width < 560px) {
+  .tool {
+    left: calc(var(--lxt) * 1%);
+    top: calc(var(--lyt) * 1%);
+    width: calc(var(--lwt) * 1%);
+    height: calc(var(--lht) * 1%);
+  }
+}
+
+@media (pointer: coarse) {
+  .tool {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+.name {
+  display: block;
+}
+
+.era {
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+/* Instrument labels and hand notes (aria-hidden layer) */
+.inst {
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: var(--c-label-on-deep);
+}
+
+.note {
+  max-width: 14em;
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand);
+  line-height: var(--lh-hand);
+  text-transform: uppercase;
+  color: var(--c-graphite);
+  transform-origin: left top;
+}
+
+.schematic[data-toggle='rewired'] .note {
+  color: var(--c-label-on-deep);
+}
+
+/* The callout: next to the tool from 640 px; docked under the figure on narrow or touch screens */
+.callout {
+  position: absolute;
+  z-index: 2;
+  max-width: 300px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper-sunk);
+  color: var(--c-asphalt);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+}
+
+/* a transparent 12 px bridge so the pointer can cross from tool to callout */
+.callout::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  z-index: -1;
+}
+
+.callout[hidden] {
+  display: none !important;
+}
+
+.schematic[data-toggle='rewired'] .callout {
+  border-color: var(--c-cyan-dim);
+  background: var(--c-asphalt-deep);
+  color: var(--c-label-on-deep);
+}
+
+.callout[data-docked='true'] {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  max-width: none;
+  margin: 0;
+  border-width: 1px 0 0;
+}
+
+.calloutTitle {
+  margin: 0 0 var(--s-1);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.calloutBody {
+  margin: 0;
+}
+
+.close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.close[hidden] {
+  display: none;
+}
+
+.close:focus-visible {
+  outline: var(--focus-w) solid currentColor;
+  outline-offset: var(--focus-offset);
+}
+
+/* Detail bubbles (Rewired only): split circles, n over the sheet number */
+.bubbles {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none !important;
+}
+
+.bubble {
+  position: absolute;
+  left: calc(var(--lx) * 1%);
+  top: calc(var(--ly) * 1%);
+}
+
+@container fig (width < 560px) {
+  .bubble {
+    left: calc(var(--lxt) * 1%);
+    top: calc(var(--lyt) * 1%);
+  }
+}
+
+.bubbleLink {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--c-paper);
+  border-radius: 50%;
+  background: var(--c-blueprint-deep);
+  color: var(--c-paper);
+  font-family: var(--ff-mono);
+  font-size: 0.5625rem;
+  line-height: 1;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.bubbleLink > span + span {
+  align-self: start;
+  width: 100%;
+  padding-top: 2px;
+  border-top: 1px solid currentColor;
+  text-align: center;
+}
+
+.bubbleLink > span:first-child {
+  align-self: end;
+  padding-bottom: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bubbleLink:hover,
+.bubbleLink:focus-visible {
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+}
+
+.bubbleLink:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus-on-dark);
+  outline-offset: var(--focus-offset);
+}
+
+@media (pointer: coarse) {
+  .bubbleLink {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Table alternative */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.table caption {
+  padding: var(--s-2) 0;
+  text-align: left;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.table th,
+.table td {
+  padding: var(--s-1) var(--s-2);
+  border-bottom: 1px solid var(--c-paper-sunk);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  font-family: var(--ff-ui);
+  font-weight: 700;
+}
+
+.table tfoot td {
+  border-bottom: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+}

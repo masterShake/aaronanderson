@@ -1,5 +1,17 @@
-/* Figure frame (W0 minimal; owner: drawings lane). */
+/*
+ * The figure frame: strip, fixed-aspect box, layers, labels, still tier.
+ * Injected SVG cannot carry hashed class names, so the drawing vocabulary
+ * (p-{pen}, i-{ink}, f-{ink}, d-{dash}, draw; see src/drawings/lib/svg-string.ts)
+ * is styled through :global() under the module's .box.
+ *
+ * Strokes: never non-scaling. stroke-width = pen × --k, where --k is user units
+ * per CSS px, quantised by container queries (wide viewBoxes 960 wide, tall
+ * 400 wide). Dashes on pathLength="1" paths are divided by --len (user units).
+ */
+
 .fig {
+  container: fig / inline-size;
+  margin: 0;
   border: 1px solid var(--c-asphalt);
   background: var(--c-paper);
 }
@@ -8,39 +20,445 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-3);
+  gap: var(--s-2) var(--s-3);
   padding: var(--s-2) var(--s-3);
   border-bottom: 1px solid var(--c-asphalt);
 }
 
 .title {
   margin: 0;
+  margin-inline-end: auto;
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
+  line-height: var(--lh-label);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
 }
 
-.box {
-  background: var(--c-blueprint-deep);
+.chip {
+  padding: 2px var(--s-2);
+  border: 1px solid currentColor;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  white-space: nowrap;
 }
 
-.box :global(.drawing),
-.box :global(.drawing) > svg {
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.button {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (pointer: coarse) {
+  .button {
+    min-height: 44px;
+  }
+}
+
+/* Play the drawing shows only where the figure would otherwise sit still. */
+.play {
+  display: none;
+}
+
+:global(html[data-tier='still']) .play,
+.fig:global([data-phase='still']) .play {
+  display: inline-block;
+}
+
+/* The box: fixed aspect, the panel color, and the --k tiers. */
+.box {
+  --panel: var(--c-paper);
+  --k: 0.82;
+  --k-tall: 0.78;
+  --pen-scale: 1;
+  position: relative;
+  aspect-ratio: var(--vbw) / var(--vbh);
+  overflow: clip;
+  background: var(--panel);
+  transition: background-color var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+/* wins over the global `.fig .box` base, so --panel always paints the box */
+.fig .box[class] {
+  background: var(--panel);
+}
+
+@container fig (width < 1100px) {
+  .box {
+    --k: 1;
+  }
+}
+
+@container fig (width < 880px) {
+  .box {
+    --k: 1.2;
+  }
+}
+
+@container fig (width < 740px) {
+  .box {
+    --k: 1.45;
+  }
+}
+
+@container fig (width < 620px) {
+  .box {
+    --k: 1.7;
+  }
+}
+
+@container fig (width < 520px) {
+  .box {
+    --k: 2;
+  }
+}
+
+@container fig (width < 480px) {
+  .box {
+    --k-tall: 0.92;
+  }
+}
+
+@container fig (width < 400px) {
+  .box {
+    --k-tall: 1.08;
+  }
+}
+
+@container fig (width < 340px) {
+  .box {
+    --k-tall: 1.25;
+  }
+}
+
+/* Tall family below each figure's family minimum. */
+@container fig (width < 560px) {
+  .fig:global([data-fam-min='560'][data-has-tall]) .box {
+    --k: var(--k-tall);
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+  .fig:global([data-fam-min='560'][data-has-tall]) :global(:is(svg, img)[data-family='wide']) {
+    display: none;
+  }
+  .fig:global([data-fam-min='560'][data-has-tall]) :global(:is(svg, img)[data-family='tall']) {
+    display: block;
+  }
+  .fig:global([data-fam-min='560'][data-has-tall]) .labels > * {
+    left: calc(var(--lxt, var(--lx, 0)) * 1%);
+    top: calc(var(--lyt, var(--ly, 0)) * 1%);
+  }
+}
+
+@container fig (width < 520px) {
+  .fig:global([data-fam-min='520'][data-has-tall]) .box {
+    --k: var(--k-tall);
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+  .fig:global([data-fam-min='520'][data-has-tall]) :global(:is(svg, img)[data-family='wide']) {
+    display: none;
+  }
+  .fig:global([data-fam-min='520'][data-has-tall]) :global(:is(svg, img)[data-family='tall']) {
+    display: block;
+  }
+  .fig:global([data-fam-min='520'][data-has-tall]) .labels > * {
+    left: calc(var(--lxt, var(--lx, 0)) * 1%);
+    top: calc(var(--lyt, var(--ly, 0)) * 1%);
+  }
+}
+
+@container fig (width < 440px) {
+  .fig:global([data-fam-min='440'][data-has-tall]) .box {
+    --k: var(--k-tall);
+    aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+  .fig:global([data-fam-min='440'][data-has-tall]) :global(:is(svg, img)[data-family='wide']) {
+    display: none;
+  }
+  .fig:global([data-fam-min='440'][data-has-tall]) :global(:is(svg, img)[data-family='tall']) {
+    display: block;
+  }
+  .fig:global([data-fam-min='440'][data-has-tall]) .labels > * {
+    left: calc(var(--lxt, var(--lx, 0)) * 1%);
+    top: calc(var(--lyt, var(--ly, 0)) * 1%);
+  }
+}
+
+/* Layers: one HTML-level <svg> each, stacked. */
+.drawing,
+.drawing :global(svg) {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.box :global(.drawing) path {
+.drawing :global(svg[data-family='tall']),
+.stillWrap :global(img[data-family='tall']) {
+  display: none;
+}
+
+/* Layer paths: no fill, the drawing color and a CAD pen unless a class says otherwise. */
+.drawing {
+  color: var(--c-blueprint);
+}
+
+.drawing :where(:global(svg[class^='l-'] path)) {
   fill: none;
+  stroke: currentColor;
+  stroke-width: calc(var(--pen-050) * var(--k));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* fill-only shapes carry no pen */
+.drawing :where(:global(svg[class^='l-'] path[class*='f-']:not([class*='p-']))) {
+  stroke: none;
+}
+
+/* Pens */
+.box :global(.p-018) {
+  stroke-width: calc(var(--pen-018) * var(--k) * var(--pen-scale));
+}
+.box :global(.p-025) {
+  stroke-width: calc(var(--pen-025) * var(--k) * var(--pen-scale));
+}
+.box :global(.p-035) {
+  stroke-width: calc(var(--pen-035) * var(--k) * var(--pen-scale));
+}
+.box :global(.p-050) {
+  stroke-width: calc(var(--pen-050) * var(--k) * var(--pen-scale));
+}
+.box :global(.p-070) {
+  stroke-width: calc(var(--pen-070) * var(--k) * var(--pen-scale));
+}
+.box :global(.p-100) {
+  stroke-width: calc(var(--pen-100) * var(--k) * var(--pen-scale));
+}
+
+/* Inks */
+.box :global(.i-pencil) {
+  stroke: var(--c-pencil);
+}
+.box :global(.i-graphite),
+.box :global(.i-hold) {
+  stroke: var(--c-graphite);
+}
+.box :global(.i-cad) {
+  stroke: var(--c-blueprint);
+}
+.box :global(.i-cyan) {
   stroke: var(--c-cyan);
-  stroke-width: calc(var(--pen-050) * var(--k, 1) * 1.4);
+}
+.box :global(.i-cyan-dim) {
+  stroke: var(--c-cyan-dim);
+}
+.box :global(.i-redline) {
+  stroke: var(--c-redline);
+}
+.box :global(.i-orange) {
+  stroke: var(--c-orange);
+}
+.box :global(.i-asphalt) {
+  stroke: var(--c-asphalt);
+}
+.box :global(.i-paper) {
+  stroke: var(--c-paper);
+}
+
+/* Fills */
+.box :global(.f-paper) {
+  fill: var(--c-paper);
+}
+.box :global(.f-panel) {
+  fill: var(--panel);
+}
+.box :global(.f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+.box :global(.f-cyan) {
+  fill: var(--c-cyan);
+}
+.box :global(.f-cyan-dim) {
+  fill: var(--c-cyan-dim);
+}
+.box :global(.f-orange) {
+  fill: var(--c-orange);
+}
+.box :global(.f-orange-dark) {
+  fill: color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt));
+}
+.box :global(.f-alu-100) {
+  fill: var(--c-alu-100);
+}
+.box :global(.f-alu-300) {
+  fill: var(--c-alu-300);
+}
+.box :global(.f-alu-500) {
+  fill: var(--c-alu-500);
+}
+.box :global(.o-55) {
+  opacity: 0.55;
+}
+
+/* Draw-on paths: the full path is one dash (pathLength 1); offset 1 hides it. */
+.box :global(.draw) {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 0;
+}
+
+/* Dash patterns in CSS px × --k, normalised by each path's --len. */
+.box :global(.d-hand-carry) {
+  stroke-dasharray: calc(6 * var(--k) / var(--len, 100)) calc(4 * var(--k) / var(--len, 100));
+}
+.box :global(:is(.d-hidden, .d-signal, .d-hold)) {
+  stroke-dasharray: calc(4 * var(--k) / var(--len, 100)) calc(3 * var(--k) / var(--len, 100));
+}
+.box :global(.d-center) {
+  stroke-dasharray: calc(12 * var(--k) / var(--len, 100)) calc(3 * var(--k) / var(--len, 100))
+    calc(2 * var(--k) / var(--len, 100)) calc(3 * var(--k) / var(--len, 100));
+}
+
+/* Stage slot, labels and the focusable overlay. */
+.slot,
+.labels,
+.ui {
+  position: absolute;
+  inset: 0;
+}
+
+.slot {
+  pointer-events: none;
+}
+
+.slot > canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.labels {
+  z-index: 1;
+  pointer-events: none;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+}
+
+.labels > * {
+  position: absolute;
+  left: calc(var(--lx, 0) * 1%);
+  top: calc(var(--ly, 0) * 1%);
+}
+
+.ui {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ui > * {
+  pointer-events: auto;
+}
+
+.scanBar {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--c-cyan);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Still tier: the still image shows and the live drawing hides. */
+.stillWrap {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+}
+
+.stillWrap :global(img.still-img) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+:global(html[data-tier='still']) .fig:not(:global([data-user-play])) .stillWrap,
+.fig:global([data-phase='still']) .stillWrap {
+  display: block;
+}
+
+:global(html[data-tier='still']) .fig:not(:global([data-user-play])) .drawing,
+.fig:global([data-phase='still']) .drawing {
+  display: none;
 }
 
 .caption {
+  display: block;
   padding: var(--s-2) var(--s-3);
   font-size: var(--fs-small);
   color: var(--c-graphite);
+}
+
+.table {
+  border-top: 1px solid var(--c-asphalt);
+  padding: 0 var(--s-3) var(--s-2);
+  overflow-x: auto;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--ff-ui);
+  font-size: var(--fs-nav);
+  font-weight: 700;
+  letter-spacing: var(--tr-ui);
+  cursor: pointer;
+}
+
+.summary:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-contrast: more) {
+  .box {
+    --pen-scale: 1.5;
+  }
+  .drawing :global(.l-ghost) {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .drawing :global(path[class*='i-']) {
+    stroke: CanvasText;
+  }
+  .drawing :global(path[class*='f-']) {
+    fill: Canvas;
+  }
+  .drawing :global(.l-pkt) {
+    display: none;
+  }
 }
