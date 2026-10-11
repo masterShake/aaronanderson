@@ -1,10 +1,29 @@
-/** The five sheets and their H1s (from src/content), plus the test matrix. */
+import { about } from '../src/content/pages/about'
+import { contact } from '../src/content/pages/contact'
+import { home } from '../src/content/pages/home'
+import { howItWorks } from '../src/content/pages/how-it-works'
+import { servicesPage } from '../src/content/pages/services'
+
+/**
+ * Turns an H1 from content into a pattern that ignores case and spacing, so the
+ * copy can change without anyone touching the tests.
+ */
+const heading = (text: string) =>
+  new RegExp(
+    text
+      .trim()
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s+'),
+    'i',
+  )
+
+/** The five sheets and their H1s (read from src/content), plus the test matrix. */
 export const ROUTES = [
-  { path: '/', h1: /wired to run itself/i },
-  { path: '/services', h1: /services, drawn to scale/i },
-  { path: '/how-it-works', h1: /measure twice/i },
-  { path: '/about', h1: /small on purpose/i },
-  { path: '/contact', h1: /pick a time/i },
+  { path: '/', h1: heading(home.hero.h1) },
+  { path: '/services', h1: heading(servicesPage.h1) },
+  { path: '/how-it-works', h1: heading(howItWorks.h1) },
+  { path: '/about', h1: heading(about.h1) },
+  { path: '/contact', h1: heading(contact.h1) },
 ] as const
 
 export const TIERS = ['still', 'svg', 'webgl'] as const

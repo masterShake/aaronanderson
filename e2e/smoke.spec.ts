@@ -40,6 +40,25 @@ test('motion switch persists and pauses before hydration', async ({ page }) => {
   ).toBeChecked()
 })
 
+test('turning motion back on brings a page loaded paused back to the svg tier', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const sw = page.locator('input[data-motion-switch]').filter({ visible: true }).first()
+  await sw.check()
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-tier', 'still')
+  await page.locator('input[data-motion-switch]').filter({ visible: true }).first().uncheck()
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'run')
+  await expect(page.locator('html')).toHaveAttribute('data-tier', 'svg')
+})
+
+test('a forced still tier caps the tier at svg', async ({ page }) => {
+  await page.goto('/?tier=still')
+  await expect(page.locator('html')).toHaveAttribute('data-tier', 'still')
+  await expect(page.locator('html')).toHaveAttribute('data-tier-max', 'svg')
+})
+
 test('svg tier never loads three', async ({ page }) => {
   await page.goto('/?tier=svg')
   await page.waitForTimeout(3000)

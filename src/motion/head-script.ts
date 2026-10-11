@@ -17,6 +17,10 @@
  *
  * Decided: a saved 'run' overrides the OS reduced-motion setting, but the tier
  * stays svg (data-tier-max 'svg'), so there is never 3D under reduced motion.
+ * Turning motion back on lifts a page that loaded paused (tier 'still') to the
+ * svg tier at once, so its drawings come back without a reload; pausing leaves
+ * the tier alone and freezes things where they are. A forced ?tier=still caps
+ * data-tier-max at 'svg'.
  */
 
 export const STATE_EVENT = 'ae:state'
@@ -45,10 +49,10 @@ function apply(){var rm=matchMedia('(prefers-reduced-motion: reduce)').matches,s
 q=/[?&]tier=(still|svg|webgl)\\b/.exec(location.search),force=q&&q[1],paused=saved?saved==='paused':rm,
 tier=force||(paused?'still':'svg');h.dataset.js='1';h.dataset.rm=rm?'1':'0';h.dataset.motion=paused?'paused':'run';
 h.dataset.tier=tier;if(force)h.dataset.tierForce=force;else delete h.dataset.tierForce;
-h.dataset.tierMax=force||(rm||g(ss,'${TIER_KEY}')==='svg'?'svg':'webgl');check()}
+h.dataset.tierMax=force==='webgl'?'webgl':force?'svg':(rm||g(ss,'${TIER_KEY}')==='svg'?'svg':'webgl');check()}
 function check(){var p=h.dataset.motion==='paused',s=d.querySelectorAll('${SWITCH_SELECTOR}');for(var i=0;i<s.length;i++)s[i].checked=p}
 function sync(){if(!h.dataset.motion||!h.dataset.tier){apply();d.dispatchEvent(new CustomEvent('${STATE_EVENT}'))}else check()}
-function set(p){h.dataset.motion=p?'paused':'run';try{ls.setItem('${MOTION_KEY}',p?'paused':'run')}catch(e){}check();d.dispatchEvent(new CustomEvent('${STATE_EVENT}'))}
+function set(p){h.dataset.motion=p?'paused':'run';if(!p&&!h.dataset.tierForce&&h.dataset.tier==='still')h.dataset.tier='svg';try{ls.setItem('${MOTION_KEY}',p?'paused':'run')}catch(e){}check();d.dispatchEvent(new CustomEvent('${STATE_EVENT}'))}
 d.addEventListener('change',function(e){var t=e.target;if(t&&t.matches&&t.matches('${SWITCH_SELECTOR}'))set(t.checked)});
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',function(){apply();d.dispatchEvent(new CustomEvent('${STATE_EVENT}'))});
 d.addEventListener('DOMContentLoaded',check);window.__ae={apply:apply,setPaused:set,sync:sync};apply()})()`

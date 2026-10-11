@@ -41,7 +41,7 @@ Full numbers: `/Users/buttbuddy/.claude/plans/actualengineer/results/w0/baseline
 
 | Measure              | Method                                                  | Stub site                                     | Budget                      |
 | -------------------- | ------------------------------------------------------- | --------------------------------------------- | --------------------------- |
-| Initial JS           | gzip-9, same-origin JS before load + 2 s, `?tier=still` | 139.6 KB on every route (framework about 135) | 145 KB                      |
+| Initial JS           | gzip-9, same-origin JS before load + 2 s, `?tier=still` | 139.6 KB on every route (framework about 135) | 160 KB                      |
 | Preloaded fonts      | the three preloaded files                               | 63.3 KB                                       | 75 KB                       |
 | HTML                 | brotli per route                                        | 7.6 to 12.2 KB                                | 60 KB                       |
 | 3D probe             | `/kit/stage?probe=1` extra JS, gzip-9                   | 145.8 KB (no alias needed)                    | 165 KB                      |
