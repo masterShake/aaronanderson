@@ -15,7 +15,8 @@ import { test, expect } from '../fixtures'
  */
 
 const FIG = '#fig-s03'
-const URL = '/kit/fig/s03?tier=webgl&p=0.38'
+// ship=s03: SHIP.s03 is 'svg' (seam), so the gate runs the scene through the preview override
+const URL = '/kit/fig/s03?tier=webgl&ship=s03&p=0.38'
 type State = {
   renderer?: string
   dead?: boolean
