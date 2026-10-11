@@ -4,7 +4,7 @@ import type { ServicesPageContent } from '../types'
 /** Services, sheet S-00. The six sheets themselves live in ../services.ts. */
 export const servicesPage: ServicesPageContent = {
   h1: 'Services, drawn to scale.',
-  deck: 'Six fixed-scope services, numbered like a drawing set. Each sheet says what it does, what you get and how long it takes, so nobody has to guess the scope.',
+  deck: 'Six fixed-scope services, numbered like a drawing set. Each sheet says what it does, what you get and how long it takes.',
   schedule: {
     id: 'schedule',
     h2: 'The schedule, before the details.',
@@ -17,30 +17,32 @@ export const servicesPage: ServicesPageContent = {
       pairedWith: 'Often paired with',
     },
     chart: {
-      caption: 'Typical lengths. Yours gets a fixed number before you sign.',
+      caption: 'Typical lengths. Yours is agreed before work starts.',
       unit: 'WEEKS',
       sessions: 'SESSIONS',
       monthly: 'MONTHLY →',
     },
-    quoted: 'Fixed fee, quoted after the survey',
+    quoted: 'Quoted after the first call',
   },
-  rail: { label: 'Sheets in this set', jump: 'Jump to a sheet' },
+  rail: { label: 'Service sheets', jump: 'Jump to a sheet' },
   sheet: {
     examples: 'Real examples',
     receive: 'You receive',
     receiveColumns: ['Item', 'Notes'],
     shape: 'Engagement shape',
-    plainTerms: 'In plain terms',
+    plainTerms: 'In plain terms:',
     talk: { text: 'Talk about {sheet} →', vars: {} },
-    keyPlan: 'Where this sits',
+    keyPlan: 'Where this sits in the firm',
   },
   nic: {
-    id: 'not-in-contract',
+    id: 'nic',
     h2: 'Not in contract.',
     items: [
-      confirm('We do not replace software that works.', { id: 'nic.1' }),
-      confirm('We do not sell licenses or take referral fees from vendors.', { id: 'nic.2' }),
-      confirm('We do not let AI sign, pay or send anything on its own.', { id: 'nic.3' }),
+      confirm("We don't resell software licenses.", { id: 'nic.licenses' }),
+      confirm("We don't rip out systems that work.", { id: 'nic.ripOut' }),
+      confirm("We don't build anything we can't explain to the person who'll use it.", {
+        id: 'nic.explain',
+      }),
     ],
   },
   closing: {
