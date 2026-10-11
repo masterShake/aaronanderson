@@ -25,6 +25,6 @@ export const SHIP: Readonly<Record<SceneId, 'webgl' | 'svg'>> = {
  * against the svg tier. Never use the mobile Lighthouse default-vs-svg delta:
  * that load fetches no 3D (W3 perf-7).
  */
-// W3 final check: deferred. The webgl-gate delta on / was 89 ms (devtools x4, median of 5:
-// ?tier=webgl 153 ms vs ?tier=svg 64 ms), past the 50 ms line. The 4x window itself passed.
+// W3 final check: deferred. The webgl-gate delta on / was 119 ms (devtools x4, median of 5:
+// ?tier=webgl 145 ms vs ?tier=svg 26 ms), past the 50 ms line. The 4x window itself passed.
 export const HERO_TOUCH_3D: 'auto' | 'deferred' = 'deferred'
