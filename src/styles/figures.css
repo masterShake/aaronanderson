@@ -44,6 +44,8 @@
   block-size: 100%;
 }
 
+/* The drawing is decorative (aria-hidden); its stacked layers must not catch the pointer above .ui. */
+.fig .box > .drawing,
 .fig .box > .labels,
 .fig .box > .scan-bar,
 .fig .box > .slot {

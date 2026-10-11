@@ -62,7 +62,9 @@ export function Term({
       onPointerEnter={(e) => {
         if (e.pointerType !== 'mouse') return
         hover.current = true
-        sync()
+        // A fresh hover is a new request: it reopens a tip that Esc dismissed.
+        setDismissed(false)
+        setOpen(true)
       }}
       onPointerLeave={(e) => {
         if (e.pointerType !== 'mouse') return
