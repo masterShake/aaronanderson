@@ -50,6 +50,8 @@ export const s03Figure = {
   ui: {
     heldChip: 'HELD FOR APPROVAL',
     approvedChip: 'APPROVED BY YOU',
+    runningChip: 'READING THE BATCH',
+    waiting: 'Waiting for the batch to reach sign-off.',
     'card.vendor': 'VENDOR',
     'card.job': 'JOB',
     'card.amount': 'AMOUNT',
