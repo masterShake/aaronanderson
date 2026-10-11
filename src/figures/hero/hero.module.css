@@ -651,6 +651,10 @@
     font-size: 9px;
     letter-spacing: 0.02em;
   }
+
+  .hero.hero[data-labels='iso'] .lab[data-anchor] .sub {
+    display: none;
+  }
 }
 
 /* ── WebGL: the canvas carries the machine; beats drive the chip ─────────────────── */
@@ -688,7 +692,9 @@
   background-color: var(--c-blueprint-deep);
 }
 
-.hero[data-labels='iso'] .lab[data-anchor] .sub {
+/* the AI reader and sign-off keep their sub-lines on the 3D model (D2 A steps 4 and 7);
+   the store's sub-line only repeats the tank's DATA */
+.hero[data-labels='iso'] .lab[data-anchor='sym.store'] .sub {
   display: none;
 }
 
@@ -702,7 +708,8 @@
 .hero.hero[data-medium='webgl'][data-rev='rewired'] .chip1,
 .hero.hero[data-medium='webgl'][data-rev='running'] .chip2,
 .hero.hero[data-medium='webgl'][data-rev='done'] .chip3,
-.hero.hero[data-medium='webgl'][data-rev='done'] .again {
+.hero.hero[data-medium='webgl'][data-rev='done'] .again,
+.hero.hero[data-medium='webgl'][data-rev='done'] .idle {
   visibility: visible;
 }
 

@@ -88,6 +88,35 @@ test('60 s of mechanism: the guard never trips and the median rAF is at most 17.
   expect(guard.errors).toEqual([])
 })
 
+test('the 3D idle carries the svg idle words: idle note, AI and sign-off sub-lines', async ({
+  page,
+  guard,
+}) => {
+  test.setTimeout(90_000)
+  await handedOff(page)
+  // D2 A steps 4 and 7: REV 3 shows the idle note; the AI and valve keep their sub-lines
+  await expect(page.locator(FIG)).toHaveAttribute('data-rev', 'done', { timeout: 45_000 })
+  await page.waitForTimeout(800)
+  const seen = await page.evaluate(() => {
+    const fig = document.querySelector<HTMLElement>('#fig-hero')!
+    const on = (el: Element | null) =>
+      !!el &&
+      (el as HTMLElement).offsetWidth > 0 &&
+      el.checkVisibility({ visibilityProperty: true, opacityProperty: true })
+    const idle = [...fig.querySelectorAll('.labels > span, .labels > *')].find(
+      (el) => el.textContent?.trim().toLowerCase() === 'waiting for paperwork',
+    )
+    const sub = (k: string) => fig.querySelector(`.labels [data-anchor="${k}"] > span`)
+    return { idle: on(idle ?? null), ai: on(sub('sym.ai')), valve: on(sub('sym.valve')) }
+  })
+  await page
+    .locator(FIG)
+    .screenshot({ path: test.info().outputPath('hero-webgl-idle.png') })
+    .catch(() => undefined)
+  expect(seen).toEqual({ idle: true, ai: true, valve: true })
+  expect(guard.errors).toEqual([])
+})
+
 test('context loss: back on the SVG within 500 ms', async ({ page, guard }) => {
   await handedOff(page)
   const ms = await page.evaluate(
