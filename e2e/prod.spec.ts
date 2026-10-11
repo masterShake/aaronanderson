@@ -57,6 +57,25 @@ for (const r of ROUTES) {
   })
 }
 
+// /contact only for now: /about's General notes (all pending CONFIRMs) is a W3 pages request
+for (const r of ROUTES.filter((x) => x.path === '/contact')) {
+  test(`no empty section on ${r.path}`, async ({ page }) => {
+    await page.goto(r.path)
+    // a section whose HOLD fell away must go with its heading (D11)
+    const empty = await page.locator('main section:has(> * h2, > h2)').evaluateAll((els) =>
+      els
+        .filter((s) => {
+          const h = s.querySelector('h2')
+          const rest = (s as HTMLElement).innerText.replace(h?.innerText ?? '', '').trim()
+          const media = s.querySelector('img, svg, canvas, form, a, button, input')
+          return !rest && !media
+        })
+        .map((s) => s.id || s.querySelector('h2')?.textContent || '?'),
+    )
+    expect(empty, 'sections with a heading and nothing under it').toEqual([])
+  })
+}
+
 test('no proof section on Home', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator(`#${home.asBuilts.id}`)).toHaveCount(0)
