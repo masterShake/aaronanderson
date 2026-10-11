@@ -225,12 +225,14 @@
     left: calc(var(--qx) * 1%);
     top: calc(var(--qy) * 1%);
     background-color: var(--c-blueprint-deep);
+    inline-size: max-content;
   }
   100% {
     filter: opacity(1);
     left: calc(var(--qx) * 1%);
     top: calc(var(--qy) * 1%);
     background-color: var(--c-blueprint-deep);
+    inline-size: max-content;
   }
 }
 
@@ -277,6 +279,22 @@
 
 .hero.hero :global(.box) :global(.f-alu-500) {
   fill: var(--c-alu-500);
+}
+
+/* Whole-pixel art box: the Stage's backing store rounds to device pixels, so a fractional
+   box drifts the canvas against the SVG by up to half a pixel at the far edge. 3:2 (wide)
+   is whole at multiples of 3 px, 5:6 (tall) at multiples of 5 px. */
+.hero :global(.box) {
+  inline-size: round(down, 100%, 3px);
+  margin-inline: auto;
+  /* its own layer, snapped to device pixels, as the canvas inside it is */
+  will-change: transform;
+}
+
+@container fig (width < 520px) {
+  .hero :global(.box) {
+    inline-size: round(down, 100%, 5px);
+  }
 }
 
 /* ── Layers ──────────────────────────────────────────────────────────────────────── */
@@ -602,6 +620,23 @@
 }
 
 /* ── WebGL: the canvas carries the machine; beats drive the chip ─────────────────── */
+/* The layer animations would outrank figures.css's [data-stage='webgl'] hiding: stop them. */
+.hero.hero[data-stage='webgl']
+  :global(.drawing)
+  :is(:global(.l-pencil), :global(.l-cad), :global(.l-pkt), :global(.l-iso)) {
+  visibility: hidden;
+  animation: none;
+}
+
+/* the hand-off: the cut-outs fade with the CAD layer while the canvas fades in */
+.hero[data-stage='handoff'] :global(.drawing) :is(:global(.k-cut), :global(.l-pkt)) {
+  visibility: hidden;
+}
+
+/* during the tilt no label is projected yet: none show until the iso anchors arrive */
+.hero.hero[data-stage='webgl'][data-labels='plan'] :global(.labels) {
+  visibility: hidden;
+}
 .hero[data-medium='webgl'] :is(.approved, .report, .idle),
 .hero[data-medium='webgl'] .lab:not([data-anchor]) {
   visibility: hidden;
@@ -614,6 +649,8 @@
 }
 
 .hero[data-labels='iso'] .lab[data-anchor] {
+  inline-size: max-content;
+  max-inline-size: 26%;
   background-color: var(--c-blueprint-deep);
 }
 
@@ -672,6 +709,8 @@
 .hero.hero[data-phase='still']:not([data-user-play]) :global(.labels) > .lab[data-anchor] {
   left: calc(var(--qx) * 1%);
   top: calc(var(--qy) * 1%);
+  inline-size: max-content;
+  max-inline-size: 26%;
   color: var(--c-label-on-deep);
   background-color: var(--c-blueprint-deep);
   opacity: 1;

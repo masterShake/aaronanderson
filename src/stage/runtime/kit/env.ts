@@ -9,6 +9,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { yieldToMain } from '@/motion/visibility'
 import { ENV } from '@/motion/timing/global'
 import { MARK } from '../../types'
+import { bindEnv } from './materials'
 
 /**
  * The session's one environment: RoomEnvironment through PMREM (D9, §2.8).
@@ -39,5 +40,7 @@ export async function buildEnv(
   room.dispose()
   const ms = performance.now() - t0
   performance.measure(MARK.env, { start: t0, duration: ms })
+  // per-material env intensities (TUNING) need the PMREM as each material's own envMap
+  bindEnv(target.texture)
   return { target, ms }
 }

@@ -1,5 +1,7 @@
-import type { LayoutId, ModelPart, ModelSpec, Prim, Pt } from '@/drawings/types'
-import { heroGraph, type HeroTool } from '@/drawings/views/hero'
+import type { LayoutId, ModelPart, ModelSpec, Prim, Pt, SymbolId } from '@/drawings/types'
+import { heroGraph, HERO_PERSON, type HeroTool } from '@/drawings/views/hero'
+import { primD } from '@/drawings/lib/geometry'
+import { symbolDef } from '@/drawings/symbols'
 import { center, instrumentsOn, nodeRect, routeGraph } from '@/drawings/lib/route'
 import { isConnection } from '@/drawings/lib/counts'
 
@@ -55,6 +57,27 @@ function onTank(pts: readonly Pt[], c: Pt, r: number, atStart: boolean): Pt[] {
     out[i] = [Math.round((p[0] > c[0] ? c[0] + dx : c[0] - dx) * 100) / 100, p[1]]
   }
   return out
+}
+
+/** What the 3D scene ships (src/scenes/model/data.ts holds it precomputed, per family). */
+export interface HeroSceneData {
+  model: HeroModel
+  /** Figure height in user units (the cut-out cards). */
+  person: number
+  /** Each rewired person's symbol as path data in its own 40 × 72 artboard (feet at y 72). */
+  symbols: Readonly<Record<string, readonly string[]>>
+}
+
+const r1 = (d: string) => d.replace(/-?\d+\.\d+/g, (n) => String(Math.round(Number(n) * 10) / 10))
+
+export function buildHeroSceneData(family: LayoutId): HeroSceneData {
+  const model = buildHeroModel(family)
+  const symbols: Record<string, string[]> = {}
+  for (const p of model.people)
+    symbols[p.symbol] ??= symbolDef(p.symbol as SymbolId).parts.map((part) =>
+      r1(part.prims.map(primD).join('')),
+    )
+  return { model, person: HERO_PERSON[family], symbols }
 }
 
 export interface HeroModel {

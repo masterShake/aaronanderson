@@ -71,7 +71,8 @@ export function HeroController({ liveDone }: { liveDone: string }) {
       return false
     }
     const onAnim = (e: AnimationEvent) => {
-      switch (e.animationName) {
+      // CSS Modules prefix keyframe names (hero-module__…__hero-decision)
+      switch (/hero-(decision|boundary|idle)$/.exec(e.animationName)?.[0]) {
         case 'hero-decision':
           if (handedAt.current === null) mark('decision')
           break
