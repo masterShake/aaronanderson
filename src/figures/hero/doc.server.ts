@@ -323,7 +323,7 @@ function build(family: Fam): HeroBuild {
     const r = prim.t === 'circle' ? prim.r : 12
     const pl: Pt =
       part.id === 'ai'
-        ? [c[0], c[1] + r + 18]
+        ? [c[0], c[1] + r + 26]
         : part.id === 'valve' || part.id === 'store'
           ? [c[0], c[1] - r - 16]
           : c

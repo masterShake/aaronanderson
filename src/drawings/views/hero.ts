@@ -1,4 +1,13 @@
-import type { Graph, GraphNode, GraphRoute, GraphView, LayoutId, Pt, ScaleFigure } from '../types'
+import type {
+  Graph,
+  GraphNode,
+  GraphRoute,
+  GraphView,
+  LayoutId,
+  Port,
+  Pt,
+  ScaleFigure,
+} from '../types'
 import { firmGraph, type FirmLabel, type FirmRev } from '../graphs/firm'
 import { applyView, instrumentsOn, nodeRect, pointAlong, routeGraph } from '../lib/route'
 
@@ -87,6 +96,47 @@ export function heroView(family: LayoutId): GraphView<FirmRev> {
 
 type Node = GraphNode<FirmLabel, FirmRev>
 type Route = GraphRoute<FirmLabel, FirmRev>
+type P = Readonly<Record<string, Port>>
+const p = (side: Port['side'], at: number): Port => ({ side, at })
+
+/**
+ * Fixed ports for the rewired routes (keyed by route id), so the CAD plan runs straight where
+ * the tools line up: accounting → store → report on one line, the leads along the top row.
+ * Hand-off (as found) ports stay automatic: the sketch is meant to wander.
+ */
+const PORTS: Readonly<Record<LayoutId, Partial<Record<HeroTool | 'store', P>>>> = {
+  wide: {
+    crm: { r11: p('e', 0.5) },
+    estimate: { r11: p('w', 0.5), r05: p('e', 0.5) },
+    pm: {
+      r05: p('w', 0.5),
+      r04: p('s', 0.15),
+      r03: p('s', 0.35),
+      r09: p('s', 0.6),
+      r06: p('s', 0.85),
+    },
+    field: { r04: p('e', 0.5), r01: p('s', 0.5) },
+    inbox: { r01: p('n', 0.5), r03: p('e', 0.25), r02: p('e', 0.5) },
+    accounting: { r02: p('w', 0.5), r08: p('n', 0.5), r06: p('e', 0.5) },
+    store: { r08: p('s', 0.5), r09: p('n', 0.5), r10: p('e', 0.5) },
+    report: { r10: p('w', 0.5) },
+  },
+  tall: {
+    estimate: { r05: p('e', 0.5) },
+    pm: {
+      r05: p('w', 0.5),
+      r04: p('s', 0.15),
+      r03: p('s', 0.35),
+      r06: p('e', 0.5),
+      r09: p('s', 0.85),
+    },
+    field: { r04: p('e', 0.5), r01: p('s', 0.5) },
+    inbox: { r01: p('n', 0.5), r03: p('e', 0.25), r02: p('e', 0.5) },
+    accounting: { r02: p('w', 0.5), r08: p('s', 0.5), r06: p('e', 0.5) },
+    store: { r08: p('n', 0.5), r09: p('e', 0.5), r10: p('w', 0.5) },
+    report: { r10: p('w', 0.5) },
+  },
+}
 
 /**
  * The hero graph of one family. Each family is its own graph: `at` and `size` are that
@@ -102,7 +152,7 @@ function build(family: LayoutId): Graph<FirmLabel, FirmRev> {
     const { atTall: _a, sizeTall: _s, ...rest } = n as Node & { sizeTall?: unknown }
     void _a
     void _s
-    return { ...rest, size, ports: {} }
+    return { ...rest, size, ports: PORTS[family][n.id as HeroTool | 'store'] ?? {} }
   })
   const routes: Route[] = g.routes.map((r) => {
     if (r.id === 'r03' || r.id === 'r04') return { ...r, ai: false, valve: false }
