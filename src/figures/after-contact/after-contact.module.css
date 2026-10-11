@@ -1,0 +1,18 @@
+/* After-contact figure: CAD on blueprint-deep; labels in light ink. */
+.fig :global(.box) {
+  --panel: var(--c-blueprint-deep);
+}
+
+.fig :global(.drawing) {
+  color: var(--c-cyan);
+}
+
+.label {
+  max-inline-size: 18%;
+  color: var(--c-label-on-deep);
+  text-transform: uppercase;
+}
+
+.fig:global([data-family='tall']) .label {
+  max-inline-size: 48%;
+}
