@@ -1,6 +1,6 @@
 # Creative notes
 
-_Drafted by the copy lane in W1. The final check fills in which WebGL scenes shipped._
+_Drafted by the copy lane in W1. The W3 final check filled in which WebGL scenes shipped._
 
 ## The idea
 
@@ -69,12 +69,23 @@ Otherwise its SVG print ships instead. Nothing looks missing either way.
 
 ## Which WebGL scenes shipped
 
-Scenes shipped: TBD by W3.
+Scenes shipped as WebGL: the hero, S-02 and S-06. S-03 and S-04 ship their SVG prints.
+Recorded by the W3 final check (2026-10-11) on the Mac's GPU (`--use-angle=metal`).
 
-| Scene | Shipped as | Why |
-| ----- | ---------- | --- |
-| Hero  | TBD by W3  |     |
-| S-02  | TBD by W3  |     |
-| S-03  | TBD by W3  |     |
-| S-04  | TBD by W3  |     |
-| S-06  | TBD by W3  |     |
+| Scene | Shipped as                      | Why                                                                                                                                                                                                     |
+| ----- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero  | WebGL on desktop; SVG on touch  | Every gate passed: seam at 1440@2 and 1280@1, 60 s with the guard untripped (median frame 16.7 ms), context loss and leaks, chunk 5.8 KB, Cost 153 ms TBT. On touch it stays the SVG print (see below). |
+| S-02  | WebGL (desktop, 1024 px and up) | Every gate passed: seam, frames, context loss, leaks, chunk 4.5 KB, Cost 127 ms TBT. It now hands off during a steady scroll too.                                                                       |
+| S-03  | SVG print                       | Failed the tolerant seam limit at 1280@1 and 1440@2 in W2 and again in W3. The section cut reads fully as a print.                                                                                      |
+| S-04  | SVG print                       | Failed the seam at 1280@1 (strict and tolerant) in W2 and again in W3. The dials and chips work the same in the print.                                                                                  |
+| S-06  | WebGL (desktop, 1024 px and up) | Every gate passed, including the services scrub hand-off: seam, frames, context loss, leaks, chunk 5.1 KB, Cost 127 ms TBT.                                                                             |
+
+- **/services 3D total:** 172.4 KB gzip with S-02 and S-06 (limit 180). All four service
+  scenes together would be 182.5 KB, so at most three could ship as the runtime stands.
+- **Cost gate:** `npm run perf:lh -- --webgl-gate --method devtools --runs 5` (desktop preset,
+  4× CPU, hardware renderer, the run must fetch the 3D runtime). At 7× CPU the desktop page
+  already measures 367 ms TBT with no 3D at all, so those numbers are recorded as advisory.
+- **Hero on phones (`HERO_TOUCH_3D = 'deferred'`):** the 3D build adds 89 ms of TBT to `/`
+  (153 ms on `?tier=webgl` against 64 ms on `?tier=svg`, same preset), past D9's 50 ms line.
+  A phone's CPU is slower than the desktop measured, so phones keep the SVG drawing, which
+  plays the same story.
