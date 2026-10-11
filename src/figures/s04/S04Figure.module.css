@@ -238,6 +238,14 @@
   font-size: 0.6875rem;
 }
 
+@container fig (width < 440px) {
+  .rp {
+    font-size: 0.5625rem;
+    letter-spacing: 0;
+    line-height: 1.15;
+  }
+}
+
 .s04[data-card] .rp,
 .s04:global([data-phase='done']) .rp,
 :global(html[data-tier='still']) .s04 .rp {

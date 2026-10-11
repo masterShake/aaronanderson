@@ -44,6 +44,9 @@ function rectVars(wide: Rect, tall: Rect): CSSProperties {
   } as CSSProperties
 }
 
+/** The store's label sits left of its sight glass. */
+const storeRect = ([x, y, w, h]: Rect): Rect => [x + w * 0.04, y, w * 0.72, h]
+
 /** A tile's start offset (percent of the box) and tilt, in both families. */
 function tileFrom(t: (typeof S04_TILES)[number]): CSSProperties {
   const d = (f: LayoutId) => {
@@ -140,7 +143,7 @@ export function S04Figure() {
       <span
         data-anchor="store"
         className={`${s.st} pv fade`}
-        style={rectVars(L.wide.tank, L.tall.tank)}
+        style={rectVars(storeRect(L.wide.tank), storeRect(L.tall.tank))}
       >
         {copy.labels.store}
       </span>
