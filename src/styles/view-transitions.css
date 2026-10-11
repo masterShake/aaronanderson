@@ -1,0 +1,73 @@
+/*
+ * Sheet transitions (D8): the new sheet prints left to right. The header has
+ * no view-transition-name, so it stays clickable; the root group never animates.
+ */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(.sheet-out) {
+  animation: var(--dur-sheet-out, 150ms) var(--ease-ui, ease) both ae-vt-out;
+}
+
+::view-transition-new(.sheet-print) {
+  animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-ltr;
+}
+
+::view-transition-new(.sheet-print-back) {
+  animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-rtl;
+}
+
+::view-transition-image-pair(.sheet-print) {
+  background: linear-gradient(var(--c-blueprint), var(--c-blueprint)) no-repeat 0 0 / 2px 100%;
+  animation: var(--dur-sheet, 420ms) var(--ease-machine, ease) both ae-vt-carriage;
+}
+
+@keyframes ae-vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ae-vt-ltr {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes ae-vt-rtl {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes ae-vt-carriage {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

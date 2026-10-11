@@ -1,0 +1,36 @@
+/* Figure frame basics (W0 minimal; the kit and drawings lanes own the real ones). */
+.fig {
+  margin: 0;
+  container: fig / inline-size;
+}
+
+.fig .box {
+  position: relative;
+  aspect-ratio: var(--vbw) / var(--vbh);
+  overflow: clip;
+  background: var(--c-paper-2);
+}
+
+.fig .box > svg,
+.fig .box > .slot,
+.fig .box > .labels,
+.fig .box > .ui,
+.fig .box > .still-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fig .slot > canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.fig .still {
+  display: none;
+}
+
+.fig .still-img {
+  object-fit: contain;
+}

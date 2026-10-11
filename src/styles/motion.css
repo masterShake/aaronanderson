@@ -1,0 +1,38 @@
+/*
+ * Page-state rules (W0 minimal; the kit lane owns the real ones). The head
+ * script writes html[data-motion|data-tier]; nothing here declares --dur-* or
+ * --ease-*, which come from <style id="ae-timing">.
+ */
+@property --gate {
+  syntax: 'running | paused';
+  inherits: true;
+  initial-value: running;
+}
+
+/* Pause: the saved choice, the switch before hydration, and figures off screen.
+   A figure the visitor started (data-user-play) keeps running. */
+html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *),
+html:has(input[data-motion-switch]:checked) :not(.fig[data-user-play], .fig[data-user-play] *),
+[data-offscreen] * {
+  animation-play-state: paused !important;
+}
+
+/* Still tier: figures show their still and hide the drawing. */
+html[data-tier='still'] .fig:not([data-user-play]) .still,
+.fig[data-phase='still'] .still {
+  display: block;
+}
+
+html[data-tier='still'] .fig:not([data-user-play]) .drawing,
+.fig[data-phase='still'] .drawing {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='run']) *,
+  html:not([data-motion='run']) *::before,
+  html:not([data-motion='run']) *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}

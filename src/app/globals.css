@@ -1,0 +1,8 @@
+/* Global styles, in cascade order. Frozen after W0; the kit lane owns the files it imports. */
+@import '../styles/tokens.css';
+@import '../styles/base.css';
+@import '../styles/type.css';
+@import '../styles/motion.css';
+@import '../styles/figures.css';
+@import '../styles/view-transitions.css';
+@import '../styles/print.css';

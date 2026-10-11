@@ -1,0 +1,132 @@
+/*
+ * Design tokens (PLAN D7). Frozen after W0: names and values here are the
+ * contract every lane styles against. tokens.ts mirrors the colors and pens
+ * for SVG and three. Motion values are not declared here: they come from
+ * <style id="ae-timing">, serialized from src/motion/timing (one source).
+ */
+:root {
+  /* Color (D7) */
+  --c-paper: #f4f2ec;
+  --c-paper-2: #ece9e1;
+  --c-paper-sunk: #e9e5db;
+  --c-asphalt: #2a2c2e;
+  --c-asphalt-deep: #1f2123;
+  --c-graphite: #55595f;
+  --c-pencil: #6b7076;
+  --c-pencil-faint: #a9aeb4;
+  --c-blueprint: #1c4e8f;
+  --c-blueprint-deep: #143a6b;
+  --c-cyan: #bfe6f5;
+  --c-cyan-dim: #8cc8e6;
+  --c-label-on-deep: #ddf1fa;
+  --c-orange: #ff6b1a;
+  --c-orange-hover: #ff8a4c;
+  --c-redline: #b5400a;
+  --c-alu-100: #e3e6e9;
+  --c-alu-300: #c8ccd1;
+  --c-alu-500: #a9aeb4;
+  --c-alu-700: #8d939a;
+  --c-input-line: #6e7378;
+  --c-focus: var(--c-asphalt);
+  --c-focus-on-dark: var(--c-paper);
+  /* Verified ratios: asphalt/paper 12.52 · graphite/paper 6.29 · pencil/paper 4.46 (graphics only,
+     never text) · redline/paper 5.07 · asphalt/orange 4.92 · asphalt/orange-hover 6.00 ·
+     orange/blueprint-deep 3.99 · orange/paper 2.55 (never as text or marks on paper).
+     No green anywhere. Orange covers at most 5% of any viewport. */
+
+  /* Type: next/font/local sets --font-* on <html>. The symbols face comes first in every stack;
+     its unicode-range limits it to arrows, delta, approx and check. */
+  --ff-display: var(--font-sym), var(--font-display), 'Arial Narrow', Arial, sans-serif;
+  --ff-stencil:
+    var(--font-sym), var(--font-stencil), var(--font-display), 'Arial Narrow', sans-serif;
+  --ff-body: var(--font-sym), var(--font-body), system-ui, sans-serif;
+  --ff-ui: var(--font-sym), var(--font-ui), system-ui, sans-serif;
+  --ff-mono: var(--font-sym), var(--font-mono), ui-monospace, monospace;
+  --ff-hand: var(--font-sym), var(--font-hand), var(--font-mono), ui-monospace, monospace;
+  --fs-h1: clamp(3.25rem, 2.167rem + 4.815vw, 6.5rem);
+  --fs-h2: clamp(2.25rem, 1.5rem + 3.333vw, 4.5rem);
+  --fs-h3: clamp(1.5rem, 1.25rem + 1.111vw, 2.25rem);
+  --fs-numeral: clamp(3rem, 2rem + 4.444vw, 6rem);
+  --fs-lead: clamp(1.125rem, 1.042rem + 0.37vw, 1.375rem);
+  --fs-body: clamp(1rem, 0.958rem + 0.185vw, 1.125rem);
+  --fs-small: 0.9375rem;
+  --fs-ui: 0.9375rem;
+  --fs-nav: 0.875rem;
+  --fs-label: 0.75rem;
+  --fs-label-lg: 0.8125rem;
+  --fs-hand: clamp(1.0625rem, 1rem + 0.185vw, 1.1875rem);
+  --fs-input: 1.0625rem;
+  --lh-h1: 0.9;
+  --lh-h2: 0.95;
+  --lh-h3: 1.05;
+  --lh-lead: 1.45;
+  --lh-body: 1.6;
+  --lh-ui: 1.2;
+  --lh-label: 1.35;
+  --lh-hand: 1.25;
+  --tr-h1: 0.005em;
+  --tr-h2: 0.01em;
+  --tr-ui: 0.04em;
+  --tr-label: 0.06em;
+  --measure: 58ch;
+  --measure-lead: 44ch;
+
+  /* Space and grid: 8 px rhythm; 4, 8 or 12 columns; max width 1440 */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+  --s-11: 192px;
+  --page-max: 1440px;
+  --page-margin: clamp(16px, 4vw, 56px);
+  --section-pad: clamp(48px, 6vw, 96px);
+  --cols: 4;
+  --gutter: 16px;
+  --header-h: 56px;
+  --sticky-top: calc(var(--header-h) + 24px);
+
+  /* Pens and lines (CSS px; tokens.ts mirrors them for SVG user units and WebGL) */
+  --pen-018: 0.5px;
+  --pen-025: 0.75px;
+  --pen-035: 1.25px;
+  --pen-050: 1.5px;
+  --pen-070: 2px;
+  --pen-100: 3px;
+  --line-grid: var(--pen-018);
+  --line-construction: var(--pen-025);
+  --line-pencil: var(--pen-035);
+  --line-cad: var(--pen-050);
+  --line-conduit: var(--pen-070);
+  --line-emphasis: 2.5px;
+  --line-frame: 2px;
+  --line-cut: var(--pen-100);
+  --focus-w: 3px;
+  --focus-offset: 3px;
+  --grip: 6px;
+  --hatch: 6px;
+  --radius: 0;
+  --z-header: 50;
+  --z-menu: 60;
+  --z-skip: 100;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --cols: 8;
+    --gutter: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --cols: 12;
+    --gutter: 24px;
+    --header-h: 64px;
+  }
+}

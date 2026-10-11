@@ -1,0 +1,55 @@
+/* Type roles (W0 minimal; the kit lane owns the real ones). */
+h1,
+h2,
+h3 {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  margin: 0 0 var(--s-4);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--tr-h1);
+  text-transform: uppercase;
+  min-block-size: 1lh;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  letter-spacing: var(--tr-h2);
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+p {
+  max-width: var(--measure);
+  margin: 0 0 var(--s-4);
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  max-width: var(--measure-lead);
+}
+
+.label {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.hand {
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand);
+  line-height: var(--lh-hand);
+  text-transform: uppercase;
+}

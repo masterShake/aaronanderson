@@ -1,0 +1,14 @@
+/* Print (W0 minimal; the kit and services lanes own the real rules). */
+@media print {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .skip-link,
+  [popover],
+  canvas,
+  input[data-motion-switch] {
+    display: none !important;
+  }
+}
