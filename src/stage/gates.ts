@@ -14,7 +14,7 @@ export const SHIP: Readonly<Record<SceneId, 'webgl' | 'svg'>> = {
   s02: 'webgl',
   s03: 'svg',
   s04: 'svg',
-  s06: 'svg',
+  s06: 'webgl',
 }
 
 /**
