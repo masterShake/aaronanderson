@@ -19,7 +19,10 @@ export const SHIP: Readonly<Record<SceneId, 'webgl' | 'svg'>> = {
 
 /**
  * 'auto': phones build the hero's 3D once it is 30% visible after load.
- * 'deferred': phones keep the SVG hero; set when the 3D TBT delta exceeds 50 ms
- * or the perf gate fails.
+ * 'deferred': phones keep the SVG hero; set when the perf gate fails (the gpu
+ * project's hero.stage '3D window at 4x CPU' over its limit) or the 3D TBT delta
+ * exceeds 50 ms, read from `npm run perf:lh -- --webgl-gate --method devtools`
+ * against the svg tier. Never use the mobile Lighthouse default-vs-svg delta:
+ * that load fetches no 3D (W3 perf-7).
  */
 export const HERO_TOUCH_3D: 'auto' | 'deferred' = 'auto'
