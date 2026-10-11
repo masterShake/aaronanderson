@@ -175,6 +175,18 @@ test('paused or off-screen: no frames', async ({ page, guard }) => {
   expect((await state(page))!.looping).toBe(false)
   await page.evaluate(() => window.__ae!.setPaused(false))
   expect(await framesOver(500)).toBeGreaterThan(5)
+  // Hidden tab: the loop stops on visibilitychange.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await page.waitForTimeout(100)
+  expect(await framesOver(1000)).toBeLessThanOrEqual(1)
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  expect(await framesOver(500)).toBeGreaterThan(5)
   // Off-screen: scroll the figure away.
   await page.evaluate(() => {
     const pad = document.createElement('div')
@@ -185,6 +197,37 @@ test('paused or off-screen: no frames', async ({ page, guard }) => {
   await page.waitForTimeout(200)
   expect(await framesOver(1000)).toBeLessThanOrEqual(1)
   expect((await state(page))!.looping).toBe(false)
+  expect(guard.errors).toEqual([])
+})
+
+test('a scene whose build throws falls back alone, with no session downgrade', async ({
+  page,
+  guard,
+}) => {
+  await page.goto('/kit/stage?tier=webgl&fail=build')
+  await expect(page.locator(DEMO)).toHaveAttribute('data-events', /fallback:build-error/, {
+    timeout: 20_000,
+  })
+  await expect(page.locator(DEMO)).toHaveAttribute('data-stage', 'svg')
+  await expect(page.locator(DEMO)).toHaveAttribute('data-medium', 'svg')
+  await expect(page.locator('html')).toHaveAttribute('data-tier-max', 'webgl')
+  await expect(page.locator('html')).not.toHaveAttribute('data-tier-reason', /.+/)
+  expect(await page.evaluate(() => sessionStorage.getItem('ae:tier'))).toBeNull()
+  expect((await state(page))!.dead).toBe(false)
+  expect(guard.errors).toEqual([])
+})
+
+test('unforced: hardware promotes svg to webgl; reduced motion takes it to the still', async ({
+  page,
+  guard,
+}) => {
+  await page.goto('/kit/stage')
+  await handedOff(page)
+  await expect(page.locator('html')).toHaveAttribute('data-tier', 'webgl')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(page.locator('html')).toHaveAttribute('data-tier', 'still')
+  await expect(page.locator(DEMO)).toHaveAttribute('data-stage', 'svg')
+  await expect(page.locator(DEMO)).toHaveAttribute('data-events', /fallback:ineligible/)
   expect(guard.errors).toEqual([])
 })
 

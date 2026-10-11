@@ -82,6 +82,8 @@ const mod: SceneModule = {
     }
 
     function* build() {
+      // Preview-only test hook: ?fail=build makes this scene's build throw (a local fallback).
+      if (/[?&]fail=build\b/.test(location.search)) throw new Error('_demo: build failed (test)')
       for (const b of DEMO_BOXES) {
         const face = withFlatMix(b.material === 'orange' ? powderOrange(q) : aluminum(q))
         const mesh = new Mesh(extrudeRect(b.rect, b.height), face)

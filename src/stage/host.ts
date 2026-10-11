@@ -34,7 +34,8 @@ export interface StageInit extends Omit<FigureInit, 'scene'> {
 
 /** One registered figure, shared by the host and the runtime. */
 export interface FigRec {
-  readonly init: StageInit
+  /** Replaced (same elements, new listener) when StrictMode remounts the figure. */
+  init: StageInit
   /** Raw scrub progress, 0 to 1. */
   p: number
   mode: Mode
@@ -159,8 +160,10 @@ class Host {
     if (typeof window === 'undefined') return noop
     for (const r of this.recs) {
       // StrictMode mount, unmount, mount: the same root gets the same handle back.
+      // The new mount's listener replaces the old one; the elements are the same.
       if (r.init.root === init.root && r.init.scene === init.scene && r.released) {
         r.released = false
+        r.init = { ...r.init, onEvent: init.onEvent }
         return r.handle
       }
     }
