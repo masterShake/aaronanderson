@@ -1,8 +1,8 @@
 'use client'
-import Link from 'next/link'
 import { errorPage } from '@/content/pages/not-found'
 import { site } from '@/content/site'
 import { ErrorSheet } from '@/components/chrome/ErrorSheet'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import navStyles from '@/components/chrome/chrome.module.css'
 
 /**
@@ -27,9 +27,9 @@ export default function Error({
       book={{ label: site.cta.book, href: site.cta.href }}
       onRetry={() => (retry ?? reset)?.()}
       link={(it) => (
-        <Link href={it.href} className={navStyles.errorLink}>
-          <span className={navStyles.indexSheet}>{it.sheet}</span> {it.label}
-        </Link>
+        <IntentLink href={it.href} className={navStyles.errorLink}>
+          {it.label} <span className={navStyles.indexSheet}>{it.sheet}</span>
+        </IntentLink>
       )}
     />
   )

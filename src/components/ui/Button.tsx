@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
 import type { Route } from 'next'
 import type { Href } from '@/content/types'
+import { IntentLink } from './IntentLink.client'
 import s from './ui.module.css'
 
 export interface ButtonProps {
@@ -31,9 +31,9 @@ export function Button({
     .join(' ')
   if (href) {
     return href.startsWith('/') ? (
-      <Link href={href as Route} className={cls} data-variant={variant}>
+      <IntentLink href={href as Route} className={cls} data-variant={variant}>
         {children}
-      </Link>
+      </IntentLink>
     ) : (
       <a href={href} className={cls} data-variant={variant}>
         {children}

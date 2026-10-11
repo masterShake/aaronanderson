@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import s from './blueprint.module.css'
 
 /**
@@ -18,7 +19,15 @@ export function Callout({
 }) {
   return (
     <div className={s.callout} data-variant={variant}>
-      {href ? <Link href={href}>{children}</Link> : children}
+      {href ? (
+        href.startsWith('/') ? (
+          <IntentLink href={href}>{children}</IntentLink>
+        ) : (
+          <Link href={href}>{children}</Link>
+        )
+      ) : (
+        children
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import type { Route } from 'next'
 import type { HomeContent, ServiceId } from '@/content/types'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import s from './blueprint.module.css'
 
 /**
@@ -60,9 +60,9 @@ export function SheetIndexTable({
                 ) : null}
               </th>
               <td data-label={columns.service}>
-                <Link href={r.href} className={s.rowLink}>
+                <IntentLink href={r.href} className={s.rowLink}>
                   {r.service}
-                </Link>
+                </IntentLink>
               </td>
               <td data-label={columns.walkAway}>{r.walkAway}</td>
               <td data-label={columns.length}>{r.length}</td>

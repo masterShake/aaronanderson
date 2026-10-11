@@ -29,14 +29,18 @@
 
 /* ── Pause ────────────────────────────────────────────────────────────────
    The saved choice; the switch itself (works with JS off, through :has());
-   and anything off screen. */
+   and anything off screen. The :has() form applies only with JS off: with JS,
+   the head script mirrors the switch to html[data-motion], and an html:has()
+   rule would re-match the whole document on every node insert while the page
+   streams and hydrates (perf-1). */
 html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *),
 html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *)::before,
 html[data-motion='paused'] :not(.fig[data-user-play], .fig[data-user-play] *)::after,
-html:has(input[data-motion-switch]:checked) :not(.fig[data-user-play], .fig[data-user-play] *),
-html:has(input[data-motion-switch]:checked)
+html:not([data-js]):has(input[data-motion-switch]:checked)
+  :not(.fig[data-user-play], .fig[data-user-play] *),
+html:not([data-js]):has(input[data-motion-switch]:checked)
   :not(.fig[data-user-play], .fig[data-user-play] *)::before,
-html:has(input[data-motion-switch]:checked)
+html:not([data-js]):has(input[data-motion-switch]:checked)
   :not(.fig[data-user-play], .fig[data-user-play] *)::after,
 [data-offscreen],
 [data-offscreen] *,

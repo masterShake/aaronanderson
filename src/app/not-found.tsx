@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from '@/content/pages/not-found'
 import { site } from '@/content/site'
 import { pageMetadata } from '@/lib/metadata'
 import { SheetTransition } from '@/components/chrome/SheetTransition'
 import { GridBubbles } from '@/components/blueprint/GridBubbles'
 import { BookCallButton } from '@/components/ui/BookCallButton'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import { NotFoundFigure } from '@/figures/not-found/NotFoundFigure'
 import s from '@/components/chrome/chrome.module.css'
 
@@ -38,9 +38,9 @@ export default function NotFound() {
             <ul>
               {site.nav.map((it) => (
                 <li key={it.page}>
-                  <Link href={it.href} className={s.errorLink}>
-                    <span className={s.indexSheet}>{it.sheet}</span> {it.label}
-                  </Link>
+                  <IntentLink href={it.href} className={s.errorLink}>
+                    {it.label} <span className={s.indexSheet}>{it.sheet}</span>
+                  </IntentLink>
                 </li>
               ))}
             </ul>

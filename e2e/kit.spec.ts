@@ -5,6 +5,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { ROUTES } from './routes'
 import { gotoTier } from './helpers/tier'
+import { isProductionBuild } from './helpers/budgets'
 import { site } from '../src/content/site'
 import { notFound } from '../src/content/pages/not-found'
 
@@ -90,6 +91,45 @@ test('Book a call is at least 24 by 24 at 1280 and the header has no view-transi
   await page.screenshot({
     path: join(ART, 'header-1280.png'),
     clip: { x: 0, y: 0, width: 1280, height: 120 },
+  })
+})
+
+test('desktop header: sheet chip and the switch words show on one row, 1024 to 1440', async ({
+  page,
+}) => {
+  const out: Record<number, { rowH: number; chip: boolean; words: boolean }> = {}
+  for (const w of [1024, 1100, 1280, 1365, 1366, 1440]) {
+    await page.setViewportSize({ width: w, height: 800 })
+    await page.goto('/services')
+    await page.evaluate(() => document.fonts.ready)
+    const m = await page.evaluate(() => {
+      const h = document.querySelector('header')!
+      const bar = h.firstElementChild as HTMLElement
+      const shown = (el: Element | null) => {
+        const r = el?.getBoundingClientRect()
+        return Boolean(
+          r && r.width > 4 && r.height > 4 && getComputedStyle(el!).clipPath === 'none',
+        )
+      }
+      return {
+        rowH: Math.round(bar.getBoundingClientRect().height),
+        minH: parseFloat(getComputedStyle(bar).minHeight),
+        chip: shown(h.querySelector('a[href="/"] > :last-child')),
+        words: shown(h.querySelector('label[data-variant="header"] > span:last-child')),
+      }
+    })
+    out[w] = { rowH: m.rowH, chip: m.chip, words: m.words }
+    expect(m.rowH, `one row at ${w}`).toBeLessThanOrEqual(m.minH + 1)
+  }
+  record('header-desktop', out)
+  for (const [w, m] of Object.entries(out)) {
+    expect(m.chip, `sheet chip shows at ${w}`).toBe(true)
+    expect(m.words, `switch words show at ${w}`).toBe(true)
+  }
+  await page.setViewportSize({ width: 1024, height: 800 })
+  await page.screenshot({
+    path: join(ART, 'header-1024.png'),
+    clip: { x: 0, y: 0, width: 1024, height: 120 },
   })
 })
 
@@ -369,6 +409,51 @@ test('404 sheet: one H1, links to all five sheets, Book a call, static cloud', a
   }
 })
 
+// ── Intent prefetch (§B10 initial JS, W2 handover #1) ────────────────────────
+test('footer and 404 sheet lists put the plain label before the sheet number', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/no-such-sheet')
+  const lists = [
+    page.getByRole('contentinfo').getByRole('navigation', { name: site.titleBlock.sheetIndex }),
+    page.getByRole('navigation', { name: notFound.links }),
+  ]
+  for (const nav of lists)
+    for (const it of site.nav) {
+      const text = (await nav.locator(`a[href="${it.href}"]`).innerText()).trim().toUpperCase()
+      expect(text.startsWith(it.label.toUpperCase()), `"${text}" starts with ${it.label}`).toBe(
+        true,
+      )
+      expect(text).toContain(it.sheet.toUpperCase())
+    }
+})
+
+test('production footer leaves out a contact cell with no value (D11)', async ({ page }) => {
+  test.skip(!(await isProductionBuild(page)), 'needs a VERCEL_ENV=production build')
+  await page.goto('/')
+  const cells = page.getByRole('contentinfo').locator('dl > div')
+  const n = await cells.count()
+  for (let i = 0; i < n; i++) {
+    const dd = (await cells.nth(i).locator('dd').innerText()).trim()
+    const dt = (await cells.nth(i).locator('dt').innerText()).trim()
+    expect(dd, `${dt} has a value`).not.toBe('')
+  }
+})
+
+test('links to other sheets prefetch on intent, never on viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  const prefetched: string[] = []
+  page.on('request', (r) => {
+    if (r.headers()['next-router-prefetch']) prefetched.push(new URL(r.url()).pathname)
+  })
+  await page.goto('/about', { waitUntil: 'load' })
+  await page.waitForTimeout(2500)
+  expect(prefetched, 'nothing prefetched before load + 2.5 s').toEqual([])
+  await page.locator('header').getByRole('link', { name: BOOK }).hover()
+  await expect.poll(() => prefetched.some((p) => p.startsWith('/contact'))).toBe(true)
+  await page.locator('header nav a[href="/services"]').filter({ visible: true }).first().focus()
+  await expect.poll(() => prefetched.some((p) => p.startsWith('/services'))).toBe(true)
+})
+
 // ── Term toggletip (WCAG 1.4.13) ─────────────────────────────────────────────
 test('term toggletip is hoverable, persistent and dismissible', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
@@ -417,6 +502,29 @@ test('axe: no serious or critical issues on /kit and the five sheets', async ({ 
   record('axe', results)
   const failing = Object.entries(results).filter(([, v]) => v.serious + v.critical > 0)
   expect(failing, JSON.stringify(failing, null, 2)).toEqual([])
+})
+
+// ── Mono fallback (D7) ───────────────────────────────────────────────────────
+test('mono labels stay monospace when Martian Mono misses a cold visit', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 })
+  // display: optional gives up on a font that is not ready at first paint; never serving it
+  // reproduces that cold visit.
+  await page.route(/martian-mono-semicondensed.*\.woff2$/, (r) => r.abort())
+  await page.goto('/services')
+  const chip = page.locator('header > div > a[href="/"] > :last-child')
+  await expect(chip).toBeVisible()
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('DOM.enable')
+  await cdp.send('CSS.enable')
+  const { root } = await cdp.send('DOM.getDocument', { depth: 0 })
+  const { nodeId } = await cdp.send('DOM.querySelector', {
+    nodeId: root.nodeId,
+    selector: 'header > div > a[href="/"] > :last-child',
+  })
+  const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId })
+  const used = fonts.map((f) => f.familyName)
+  record('mono-fallback', { used })
+  expect(used.join(', ')).not.toMatch(/arial|helvetica/i)
 })
 
 // ── 12. Layout shift ─────────────────────────────────────────────────────────

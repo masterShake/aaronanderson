@@ -36,11 +36,18 @@ export const ui = localFont({
   variable: '--font-ui',
 })
 
+/**
+ * Mono and hand fall back to the system monospace, never a size-adjusted Arial: with
+ * display 'optional' a cold visit keeps the fallback for the whole page, and labels must
+ * still read as mono (D7, craft-10).
+ */
 export const mono = localFont({
   src: './fonts/martian-mono-semicondensed-400-600.latin.woff2',
   weight: '400 600',
   display: 'optional',
   preload: false,
+  adjustFontFallback: false,
+  fallback: ['ui-monospace', 'Menlo', 'monospace'],
   variable: '--font-mono',
 })
 
@@ -49,6 +56,7 @@ export const hand = localFont({
   weight: '400',
   display: 'swap',
   preload: false,
+  adjustFontFallback: false,
   variable: '--font-hand',
 })
 
