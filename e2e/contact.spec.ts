@@ -202,6 +202,8 @@ test.describe('contact form with JS', () => {
     for (let i = 0; i < 3; i++) {
       await fill(page, email)
       await page.getByRole('button', { name: 'Send it' }).click()
+      // this send's own success reset: 'Received.' may still show from the previous one
+      await expect(page.locator('#f-message')).toHaveValue('')
       await expect(page.locator('[role="status"]').filter({ hasText: 'Received.' })).toBeVisible()
     }
     await fill(page, email)
