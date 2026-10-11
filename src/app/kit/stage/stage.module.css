@@ -21,8 +21,11 @@
   height: 100%;
 }
 
+/* Pen × k × pen-scale, like every figure's strokes. The svg's inline --k is 1 (one CSS px per
+   unit), so the tier table never reaches it; the stroke-scale test raises it to check the canvas. */
 .cad {
   display: block;
+  stroke-width: calc(var(--demo-pen) * var(--k, 1) * var(--pen-scale, 1));
 }
 
 /* The canvas carries the drawing once the hand-off is done; the SVG returns on hand-back. */

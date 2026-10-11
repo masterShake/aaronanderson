@@ -371,9 +371,24 @@ class Runtime implements RuntimeApi {
     }
   }
 
+  /**
+   * The SVG's stroke scale, k × pen-scale, read from the CAD layer the SVG
+   * strokes take it from: the container tiers set --k on .box (--k-tall on the
+   * tall family's layers), and prefers-contrast sets --pen-scale. The figure
+   * root's own --k is only the default (1), so it is never read.
+   */
   private kOf(f: Fig): number {
-    const k = parseFloat(getComputedStyle(f.root).getPropertyValue('--k'))
-    return Number.isFinite(k) && k > 0 ? k : 1
+    const q = (s: string) => f.root.querySelector<SVGSVGElement>(s)
+    const el =
+      (f.layout === 'tall'
+        ? q('.drawing svg.l-cad[data-family="tall"]')
+        : q('.drawing svg.l-cad:not([data-family="tall"])')) ??
+      q('.drawing svg.l-cad') ??
+      f.slot
+    const cs = getComputedStyle(el)
+    const k = parseFloat(cs.getPropertyValue('--k'))
+    const scale = parseFloat(cs.getPropertyValue('--pen-scale'))
+    return (Number.isFinite(k) && k > 0 ? k : 1) * (Number.isFinite(scale) && scale > 0 ? scale : 1)
   }
 
   /** CSS px per viewBox unit, as preserveAspectRatio="xMidYMid meet" places it. */

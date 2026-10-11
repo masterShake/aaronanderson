@@ -85,6 +85,12 @@
   object-fit: contain;
 }
 
+/* The drawing is its own stacking context, so every layer's z-index below stays inside it
+   and the whole drawing sits under .slot (the canvas), .labels and .ui. */
+.fig .box > .drawing {
+  z-index: 0;
+}
+
 /* Layer order, bottom to top; the ghost layer is the erased pencil. */
 .fig .l-panel {
   z-index: 0;
@@ -112,7 +118,7 @@
 }
 
 /* After the hand-off the canvas carries the drawing; the panel and ghost layers stay. */
-.fig[data-stage='webgl'] :is(.l-cad, .l-pencil, .l-pkt) {
+.fig[data-stage='webgl'] :is(.l-cad, .l-pencil, .l-pkt, .l-iso) {
   visibility: hidden;
 }
 

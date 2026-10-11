@@ -245,6 +245,94 @@ test('?ship= promotes an svg-gated scene outside production', async ({ page }) =
   expect(Object.values(s!.ship).every(Boolean)).toBe(true)
 })
 
+/**
+ * Line widths across horizontal plan lines, in device px: for each point (viewBox units, on a
+ * horizontal line), the ink summed down a ±12 unit column, over the ink of a full pixel.
+ */
+async function lineWidths(
+  page: Page,
+  png: Buffer,
+  pts: readonly (readonly [number, number])[],
+  scale: number,
+): Promise<number[]> {
+  return page.evaluate(
+    async ({ b64, pts, scale }) => {
+      const bin = atob(b64)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      const bm = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
+      const c = new OffscreenCanvas(bm.width, bm.height)
+      const g = c.getContext('2d')!
+      g.drawImage(bm, 0, 0)
+      const I = g.getImageData(0, 0, bm.width, bm.height)
+      const px = (x: number, y: number) => {
+        const i = (y * I.width + x) * 4
+        return [I.data[i]!, I.data[i + 1]!, I.data[i + 2]!] as const
+      }
+      const ink = (p: readonly number[], q: readonly number[]) =>
+        Math.max(...p.map((v, i) => Math.abs(v - q[i]!)))
+      return pts.map(([vx, vy]) => {
+        const x = Math.round(vx * scale)
+        const y0 = Math.round((vy - 12) * scale)
+        const y1 = Math.round((vy + 12) * scale)
+        const bg = px(x, Math.max(0, y0 - 2))
+        const col: number[] = []
+        for (let y = y0; y <= y1; y++) col.push(ink(px(x, y), bg))
+        const peak = Math.max(...col)
+        return peak ? col.reduce((s, v) => s + v, 0) / peak : 0
+      })
+    },
+    { b64: png.toString('base64'), pts, scale },
+  )
+}
+
+test('canvas strokes follow the SVG stroke scale (--k on the CAD layer)', async ({
+  page,
+  guard,
+}) => {
+  await page.goto('/kit/stage?tier=webgl')
+  await page.evaluate(() => window.__aeStage!.holdAtHandoff('_demo'))
+  const box = page.locator(`${DEMO} .box`)
+  await box.scrollIntoViewIfNeeded()
+  // midpoints of the three boxes' top edges (demo-plan.ts DEMO_BOXES)
+  const pts = [
+    [200, 220],
+    [480, 140],
+    [760, 300],
+  ] as const
+  const dpr = await page.evaluate(() => devicePixelRatio)
+  const scale = ((await box.boundingBox())!.width / 960) * dpr
+  // show() re-fits the scene, so the runtime reads the stroke scale again
+  const shot = async (medium: 'svg' | 'webgl') => {
+    await page.evaluate((m) => window.__aeStage!.show('_demo', m), medium)
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+    )
+    return box.screenshot({ animations: 'disabled' })
+  }
+  const widths = async (k: number) => {
+    await page
+      .locator(`${DEMO} svg.l-cad`)
+      .evaluate((el, k) => (el as SVGElement).style.setProperty('--k', String(k)), k)
+    const svg = await lineWidths(page, await shot('svg'), pts, scale)
+    const gl = await lineWidths(page, await shot('webgl'), pts, scale)
+    return { svg, gl }
+  }
+  const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
+  const at1 = await widths(1)
+  const at15 = await widths(1.5)
+  test.info().annotations.push({ type: 'widths', description: JSON.stringify({ at1, at15 }) })
+  // the SVG really drew wider lines
+  expect(sum(at15.svg) / sum(at1.svg)).toBeGreaterThan(1.3)
+  // and the canvas matches the SVG at both scales
+  for (const w of [at1, at15]) {
+    const r = sum(w.gl) / sum(w.svg)
+    expect(r, JSON.stringify(w)).toBeGreaterThan(0.88)
+    expect(r, JSON.stringify(w)).toBeLessThan(1.14)
+  }
+  expect(guard.errors).toEqual([])
+})
+
 test('?frame=plan holds the demo at its hand-off frame', async ({ page, guard }) => {
   await page.goto('/kit/stage?tier=webgl&frame=plan')
   await expect

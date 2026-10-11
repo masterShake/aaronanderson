@@ -96,6 +96,11 @@ figure#fig-{id}.fig[data-figure data-phase data-medium data-stage data-view data
   figcaption · details (table) · #…-desc.sr-only · p[data-live][aria-live=polite]
 ```
 
+`.box > .drawing` is a stacking context (`z-index: 0`): the layer z-indexes (panel 0, pencil and
+ghost 1, CAD and iso 2, packets 3) order the layers inside it only, and the whole drawing sits
+under the stage canvas (`.slot`), `.labels` and `.ui`. Never give a layer a z-index to lift it
+over the canvas.
+
 Extra props beyond the contract: `textVars` (graph counts for the caption and long description)
 and `famMin`. Labels are positioned with `--lx/--ly` (wide) and `--lxt/--lyt` (tall), in % of the
 box, anchored at their left edge.

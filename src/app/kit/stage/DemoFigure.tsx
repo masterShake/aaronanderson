@@ -40,6 +40,7 @@ export function DemoFigure({ caption }: { caption: ReactNode }) {
           <svg
             className={`l-cad ${s.cad}`}
             viewBox={`${x} ${y} ${w} ${h}`}
+            style={{ '--k': 1, '--demo-pen': PEN[DEMO_PEN] } as CSSProperties}
             stroke={COLOR.cyan}
             strokeWidth={PEN[DEMO_PEN]}
             strokeLinecap="round"
