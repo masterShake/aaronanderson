@@ -122,6 +122,13 @@ test('the As found / Rewired toggle switches state, chip and descriptions', asyn
   const desc = await tools(page).first().getAttribute('aria-describedby')
   expect(desc).toMatch(/-rewired$/)
   await expect(page.locator(`[id="${desc}"]`)).toHaveCount(1)
+  // detail bubbles: links to the service sheets, shown only once rewired
+  const bubbles = fig.locator('.ui ul a')
+  expect(await bubbles.count()).toBeGreaterThan(0)
+  await expect(bubbles.first()).toBeVisible()
+  expect(await bubbles.first().getAttribute('aria-label')).toBeTruthy()
+  await page.locator('[data-state-value="asFound"]').click()
+  await expect(bubbles.first()).toBeHidden()
 })
 
 test('the table alternative lists every hand-off and works as a details element', async ({

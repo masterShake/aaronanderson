@@ -11,6 +11,9 @@ import { fill, type Bucket, type SchematicCopy } from './copy'
  */
 
 type AnyGraph = Graph<string, string>
+
+/** Label keys of the (E) and (N) chips. */
+export const ERA_TAG = { E: 'tag.e', N: 'tag.n' } as const
 const endNode = (end: string) => end.slice(0, end.indexOf('.'))
 
 export interface CalloutText {
@@ -39,13 +42,13 @@ export function calloutText(
       .join('; ')
     const vars = {
       n,
-      tools: c.ui(n === 1 ? 'callout.tool' : 'callout.tools'),
+      tools: c.ui(n === 1 ? 'toolOne' : 'toolMany'),
       k: byHand.length,
       items,
     }
     return {
       title,
-      body: fill(c.ui(byHand.length ? 'callout.asFound' : 'callout.asFoundNone'), vars),
+      body: fill(c.ui(byHand.length ? 'asFound' : 'asFoundNone'), vars),
     }
   }
   const buckets: Record<Bucket, number> = { auto: 0, ai: 0, hv: 0, aiHv: 0, keep: 0 }
@@ -61,10 +64,10 @@ export function calloutText(
     .join('; ')
   const total = rs.length
   return {
-    title: node.era ? `${title} ${c.ui(`era.${node.era}`)}` : title,
-    body: fill(c.ui('callout.rewired'), {
+    title: node.era ? `${title} ${c.label(ERA_TAG[node.era])}` : title,
+    body: fill(c.ui('rewired'), {
       c: total,
-      connections: c.ui(total === 1 ? 'callout.connection' : 'callout.connections'),
+      connections: c.ui(total === 1 ? 'connectionOne' : 'connectionMany'),
       clauses,
     }),
   }

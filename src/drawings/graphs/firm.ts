@@ -45,18 +45,23 @@ export const FIRM_HANDOFFS = [
 ] as const
 export type FirmHandoff = (typeof FIRM_HANDOFFS)[number]
 
-/** Label keys (copy lives in src/content/figures/firm.ts under `labels`). */
+/**
+ * Label keys (copy in src/content/figures/firm.ts: `labels`, plus `notes` for
+ * the hand note keyed by the tool it sits by).
+ */
 export type FirmLabel =
   | `tool.${FirmTool}`
-  | 'tool.estimate.rewired'
-  | 'inst.ai'
-  | 'inst.hv'
-  | 'inst.store'
-  | 'inst.monitor'
-  | `move.${FirmHandoff}`
-  | 'move.r14'
-  | 'note.retyped'
-  | 'note.plumbing'
+  | 'tool.estimate-rewired'
+  | 'sym.ai'
+  | 'sym.valve'
+  | 'sym.store'
+  | 'sym.monitor'
+  | `carry.${FirmHandoff}`
+  | 'place.estimating'
+  | 'place.site'
+  | 'tag.e'
+  | 'tag.n'
+  | 'timesheets'
 
 /** Box size in user units: at least 104 × 36 CSS px at both families' minimum widths. */
 export const FIRM_BOX: readonly [number, number] = [180, 64]
@@ -110,13 +115,13 @@ const NODES: GraphNode<FirmLabel, FirmRev>[] = [
   place('field', 'tool', 'tool.field', 'A3', 'A3', FIRM_BOX, { era: 'E' }),
   place('timesheets', 'tool', 'tool.timesheets', 'B3', 'A4', FIRM_BOX, { era: 'E' }),
   place('payroll', 'tool', 'tool.payroll', 'C3', 'A5', FIRM_BOX, { era: 'E' }),
-  place('store', 'store', 'inst.store', 'D3', 'B6', [52, 68], {
+  place('store', 'store', 'sym.store', 'D3', 'B6', [52, 68], {
     era: 'N',
     revs: ['rewired'],
     symbol: 'sym.data-tank',
     detail: 'S-04',
   }),
-  place('monitor', 'monitor', 'inst.monitor', 'D1', 'A6', [32, 32], {
+  place('monitor', 'monitor', 'sym.monitor', 'D1', 'A6', [32, 32], {
     era: 'N',
     revs: ['rewired'],
     symbol: 'sym.monitor',
@@ -137,7 +142,7 @@ const handoff = (
   to: `${to}.${id}`,
   kind: mode === 'sync' ? 'conduit' : 'hand-carry',
   mode,
-  carries: `move.${id}`,
+  carries: `carry.${id}`,
   revs: ['asFound'],
   ...(mode !== 'sync' ? { manual: true } : {}),
   ...extra,
@@ -171,20 +176,21 @@ const ROUTES: R[] = [
   handoff('h10', 'crm', 'estimate', 'retype'),
   handoff('h11', 'field', 'timesheets', 'retype', { person: 'p4' }),
   handoff('h12', 'timesheets', 'payroll', 'sync'),
-  route('r01', 'field', 'inbox', ['h01'], { carries: 'move.h01' }),
-  route('r02', 'inbox', 'accounting', ['h02'], { ai: true, valve: true, carries: 'move.h02' }),
-  route('r03', 'inbox', 'pm', ['h03'], { ai: true, carries: 'move.h03' }),
-  route('r04', 'pm', 'field', ['h04'], { valve: true, carries: 'move.h04' }),
-  route('r05', 'estimate', 'pm', ['h05'], { carries: 'move.h05' }),
-  route('r06', 'pm', 'accounting', ['h06'], { carries: 'move.h06' }),
-  route('r07', 'pm', 'drive', ['h07'], { carries: 'move.h07' }),
-  route('r08', 'accounting', 'store', ['h08'], { carries: 'move.h08' }),
-  route('r09', 'pm', 'store', ['h09'], { carries: 'move.h09' }),
+  route('r01', 'field', 'inbox', ['h01'], { carries: 'carry.h01' }),
+  route('r02', 'inbox', 'accounting', ['h02'], { ai: true, valve: true, carries: 'carry.h02' }),
+  route('r03', 'inbox', 'pm', ['h03'], { ai: true, carries: 'carry.h03' }),
+  route('r04', 'pm', 'field', ['h04'], { valve: true, carries: 'carry.h04' }),
+  route('r05', 'estimate', 'pm', ['h05'], { carries: 'carry.h05' }),
+  route('r06', 'pm', 'accounting', ['h06'], { carries: 'carry.h06' }),
+  route('r07', 'pm', 'drive', ['h07'], { carries: 'carry.h07' }),
+  route('r08', 'accounting', 'store', ['h08'], { carries: 'carry.h08' }),
+  route('r09', 'pm', 'store', ['h09'], { carries: 'carry.h09' }),
   route('r10', 'store', 'report', ['h08', 'h09']),
-  route('r11', 'crm', 'estimate', ['h10'], { carries: 'move.h10' }),
-  route('r12', 'field', 'timesheets', ['h11'], { carries: 'move.h11' }),
-  route('r13', 'timesheets', 'payroll', ['h12'], { carries: 'move.h12' }),
-  route('r14', 'timesheets', 'store', [], { carries: 'move.r14' }),
+  route('r11', 'crm', 'estimate', ['h10'], { carries: 'carry.h10' }),
+  route('r12', 'field', 'timesheets', ['h11'], { carries: 'carry.h11' }),
+  route('r13', 'timesheets', 'payroll', ['h12'], { carries: 'carry.h12' }),
+  // approved hours also reach the store, a new connection
+  route('r14', 'timesheets', 'store', [], { carries: 'carry.h12' }),
   // the monitor's signal lines end on the routes it watches
   { id: 'm06', from: 'monitor.s', to: 'r06.mid', kind: 'branch', revs: ['rewired'] },
   { id: 'm08', from: 'monitor.s', to: 'r08.mid', kind: 'branch', revs: ['rewired'] },
@@ -273,16 +279,27 @@ function people(g: Graph<FirmLabel, FirmRev>): ScaleFigure<FirmRev>[] {
   }))
 }
 
-/** Hand notes (2 for Home B): keys into content, positions in viewBox units. */
+/**
+ * The figure's hand note ("retyped Fridays", by Timesheets), keyed into the
+ * figure's `notes`; Home B's second note, the (E)/(N) margin note, belongs to
+ * the section (pages/home.ts). Positions in viewBox units.
+ */
 const NOTES: Graph<FirmLabel, FirmRev>['notes'] = [
-  { key: 'note.retyped', at: [370, 548], atTall: [24, 410], rotate: -3 },
-  { key: 'note.plumbing', at: [24, 572], atTall: [210, 620], rotate: -2 },
+  { key: 'timesheets', at: [370, 548], atTall: [24, 410], rotate: -3 },
 ]
+
+/** Where a person stands once rewired, when the place has a label (ESTIMATING, ON SITE). */
+export const FIRM_PLACES: Readonly<Record<string, FirmLabel>> = {
+  p2: 'place.estimating',
+  p3: 'place.site',
+}
 
 export const firmGraph: Graph<FirmLabel, FirmRev> = { ...base, people: people(base), notes: NOTES }
 
 /** Which detail bubble (service sheet) each Rewired element points to (pages-drawings §3.6). */
 export const FIRM_DETAILS = {
+  /** the whole drawing: the bubble sits at its top-left corner */
+  'S-01': 'drawing',
   'S-02': 'r05',
   'S-03': 'r02',
   'S-04': 'store',

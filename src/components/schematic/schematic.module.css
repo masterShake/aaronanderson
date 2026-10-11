@@ -274,6 +274,79 @@
   outline-offset: var(--focus-offset);
 }
 
+/* Detail bubbles (Rewired only): split circles, n over the sheet number */
+.bubbles {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none !important;
+}
+
+.bubble {
+  position: absolute;
+  left: calc(var(--lx) * 1%);
+  top: calc(var(--ly) * 1%);
+}
+
+@container fig (width < 560px) {
+  .bubble {
+    left: calc(var(--lxt) * 1%);
+    top: calc(var(--lyt) * 1%);
+  }
+}
+
+.bubbleLink {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--c-paper);
+  border-radius: 50%;
+  background: var(--c-blueprint-deep);
+  color: var(--c-paper);
+  font-family: var(--ff-mono);
+  font-size: 0.5625rem;
+  line-height: 1;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.bubbleLink > span + span {
+  align-self: start;
+  width: 100%;
+  padding-top: 2px;
+  border-top: 1px solid currentColor;
+  text-align: center;
+}
+
+.bubbleLink > span:first-child {
+  align-self: end;
+  padding-bottom: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bubbleLink:hover,
+.bubbleLink:focus-visible {
+  background: var(--c-paper);
+  color: var(--c-asphalt);
+}
+
+.bubbleLink:focus-visible {
+  outline: var(--focus-w) solid var(--c-focus-on-dark);
+  outline-offset: var(--focus-offset);
+}
+
+@media (pointer: coarse) {
+  .bubbleLink {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Table alternative */
 .table {
   width: 100%;

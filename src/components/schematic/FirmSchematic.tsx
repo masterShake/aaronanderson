@@ -1,10 +1,12 @@
 import { firmFigure } from '@/content/figures/firm'
-import type { FigureCopy } from '@/content/types'
-import { firmGraph } from '@/drawings/graphs/firm'
+import type { FigureCopy, ServiceId } from '@/content/types'
+import { serviceById } from '@/content/services'
+import { serviceHref } from '@/lib/routes'
+import { firmGraph, FIRM_DETAILS, FIRM_PLACES } from '@/drawings/graphs/firm'
 import { DRAWING_FILES, drawingSrc } from '@/drawings/files'
 import { LazyDrawing } from '@/figures/LazyDrawing.client'
 import { InlineDrawing } from '@/figures/InlineDrawing'
-import { schematicCopy } from './copy'
+import { fill, schematicCopy } from './copy'
 import { Schematic } from './Schematic'
 
 /**
@@ -14,18 +16,21 @@ import { Schematic } from './Schematic'
  * `inline`), the layers are rendered inline from the same renderer.
  */
 
+export const FIRM_REWIRED_LABELS = { estimate: 'tool.estimate-rewired' } as const
+
+/** Every label key the firm schematic shows (for the missing-copy list). */
 const labelKeys = [
   ...new Set([
     ...firmGraph.nodes.map((n) => n.label),
     ...firmGraph.routes.flatMap((r) => (r.carries ? [r.carries] : [])),
-    ...(firmGraph.notes ?? []).map((n) => n.key),
-    'tool.estimate.rewired',
-    'inst.ai',
-    'inst.hv',
+    ...Object.values(FIRM_REWIRED_LABELS),
+    ...Object.values(FIRM_PLACES),
+    'sym.ai',
+    'sym.valve',
+    'tag.e',
+    'tag.n',
   ]),
 ]
-
-export const FIRM_REWIRED_LABELS = { estimate: 'tool.estimate.rewired' } as const
 
 export async function FirmSchematic({
   copy = firmFigure,
@@ -62,6 +67,17 @@ export async function FirmSchematic({
     })
     drawing = <InlineDrawing doc={merge('wide')} tall={merge('tall')} />
   }
+  const details = (Object.entries(FIRM_DETAILS) as [ServiceId, string][]).map(([sheet, anchor]) => {
+    const service = serviceById(sheet)
+    const n = Number(sheet.slice(2))
+    return {
+      sheet,
+      n,
+      anchor,
+      href: serviceHref(sheet),
+      label: fill(c.ui('bubble'), { n, sheet, service: service.name }),
+    }
+  })
   return (
     <Schematic
       id="firm"
@@ -70,6 +86,8 @@ export async function FirmSchematic({
       drawing={drawing}
       stills={stills}
       rewiredLabels={FIRM_REWIRED_LABELS}
+      places={FIRM_PLACES}
+      details={details}
     />
   )
 }

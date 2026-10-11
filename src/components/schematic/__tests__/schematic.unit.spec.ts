@@ -20,13 +20,13 @@ const fixture = {
   longDescription: ['L'],
   labels: {},
   ui: {
-    'callout.asFound': 'Touches {n} {tools}. {k} by hand: {items}.',
-    'callout.asFoundNone': 'Touches {n} {tools}. Nothing by hand.',
-    'callout.rewired': '{c} {connections}: {clauses}.',
-    'callout.tool': 'tool',
-    'callout.tools': 'tools',
-    'callout.connection': 'connection',
-    'callout.connections': 'connections',
+    asFound: 'Touches {n} {tools}. {k} by hand: {items}.',
+    asFoundNone: 'Touches {n} {tools}. Nothing by hand.',
+    rewired: '{c} {connections}: {clauses}.',
+    toolOne: 'tool',
+    toolMany: 'tools',
+    connectionOne: 'connection',
+    connectionMany: 'connections',
     'bucket.auto': '{n} automatic',
     'bucket.ai': '{n} read by AI',
     'bucket.hv': '{n} signed off',
@@ -78,7 +78,7 @@ test('rewired callouts account for every connection exactly once', () => {
 
 test('missing copy shows its key, and is listed', () => {
   const c = schematicCopy({ ...fixture, ui: {} }, ['tool.crm'])
-  expect(c.ui('state.group')).toBe('state.group')
+  expect(c.ui('toggleLabel')).toBe('toggleLabel')
   expect(c.label('tool.crm')).toBe('tool.crm')
   expect(c.missing).toContain('tool.crm')
 })

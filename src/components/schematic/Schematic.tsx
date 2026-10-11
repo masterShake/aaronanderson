@@ -1,13 +1,23 @@
 import type { CSSProperties, ReactNode } from 'react'
+import type { Route } from 'next'
+import Link from 'next/link'
 import type { FigureId } from '@/content/types'
 import type { Graph, LayoutId, Pt } from '@/drawings/types'
 import { counts, modeCounts, routesTouching } from '@/drawings/lib/counts'
-import { center, inRev, instrumentsOn, nodeRect, routeGraph } from '@/drawings/lib/route'
+import {
+  center,
+  inRev,
+  instrumentsOn,
+  nodeRect,
+  pointAlong,
+  routeGraph,
+} from '@/drawings/lib/route'
 import { tableRows } from '@/drawings/render/table'
 import { FigureFrame } from '@/figures/FigureFrame'
 import { figureDomId } from '@/figures/types'
-import { calloutText } from './callout'
-import { fill, type SchematicCopy } from './copy'
+import { RichText } from '@/components/ui/RichText'
+import { calloutText, ERA_TAG } from './callout'
+import type { SchematicCopy } from './copy'
 import { SchematicController } from './SchematicController.client'
 import s from './schematic.module.css'
 
@@ -33,7 +43,24 @@ export interface SchematicProps {
   stills: Readonly<Record<LayoutId, Readonly<Record<State, string>>>>
   /** Label key a tool shows once rewired, when it differs (Estimate_FINAL_v7.xlsx → Estimating). */
   rewiredLabels?: Readonly<Record<string, string>>
+  /** Label key of the place a person stands once rewired (ESTIMATING, ON SITE). */
+  places?: Readonly<Record<string, string>>
+  /** Label keys of the route instruments (their sub-lines are `{key}-sub`). */
+  symbolKeys?: { ai: string; valve: string }
+  /** Detail bubbles (Rewired only): links to the service sheets, anchored on graph elements. */
+  details?: readonly DetailBubble[]
   initial?: State
+}
+
+export interface DetailBubble {
+  /** Sheet number, e.g. 'S-02' (shown under n). */
+  sheet: string
+  n: number
+  href: Route
+  /** Accessible name, e.g. 'Detail 2 on sheet S-02: System Integration'. */
+  label: string
+  /** A node, route or person id, or 'drawing' for the whole drawing. */
+  anchor: string
 }
 
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
@@ -101,6 +128,9 @@ export function Schematic({
   drawing,
   stills,
   rewiredLabels = {},
+  places = {},
+  symbolKeys = { ai: 'sym.ai', valve: 'sym.valve' },
+  details = [],
   initial = 'asFound',
 }: SchematicProps) {
   const dom = figureDomId(id)
@@ -127,7 +157,7 @@ export function Schematic({
   const revs = (c.figure.revs ?? {}) as Readonly<Record<string, string>>
 
   const toggle = (
-    <div role="group" aria-label={c.ui('state.group')} className={s.toggle}>
+    <div role="group" aria-label={c.ui('toggleLabel')} className={s.toggle}>
       {[found, wired].map((st) => (
         <button
           key={st}
@@ -136,13 +166,23 @@ export function Schematic({
           data-state-value={st}
           aria-pressed={st === initial}
         >
-          {c.ui(st === found ? 'state.asFound' : 'state.rewired')}
+          {c.ui(st === found ? 'asFoundButton' : 'rewiredButton')}
         </button>
       ))}
     </div>
   )
 
-  // instrument labels (rewired only), placed from the routed geometry
+  // instrument labels (rewired only), placed from the routed geometry: plain words first,
+  // then the sub-line, then the (N) chip
+  const inst = (key: string) => {
+    const sub = c.maybe(`${key}-sub`)
+    return (
+      <>
+        {c.label(key)}
+        {sub ? <> · {sub}</> : null} {c.label(ERA_TAG.N)}
+      </>
+    )
+  }
   const instLabels: ReactNode[] = []
   for (const r of routes.wide.values()) {
     const rt = routes.tall.get(r.id)
@@ -157,7 +197,7 @@ export function Schematic({
           data-show={wired}
           style={pointVars(g, freeSpot(g, 'wide', iw.ai.at, 22), freeSpot(g, 'tall', it.ai.at, 20))}
         >
-          {c.label('inst.ai')} {c.ui('era.N')}
+          {inst(symbolKeys.ai)}
         </span>,
       )
     if (iw.valve && it.valve)
@@ -172,7 +212,7 @@ export function Schematic({
             freeSpot(g, 'tall', it.valve.at, 24),
           )}
         >
-          {c.label('inst.hv')} {c.ui('era.N')}
+          {inst(symbolKeys.valve)}
         </span>,
       )
   }
@@ -190,20 +230,74 @@ export function Schematic({
           freeSpot(g, 'tall', center(rt), rt.h / 2 + 4),
         )}
       >
-        {c.label(n.label)} {c.ui('era.N')}
+        {inst(n.label)}
       </span>,
     )
   }
-  const notes = (g.notes ?? []).map((n) => (
-    <span
-      key={n.key}
-      className={s.note}
-      data-show={n.key === 'note.plumbing' ? wired : found}
-      style={{ ...pointVars(g, n.at, n.atTall ?? n.at), rotate: `${n.rotate}deg` }}
-    >
-      {c.label(n.key)}
-    </span>
-  ))
+  // where people stand once rewired, when the place has a name
+  for (const p of g.people ?? []) {
+    const key = places[p.id]
+    const pose = (p.poses as Record<string, { at: Pt; atTall?: Pt } | undefined>)[wired]
+    if (!key || !pose) continue
+    const at = (q: Pt): Pt => [q[0] + 14, q[1] - 30]
+    instLabels.push(
+      <span
+        key={`${p.id}-place`}
+        className={s.inst}
+        data-show={wired}
+        style={pointVars(g, at(pose.at), at(pose.atTall ?? pose.at))}
+      >
+        {c.label(key)}
+      </span>,
+    )
+  }
+  // hand notes come from the figure's notes; a missing one is left out
+  const notes = (g.notes ?? []).flatMap((n) => {
+    const text = c.note(n.key)
+    return text
+      ? [
+          <span
+            key={n.key}
+            className={s.note}
+            data-show={found}
+            style={{ ...pointVars(g, n.at, n.atTall ?? n.at), rotate: `${n.rotate}deg` }}
+          >
+            {text}
+          </span>,
+        ]
+      : []
+  })
+
+  // where a detail bubble sits (top-left, viewBox units): up and to the right of its anchor
+  const bubbleAt = (anchor: string, family: LayoutId): Pt => {
+    const [vx, vy, vw, vh] = g.viewBox[family]
+    let p: Pt = [vx + 8, vy + 8]
+    const n = g.nodes.find((x) => x.id === anchor)
+    const r = routes[family].get(anchor)
+    const person = (g.people ?? []).find((x) => x.id === anchor)
+    if (n) p = center(nodeRect(n, family))
+    else if (r) p = pointAlong(r.pts, 0.5)
+    else if (person) {
+      const pose = (person.poses as Record<string, { at: Pt; atTall?: Pt } | undefined>)[wired]
+      if (pose) p = family === 'tall' && pose.atTall ? pose.atTall : pose.at
+    }
+    if (anchor === 'drawing') return p
+    const size = 40
+    let q: Pt = [
+      Math.min(vx + vw - size, Math.max(vx, p[0] + 10)),
+      Math.min(vy + vh - size, Math.max(vy, p[1] - size - 10)),
+    ]
+    // step aside from bubbles already placed
+    for (
+      let i = 0;
+      i < 6 && placed[family].some((o) => Math.hypot(o[0] - q[0], o[1] - q[1]) < 44);
+      i++
+    )
+      q = [Math.min(vx + vw - size, q[0] + 46), q[1]]
+    placed[family].push(q)
+    return q
+  }
+  const placed: Record<LayoutId, Pt[]> = { wide: [], tall: [] }
 
   const describe = (t: (typeof tools)[number], st: State) => {
     const text = calloutText(g, t.id, st, c, st === wired ? rewiredLabels[t.id] : undefined)
@@ -217,10 +311,10 @@ export function Schematic({
   const ui = (
     <>
       <p id={`${p}-tools-l`} className="sr-only">
-        {c.ui('tools.group')}
+        {c.ui('toolsLabel')}
       </p>
       <p id={`${p}-kbd`} className="sr-only">
-        {c.ui('tools.keyboard')}
+        {c.ui('keyboard')}
       </p>
       <div
         role="group"
@@ -251,13 +345,29 @@ export function Schematic({
             ) : null}
             {t.era ? (
               <span className={s.era} data-show={wired} aria-hidden="true">
-                {c.ui(`era.${t.era}`)}
+                {c.label(ERA_TAG[t.era])}
               </span>
             ) : null}
           </button>
         ))}
       </div>
       {tools.flatMap((t) => [describe(t, found), describe(t, wired)])}
+      {details.length ? (
+        <ul className={s.bubbles} aria-label={c.ui('bubblesLabel')} data-show={wired}>
+          {details.map((d) => (
+            <li
+              key={d.sheet}
+              className={s.bubble}
+              style={pointVars(g, bubbleAt(d.anchor, 'wide'), bubbleAt(d.anchor, 'tall'))}
+            >
+              <Link href={d.href} aria-label={d.label} className={s.bubbleLink}>
+                <span aria-hidden="true">{d.n}</span>
+                <span aria-hidden="true">{d.sheet}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </>
   )
 
@@ -284,14 +394,16 @@ export function Schematic({
             <td>{nodeLabel(r.from)}</td>
             <td>{nodeLabel(r.to)}</td>
             <td>{r.carries ? c.label(r.carries) : null}</td>
-            <td>{c.ui(`found.${r.found}`)}</td>
-            <td>{r.rewired ? c.ui(`rewired.${r.rewired}`) : null}</td>
+            <td>{c.ui(`table.${r.found}`)}</td>
+            <td>{r.rewired ? c.ui(`table.${r.rewired}`) : null}</td>
           </tr>
         ))}
       </tbody>
       <tfoot>
         <tr>
-          <td colSpan={5}>{fill(c.ui('table.total'), textVars)}</td>
+          <td colSpan={5}>
+            <RichText value={c.rich('table.counts')} vars={textVars} as="span" />
+          </td>
         </tr>
       </tfoot>
     </table>
@@ -344,7 +456,7 @@ export function Schematic({
           type="button"
           className={s.close}
           data-callout-close=""
-          aria-label={c.ui('callout.close')}
+          aria-label={c.ui('close')}
           hidden
         >
           ×
