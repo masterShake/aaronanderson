@@ -19,10 +19,10 @@ export const servicesPage: ServicesPageContent = {
     chart: {
       caption: 'Typical lengths. Yours is agreed before work starts.',
       unit: 'WEEKS',
-      sessions: 'SESSIONS',
+      sessions: 'A FEW SESSIONS',
       monthly: 'MONTHLY →',
     },
-    quoted: 'Quoted after the first call',
+    quoted: 'Quoted on the first call',
   },
   rail: { label: 'Service sheets', jump: 'Jump to a sheet' },
   sheet: {

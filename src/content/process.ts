@@ -23,7 +23,7 @@ export const processSteps: readonly ProcessStep[] = [
     name: 'Design',
     title: 'We draw the fix before we build it.',
     stamp: 'ISSUED FOR REVIEW',
-    weDo: 'Pick the first job off the roadmap, draw the new flow over the old one, and fix the scope, fee and timeline.',
+    weDo: 'Pick the first job off the roadmap, draw the new flow over the old one, and write down the scope and timeline.',
     youDo: 'Mark up the drawing, tell us what we got wrong, and approve the scope.',
     howLong: hold('Design phase length', {
       id: 'duration.p02',
@@ -31,7 +31,8 @@ export const processSteps: readonly ProcessStep[] = [
       prodFallback: 'Agreed in the scope',
     }),
     span: { held: true },
-    youGet: 'A one-page scope with a fixed fee and a drawing of the change.',
+    // The fee stays in the CONFIRMs (claim.home.process, faq.cost) until the owner agrees.
+    youGet: 'A one-page scope and a drawing of the change.',
     youShort: 'Mark up the drawing and approve the scope.',
     rev: { change: 'New route issued for review', approvedBy: 'YOU' },
     stillCaption: 'Tracing paper over the old route, in blueprint ink.',

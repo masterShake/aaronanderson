@@ -33,7 +33,8 @@ export const about: AboutContent = {
           ),
         },
       },
-      "That's why we draw before we build: it's how the trades work.",
+      // Stands alone: production drops the sentence above while about.strata.between is a HOLD.
+      "We draw before we build. It's how the trades work.",
     ],
     layers: [
       {

@@ -23,6 +23,6 @@ export const afterContactFigure = {
     ourNode: 'ACTUAL ENGINEER',
     theirNode: 'YOUR COMPANY',
     received: 'RECEIVED',
-    sooner: 'Want to talk sooner? Pick a time ↑',
+    sooner: 'Want to talk sooner? Book a call.',
   },
 } satisfies FigureCopy

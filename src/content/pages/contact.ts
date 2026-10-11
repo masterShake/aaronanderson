@@ -104,7 +104,6 @@ export const contact: ContactContent = {
     body: [
       'We use what you send to reply to you.',
       confirm("We don't sell it or add you to a mailing list.", { id: 'claim.privacy.noSale' }),
-      'Messages are delivered by Resend. The calendar is run by Cal.com and loads only when you press Show available times.',
       {
         text: 'We keep messages for {retention}. To have yours deleted, email {email}.',
         vars: { retention, email: site.email },
@@ -112,15 +111,16 @@ export const contact: ContactContent = {
     ],
     processors: [
       { name: 'Resend', does: 'delivers the messages' },
-      { name: 'Cal.com', does: 'runs the calendar' },
+      { name: 'Cal.com', does: 'runs the booking calendar, which loads only when you ask for it' },
       { name: 'Cloudflare Turnstile', does: 'checks for spam, when switched on' },
     ],
     retention,
   },
   closing: {
     id: 'call',
-    h2: "Still deciding? The calendar's at the top.",
-    body: "Pick a time above, or write to us and we'll find one.",
+    // True with or without the scheduler (production hides the booking block until site.scheduler.url is real).
+    h2: 'Still deciding? Write it down.',
+    body: "Book a time or send a few lines, and we'll take it from there.",
   },
 }
 

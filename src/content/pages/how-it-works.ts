@@ -9,7 +9,7 @@ export const howItWorks: HowItWorksContent = {
     id: 'ticket',
     h2: 'One delivery ticket, start to finish',
     body: [
-      "To show what changes, we'll follow one piece of paper, a supplier's delivery ticket, from the truck to the job-cost report. Scale 1:1, more or less.",
+      "To show what changes, we'll follow one piece of paper, a supplier's delivery ticket, from the truck to the job-cost report.",
     ],
   },
   spec: { weDo: 'We do', youDo: 'You do', howLong: 'How long', youGet: 'You get' },
