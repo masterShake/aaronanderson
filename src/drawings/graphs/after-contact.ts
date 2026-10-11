@@ -17,10 +17,10 @@ const DESIGN = { wide: 960, tall: 400 }
 const IDS: readonly AfterContactLabel[] = ['you', 'reply', 'call', 'next']
 const KIND = { you: 'person', reply: 'doc', call: 'person', next: 'report' } as const
 
-/** Wide: 160 × 96 boxes, 80 apart, labels under each box. */
+/** Wide: 160 × 96 boxes, 80 apart; each label centred in its box (both families). */
 const WIDE_AT = (i: number): Pt => [40 + i * 240, 44]
 const WIDE_SIZE = [160, 96] as const
-/** Tall: 150 × 80 boxes, 60 apart, labels to the right. */
+/** Tall: 150 × 80 boxes, 60 apart. */
 const TALL_AT = (i: number): Pt => [40, 40 + i * 140]
 const TALL_SIZE = [150, 80] as const
 
@@ -72,10 +72,10 @@ export function afterContactLabels(): Record<
     const [wx, wy] = WIDE_AT(i)
     const [tx, ty] = TALL_AT(i)
     out[id] = {
-      lx: pct(wx, VB.wide[2]),
-      ly: pct(wy + WIDE_SIZE[1] + 14, VB.wide[3]),
-      lxt: pct(tx + TALL_SIZE[0] + 18, VB.tall[2]),
-      lyt: pct(ty + 24, VB.tall[3]),
+      lx: pct(wx + WIDE_SIZE[0] / 2, VB.wide[2]),
+      ly: pct(wy + WIDE_SIZE[1] / 2, VB.wide[3]),
+      lxt: pct(tx + TALL_SIZE[0] / 2, VB.tall[2]),
+      lyt: pct(ty + TALL_SIZE[1] / 2, VB.tall[3]),
     }
   })
   return out

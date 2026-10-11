@@ -43,6 +43,32 @@ for (const path of ['/contact', '/kit/fig/after-contact']) {
   })
 }
 
+/** craft-25: each step's name sits inside its own node, at both families. */
+for (const width of [1280, 390]) {
+  test(`each name sits inside its node @${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/contact?tier=svg')
+    const fig = page.locator('#fig-after-contact')
+    await fig.scrollIntoViewIfNeeded()
+    await expect(fig).toHaveAttribute('data-layers', 'ready')
+    await page.evaluate(() => document.fonts.ready.then(() => undefined))
+    const out = await fig.evaluate((f) =>
+      ['you', 'reply', 'call', 'next'].map((id) => {
+        const svg = [...f.querySelectorAll('svg.l-cad')].find((v) => v.checkVisibility())!
+        const n = svg.querySelector(`g[data-part="${id}"]`)!.getBoundingClientRect()
+        const l = f.querySelector(`.labels > [data-anchor="${id}"]`)!.getBoundingClientRect()
+        const inside =
+          l.left >= n.left - 0.5 &&
+          l.right <= n.right + 0.5 &&
+          l.top >= n.top - 0.5 &&
+          l.bottom <= n.bottom + 0.5
+        return inside ? null : id
+      }),
+    )
+    expect(out.filter(Boolean)).toEqual([])
+  })
+}
+
 test('the still tier shows the baked still and fetches no layers', async ({ page }) => {
   const fetched: string[] = []
   page.on('request', (q) => {
