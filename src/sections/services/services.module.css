@@ -238,6 +238,13 @@
   }
 }
 
+/* Scrubbed sheets have nothing to replay: the scroll position is the progress. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .figCol :global(:is(#fig-s01, #fig-s05) [data-action='replay']) {
+    display: none;
+  }
+}
+
 @media (min-width: 1280px) {
   .sheet {
     grid-template-columns: minmax(0, 5fr) minmax(0, 5fr);
