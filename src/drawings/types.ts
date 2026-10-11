@@ -94,6 +94,8 @@ export interface GraphNode<L extends string, R extends string> {
   at: Pt
   atTall?: Pt
   size: readonly [number, number]
+  /** Box size in the tall family, when it differs from size. */
+  sizeTall?: readonly [number, number]
   ports: Readonly<Record<string, Port>>
   /** (E) existing software that stays, (N) plumbing we add. */
   era?: 'E' | 'N'
