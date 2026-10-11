@@ -1,0 +1,233 @@
+/*
+ * S-05 THE CREW, TRAINED on --p (pages-drawings §6.5). Paper only; no loop.
+ * Windows come from S05 (src/motion/timing/s05.ts) through cssVars as
+ * --s05-*-p; --i is the crew member (0 estimator, 1 project manager, 2 field
+ * lead) or the record row. --p is 1 in the still tier, in print and without JS.
+ */
+
+.fig {
+  --s05-walk: clamp(
+    0,
+    (var(--p) - var(--s05-walk-from-p)) / (var(--s05-walk-to-p) - var(--s05-walk-from-p)),
+    1
+  );
+}
+
+/* How far right the new hire starts, in user units (S05_GEO.hire.from). */
+.fig :global(.box) {
+  --s05-walk-from: 220px;
+}
+
+@container fig (width < 440px) {
+  .fig :global(.box) {
+    --s05-walk-from: 260px;
+  }
+}
+
+:global(html[data-tier='still']) .fig:not(:global([data-user-play])),
+:global(html:not([data-js])) .fig,
+.fig:global([data-phase='still']) {
+  --p: 1 !important;
+}
+
+@media print {
+  .fig {
+    --p: 1 !important;
+  }
+}
+
+/* Fills: restated above figures.css's fill: none (0,3,1); see the request filed with S-01. */
+.fig.fig :global(.box) :global(path.f-paper) {
+  fill: var(--c-paper);
+}
+
+.fig.fig :global(.box) :global(path.f-orange) {
+  fill: var(--c-orange);
+}
+
+/* ── Windows per class ──────────────────────────────────────────────────── */
+.fig :global(path.gr) {
+  --a: var(--s05-sketch-from-p);
+  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+}
+
+.fig :global(path:is(.pp, .qc)) {
+  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
+  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+}
+
+/* Declared on each path, where its own --i is known (a custom property resolves var() where it
+   is declared, so this cannot live on .fig). */
+.fig :global(path:is(.tl, .ld, .tk)) {
+  --s05-hand: calc(var(--s05-hand-from-p) + var(--i) * var(--s05-hand-step-p));
+}
+
+.fig :global(path.tl) {
+  --a: var(--s05-hand);
+  --b: calc(var(--a) + var(--s05-tool-p));
+}
+
+.fig :global(path.ld) {
+  --a: calc(var(--s05-hand) + var(--s05-tool-p));
+  --b: calc(var(--a) + var(--s05-callout-p));
+}
+
+.fig :global(path.tk) {
+  --a: calc(var(--s05-hand) + var(--s05-tool-p) + var(--s05-callout-p));
+  --b: calc(var(--a) + var(--s05-callout-p));
+}
+
+.fig :global(path.sc) {
+  --a: var(--s05-walk-from-p);
+  --b: var(--s05-screen-from-p);
+}
+
+.fig :global(path.pg) {
+  --a: var(--s05-screen-from-p);
+  --b: var(--s05-screen-to-p);
+}
+
+.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .pg)) {
+  --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
+}
+
+.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .pg).draw) {
+  stroke-dashoffset: calc(1 - var(--lp));
+  opacity: clamp(0, var(--lp) * 50, 1);
+}
+
+.fig :global(path:is(.gr, .pp, .qc, .tl, .sc):not(.draw)) {
+  opacity: var(--lp);
+}
+
+/* The new hire walks in from the right (no walk cycle), visible from the walk's start. */
+.fig :global(.s05-walk) {
+  translate: calc((1 - var(--s05-walk)) * var(--s05-walk-from)) 0;
+  opacity: clamp(0, (var(--p) - var(--s05-walk-from-p)) * 50, 1);
+}
+
+/* ── Labels ──────────────────────────────────────────────────────────────── */
+.fig.fig :global(.labels) > * {
+  font-size: clamp(8px, 1.9cqi, 12px);
+}
+
+@container fig (width < 440px) {
+  .fig.fig :global(.labels) > * {
+    font-size: clamp(9px, 2.5cqi, 11px);
+  }
+}
+
+.fig :global(.labels) > * {
+  --lp: clamp(0, (var(--p) - var(--a, 0)) / (var(--b, 1) - var(--a, 0)), 1);
+  overflow-wrap: normal;
+}
+
+.person {
+  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
+  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+  max-inline-size: 18%;
+  white-space: normal !important;
+  text-align: center;
+  color: var(--c-graphite);
+  opacity: var(--lp);
+}
+
+.q {
+  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
+  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+  --gone: clamp(
+    0,
+    (var(--p) - var(--s05-hand-from-p) - var(--i) * var(--s05-hand-step-p) - var(--s05-tool-p)) /
+      var(--s05-callout-p),
+    1
+  );
+  color: var(--c-graphite);
+  font-weight: 600;
+  font-size: clamp(12px, 3cqi, 18px) !important;
+  opacity: calc(var(--lp) * (1 - var(--gone)));
+}
+
+.callout {
+  --a: calc(
+    var(--s05-hand-from-p) + var(--i) * var(--s05-hand-step-p) + var(--s05-tool-p) +
+      var(--s05-callout-p) * 0.5
+  );
+  --b: calc(var(--a) + var(--s05-callout-p));
+  max-inline-size: 19%;
+  white-space: normal !important;
+  color: var(--c-asphalt);
+  font-size: clamp(8px, 1.7cqi, 12px) !important;
+  font-weight: 600;
+  opacity: var(--lp);
+}
+
+.hire {
+  --a: calc(var(--s05-walk-to-p) - 0.02);
+  --b: var(--s05-walk-to-p);
+  color: var(--c-graphite);
+  opacity: var(--lp);
+}
+
+@container fig (width < 440px) {
+  .callout {
+    max-inline-size: 90%;
+  }
+}
+
+/* The training record: an HTML mini table that ticks row by row. */
+.record {
+  --a: var(--s05-screen-from-p);
+  --b: calc(var(--s05-screen-from-p) + 0.02);
+  inline-size: 31%;
+  padding: 0.5em 0.6em;
+  border: 1.5px solid var(--c-asphalt);
+  background: var(--c-paper);
+  white-space: normal !important;
+  opacity: var(--lp);
+}
+
+@container fig (width < 440px) {
+  .record {
+    inline-size: 56%;
+  }
+
+  .person {
+    max-inline-size: 30%;
+  }
+
+  .callout {
+    font-size: clamp(9px, 2.4cqi, 11px) !important;
+  }
+}
+
+.recordTitle {
+  margin: 0 0 0.4em;
+  padding-block-end: 0.3em;
+  border-block-end: 1px solid var(--c-asphalt);
+  font-weight: 600;
+}
+
+.rows {
+  display: grid;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 0.5em;
+}
+
+.done {
+  color: var(--c-blueprint);
+  font-weight: 600;
+  opacity: clamp(
+    0,
+    (var(--p) - var(--s05-record-from-p) - var(--i) * var(--s05-record-step-p)) * 60,
+    1
+  );
+}

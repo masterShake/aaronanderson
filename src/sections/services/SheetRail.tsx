@@ -1,18 +1,21 @@
-import Link from 'next/link'
 import { servicesPage } from '@/content/pages/services'
 import { services } from '@/content/services'
-import { serviceHref } from '@/lib/routes'
+import s from './services.module.css'
 
-/** The jump list to each sheet (sticky rail at 1280 px and up, later; W0 stub; owner: services). */
+/**
+ * The jump list to each sheet, after the schedule: a 2 × 3 grid of links,
+ * never sticky. Shown below 1280 px; from 1280 px the sticky rail inside
+ * ServiceSheets takes over.
+ */
 export function SheetRail() {
   return (
-    <nav aria-label={servicesPage.rail.label} className="wrap">
-      <ul>
-        {services.map((s) => (
-          <li key={s.id}>
-            <Link href={serviceHref(s.id)}>
-              {s.id} · {s.name}
-            </Link>
+    <nav aria-label={servicesPage.rail.jump} className={`wrap ${s.jump}`}>
+      <ul className={s.jumpList}>
+        {services.map((sv) => (
+          <li key={sv.id}>
+            <a href={`#${sv.slug}`} className={s.jumpLink}>
+              {sv.name} <span className={s.jumpId}>{sv.id}</span>
+            </a>
           </li>
         ))}
       </ul>
