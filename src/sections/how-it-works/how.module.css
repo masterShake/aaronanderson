@@ -1,0 +1,111 @@
+/*
+ * How It Works (P-00): the steps beside the sticky ticket figure, the sign-off
+ * detail and its plates, the legend, and the FAQ as an RFI log.
+ * Nothing is sticky below 1024 px.
+ */
+
+/* ── Ticket intro and the steps ─────────────────────────────────────────── */
+.intro {
+  padding-block-end: 0;
+}
+
+.process {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.figureCol {
+  display: none;
+}
+
+.steps {
+  min-width: 0;
+}
+
+.step {
+  display: grid;
+  gap: var(--s-4);
+  align-content: start;
+  max-inline-size: 48rem;
+}
+
+.step + .step {
+  border-block-start: 1px solid var(--c-pencil-faint);
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.stepId {
+  font-family: var(--ff-mono);
+  font-size: 0.55em;
+  letter-spacing: var(--tr-label);
+  vertical-align: 0.2em;
+}
+
+.stampRow {
+  margin: 0;
+}
+
+.still {
+  margin: 0;
+  max-inline-size: 24rem;
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+}
+
+.still img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 400 / 500;
+}
+
+.still figcaption {
+  padding: var(--s-2) var(--s-3);
+  border-block-start: 1px solid var(--c-asphalt);
+  color: var(--c-graphite);
+  font-size: var(--fs-small);
+}
+
+.revisions {
+  padding-block: var(--s-6) var(--section-pad);
+}
+
+@media (min-width: 1024px) {
+  .process {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gutter);
+  }
+
+  .steps {
+    grid-column: 1 / 7;
+    grid-row: 1;
+  }
+
+  .figureCol {
+    display: block;
+    grid-column: 7 / 13;
+    grid-row: 1;
+    padding-block: var(--section-pad);
+  }
+
+  .sticky {
+    position: sticky;
+    top: var(--sticky-top);
+    max-block-size: calc(100svh - var(--header-h) - 48px);
+  }
+
+  /* Keep the whole figure on screen: limit its width by the viewport height. */
+  .sticky > :global(figure) {
+    inline-size: min(100%, calc((100svh - var(--header-h) - 48px - 7rem) * 4 / 3));
+    margin-inline-start: auto;
+  }
+
+  .still {
+    display: none;
+  }
+}
