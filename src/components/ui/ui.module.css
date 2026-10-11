@@ -1,0 +1,112 @@
+/* UI component styles (W0 minimal; owner: kit lane). */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: var(--s-2) var(--s-5);
+  border: 2px solid var(--c-asphalt);
+  border-radius: var(--radius);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--tr-ui);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.book {
+  background: var(--c-orange);
+  color: var(--c-asphalt);
+}
+
+.book:hover {
+  background: var(--c-orange-hover);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--c-asphalt);
+}
+
+.text {
+  border-color: transparent;
+  background: none;
+  color: var(--c-blueprint);
+  padding-inline: 0;
+}
+
+.lg {
+  min-height: 52px;
+  padding-inline: var(--s-6);
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.switch input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--c-asphalt);
+}
+
+.term {
+  position: relative;
+}
+
+.termButton {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-bottom: 1px dashed currentColor;
+  cursor: help;
+}
+
+.termTip {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 100%;
+  z-index: 10;
+  width: max-content;
+  max-width: 32ch;
+  padding: var(--s-2) var(--s-3);
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+  font-size: var(--fs-small);
+}
+
+.toggle {
+  display: inline-flex;
+  border: 2px solid var(--c-asphalt);
+}
+
+.toggle button {
+  min-height: 44px;
+  padding-inline: var(--s-4);
+  border: 0;
+  background: transparent;
+  font-family: var(--ff-ui);
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle button[aria-pressed='true'] {
+  background: var(--c-asphalt);
+  color: var(--c-paper);
+}

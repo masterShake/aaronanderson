@@ -1,0 +1,46 @@
+/* Figure frame (W0 minimal; owner: drawings lane). */
+.fig {
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--c-asphalt);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+}
+
+.box {
+  background: var(--c-blueprint-deep);
+}
+
+.box :global(.drawing),
+.box :global(.drawing) > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.box :global(.drawing) path {
+  fill: none;
+  stroke: var(--c-cyan);
+  stroke-width: calc(var(--pen-050) * var(--k, 1) * 1.4);
+}
+
+.caption {
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-small);
+  color: var(--c-graphite);
+}
