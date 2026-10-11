@@ -104,6 +104,14 @@
   }
 }
 
+/* forced colors drop the pressed fill: an inset ring marks it instead (as ui .toggle does) */
+@media (forced-colors: active) {
+  .seg[aria-pressed='true'] {
+    outline: 2px solid ButtonText;
+    outline-offset: -4px;
+  }
+}
+
 /* Tool buttons over the boxes */
 .tools {
   position: absolute;

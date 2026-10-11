@@ -431,6 +431,7 @@ export function Schematic({
         aria-labelledby={`${p}-tools-l`}
         aria-describedby={`${p}-kbd`}
         className={s.tools}
+        data-roving=""
       >
         {tools.map((t, i) => (
           <button

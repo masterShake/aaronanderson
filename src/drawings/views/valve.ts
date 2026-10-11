@@ -56,15 +56,18 @@ export const VALVE_LAYOUT: Readonly<Record<LayoutId, ValveLayout>> = {
     valve: [600, 290],
     valveDeg: 0,
     person: { feet: [556, 396], k: 1.3 },
+    // reader over the line, its tolerance dial named under it (one row read as one label);
+    // the logbook under the line on the left, wide enough for one row per log line;
+    // APPROVED under the valve, right of the person's hand
     tags: {
       incoming: [34, 128, 160, 0],
       record: [766, 128, 160, 0],
       reader: [256, 70, 170, 0],
-      tolerance: [384, 70, 120, 0],
-      inRange: [446, 104, 80, 0],
+      tolerance: [372, 172, 130, 0],
+      inRange: [452, 100, 120, 0],
       valve: [536, 168, 132, 0],
-      approved: [600, 312, 100, 0],
-      logbook: [712, 206, 236, 0],
+      approved: [620, 312, 120, 0],
+      logbook: [24, 204, 356, 0],
     },
   },
   tall: {

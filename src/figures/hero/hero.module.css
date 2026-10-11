@@ -235,6 +235,8 @@
     filter: opacity(0);
     left: calc(var(--qx) * 1%);
     top: calc(var(--qy) * 1%);
+    translate: var(--qtx, var(--tx, -50%)) -50%;
+    color: var(--c-label-on-deep);
     background-color: var(--c-blueprint-deep);
     inline-size: max-content;
   }
@@ -242,6 +244,8 @@
     filter: opacity(1);
     left: calc(var(--qx) * 1%);
     top: calc(var(--qy) * 1%);
+    translate: var(--qtx, var(--tx, -50%)) -50%;
+    color: var(--c-label-on-deep);
     background-color: var(--c-blueprint-deep);
     inline-size: max-content;
   }
@@ -512,9 +516,24 @@
   animation-play-state: var(--gate);
 }
 
+/* the CAD spec line sits centred on its anchor, on a chip of the panel tone (so a conduit
+   never runs through it), clear of its box: the report's sits under the report */
 .hero .spec {
+  align-self: center;
+  padding: 0 3px;
+  background-color: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
   white-space: nowrap;
   animation: fadein 160ms linear var(--ts) both;
+  animation-play-state: var(--gate);
+}
+
+/* the owner's report box is orange on the plan: its name stays dark there */
+.hero .tool.lab[data-anchor='tool.report'] {
+  color: var(--c-asphalt);
+  animation:
+    labpop var(--hero-pop-dur) var(--ease-settle) var(--t) both,
+    labiso 500ms linear var(--hero-idle-at) both;
   animation-play-state: var(--gate);
 }
 
@@ -651,6 +670,16 @@
     font-size: 9px;
     letter-spacing: 0.02em;
   }
+
+  .hero.hero[data-labels='iso'] .lab[data-anchor] .sub {
+    display: none;
+  }
+
+  /* one line, shifted by its projected position so it stays inside the frame */
+  .hero.hero[data-labels='iso'] .lab[data-anchor] {
+    max-inline-size: none;
+    translate: calc(var(--ix, 50%) * -1) -50%;
+  }
 }
 
 /* ── WebGL: the canvas carries the machine; beats drive the chip ─────────────────── */
@@ -688,7 +717,9 @@
   background-color: var(--c-blueprint-deep);
 }
 
-.hero[data-labels='iso'] .lab[data-anchor] .sub {
+/* the AI reader and sign-off keep their sub-lines on the 3D model (D2 A steps 4 and 7);
+   the store's sub-line only repeats the tank's DATA */
+.hero[data-labels='iso'] .lab[data-anchor='sym.store'] .sub {
   display: none;
 }
 
@@ -702,7 +733,8 @@
 .hero.hero[data-medium='webgl'][data-rev='rewired'] .chip1,
 .hero.hero[data-medium='webgl'][data-rev='running'] .chip2,
 .hero.hero[data-medium='webgl'][data-rev='done'] .chip3,
-.hero.hero[data-medium='webgl'][data-rev='done'] .again {
+.hero.hero[data-medium='webgl'][data-rev='done'] .again,
+.hero.hero[data-medium='webgl'][data-rev='done'] .idle {
   visibility: visible;
 }
 
@@ -808,9 +840,46 @@
 }
 
 @container fig (width < 520px) {
+  /* the tall print leaves its upper left empty: the inset sits there, clear of the model */
   .inset {
-    inline-size: 38%;
+    inset-block: 2% auto;
+    inline-size: 25%;
     aspect-ratio: var(--vbw-t) / var(--vbh-t);
+  }
+
+  /* the small inset's drawing fills it: its tag sits under it, on the print */
+  .insetTag {
+    inset-block-start: calc(100% + 4px);
+    inset-inline-start: 0;
+    color: var(--c-label-on-deep);
+  }
+
+  /* Tall iso print (svg idle and still): one line per label, 9 px, no sub-lines, and each
+     label shifted by its own position (0% at the left edge, 100% at the right) so it never
+     leaves the frame. */
+  .hero .lab[data-anchor] {
+    --qtx: calc(var(--qx) * -1%);
+  }
+
+  .hero .lab[data-anchor] .sub {
+    animation: labout 200ms linear var(--hero-idle-at) both;
+    animation-play-state: var(--gate);
+  }
+
+  :global(html[data-tier='still'])
+    .hero.hero:not([data-user-play])
+    :global(.labels)
+    > .lab[data-anchor],
+  .hero.hero[data-phase='still']:not([data-user-play]) :global(.labels) > .lab[data-anchor] {
+    max-inline-size: none;
+    translate: var(--qtx) -50%;
+    font-size: 9px;
+    letter-spacing: 0.02em;
+  }
+
+  :global(html[data-tier='still']) .hero.hero:not([data-user-play]) .lab[data-anchor] .sub,
+  .hero.hero[data-phase='still']:not([data-user-play]) .lab[data-anchor] .sub {
+    display: none;
   }
 }
 

@@ -165,6 +165,7 @@ export function S04Figure() {
       controls={{
         replay: true,
         playDrawing: true,
+        motion: true,
         extra: copy.controls.runAgain ? (
           <button type="button" data-action="run-again" className={s.runAgain}>
             {copy.controls.runAgain}

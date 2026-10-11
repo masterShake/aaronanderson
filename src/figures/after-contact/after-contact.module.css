@@ -7,12 +7,17 @@
   color: var(--c-cyan);
 }
 
-.label {
-  max-inline-size: 18%;
+/* each name sits centred inside its node (lx/ly are the node centres) */
+.fig.fig .label {
+  inline-size: max-content;
+  max-inline-size: 15%;
+  translate: -50% -50%;
   color: var(--c-label-on-deep);
+  text-align: center;
   text-transform: uppercase;
+  white-space: normal;
 }
 
-.fig:global([data-family='tall']) .label {
-  max-inline-size: 48%;
+.fig.fig:global([data-family='tall']) .label {
+  max-inline-size: 34%;
 }
