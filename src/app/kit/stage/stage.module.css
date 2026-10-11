@@ -1,0 +1,37 @@
+/* The /kit/stage demo figure (preview only). One CSS px per viewBox unit. */
+.fig.fig {
+  margin: 0;
+  inline-size: min(100%, var(--demo-w));
+}
+
+.fig .box.box {
+  position: relative;
+  aspect-ratio: var(--vbw) / var(--vbh);
+  overflow: clip;
+  background: var(--c-blueprint-deep);
+}
+
+.fig .box :global(.drawing),
+.fig .box :global(.drawing) > svg,
+.fig .box > :global(.slot),
+.fig .box > :global(.labels) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cad {
+  display: block;
+}
+
+/* The canvas carries the drawing once the hand-off is done; the SVG returns on hand-back. */
+.fig:global([data-stage='webgl']) .cad {
+  visibility: hidden;
+}
+
+.caption {
+  margin-block-start: var(--s-2);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+}
