@@ -67,7 +67,7 @@ export function ValveFigure({ className }: { className?: string } = {}) {
         <span className={s.logTitle}>{l.logbook}</span>
         <ol className={s.log}>
           {LOG.map((key, i) => (
-            <li key={i} className={s.logLine} data-line={i + 1}>
+            <li key={i} className={s.logLine} data-line={i + 1} value={i + 1}>
               {copy.ui[key]}
             </li>
           ))}

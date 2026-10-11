@@ -236,6 +236,12 @@
   color: var(--c-cyan);
 }
 
+/* a dial reading and a stamp never break */
+.valve .label:is(.small, .approved) {
+  max-inline-size: none;
+  white-space: nowrap;
+}
+
 .approved {
   justify-self: start;
   padding: 2px 6px;
@@ -243,11 +249,17 @@
   background: var(--c-blueprint-deep);
 }
 
+/* the log prints small, one row per line where the card allows (it is the widest label) */
 .logbook {
   gap: 4px;
   padding: 6px 8px;
   border: 1px solid var(--c-cyan-dim);
   background: var(--c-blueprint-deep);
+}
+
+.valve .label.logbook {
+  font-size: clamp(9px, 1.3cqi, 11px);
+  letter-spacing: 0.02em;
 }
 
 .logTitle {
@@ -256,6 +268,13 @@
 
 .log {
   margin: 0;
-  padding-inline-start: 2.6em;
+  padding-inline-start: 2.4em;
   list-style: decimal-leading-zero;
+}
+
+/* a narrow wide drawing has room for the last three lines only (numbers kept by value) */
+@container fig (560px <= width < 720px) {
+  .logLine:is([data-line='1'], [data-line='2']) {
+    display: none;
+  }
 }

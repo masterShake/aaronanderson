@@ -38,6 +38,73 @@ test('Replay restarts the sequence for this figure only', async ({ page }) => {
   expect(stored).toBeNull()
 })
 
+/**
+ * craft-14: on the final frame every label sits apart from the others and inside the drawing;
+ * IN RANGE and APPROVED stay on one line; the LOGBOOK card fits inside the panel. The still
+ * tier (reduced motion) rests on that frame, so no waiting.
+ */
+for (const [path, width] of [
+  ['/how-it-works', 1280],
+  ['/how-it-works', 1440],
+  ['/kit/fig/valve', 768],
+] as const) {
+  test(`final frame @${width} ${path}: labels apart, inside, logbook fits`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto(`${path}?tier=still`)
+    const fig = page.locator('#fig-valve')
+    await fig.scrollIntoViewIfNeeded()
+    await page.evaluate(() => document.fonts.ready.then(() => undefined))
+    await expect(fig).toHaveAttribute('data-phase', 'still')
+    const { labels, box } = await fig.evaluate((f) => {
+      const b = f.querySelector('.box')!.getBoundingClientRect()
+      const labels = [...f.querySelectorAll<HTMLElement>('[data-label]')]
+        .filter((el) => el.checkVisibility({ visibilityProperty: true }))
+        .map((el) => {
+          const r = el.getBoundingClientRect()
+          const lh = parseFloat(getComputedStyle(el).lineHeight) || 16
+          const pad = parseFloat(getComputedStyle(el).paddingTop) * 2
+          return {
+            k: el.dataset.label!,
+            at: [r.left - b.left, r.top - b.top, r.right - b.left, r.bottom - b.top],
+            rows: Math.round((r.height - pad) / lh),
+          }
+        })
+      return { labels, box: [b.width, b.height] }
+    })
+    const bad: string[] = []
+    for (const [i, a] of labels.entries()) {
+      if (
+        a.at[0]! < -0.5 ||
+        a.at[1]! < -0.5 ||
+        a.at[2]! > box[0]! + 0.5 ||
+        a.at[3]! > box[1]! + 0.5
+      )
+        bad.push(`${a.k}: outside the drawing`)
+      if ((a.k === 'inRange' || a.k === 'approved') && a.rows > 1) bad.push(`${a.k}: wraps`)
+      for (const b of labels.slice(i + 1)) {
+        const x = Math.min(a.at[2]!, b.at[2]!) - Math.max(a.at[0]!, b.at[0]!)
+        const y = Math.min(a.at[3]!, b.at[3]!) - Math.max(a.at[1]!, b.at[1]!)
+        // labels in one row read as one unless 12 px apart
+        if (x > -12 && y > 0.5) bad.push(`${a.k} × ${b.k}`)
+      }
+    }
+    // at desktop sizes the short log lines print on one row each (the held line may wrap)
+    if (width >= 1280) {
+      const rows = await fig.locator('[data-line]').evaluateAll((els) =>
+        els.map((el) => {
+          const r = document.createRange()
+          r.selectNodeContents(el)
+          const ys = new Set([...r.getClientRects()].map((q) => Math.round(q.top)))
+          return [el.getAttribute('data-line'), ys.size] as const
+        }),
+      )
+      expect(rows.filter(([n, c]) => n !== '4' && c > 1)).toEqual([])
+    }
+    expect(bad).toEqual([])
+  })
+}
+
 test('reduced motion rests on the final frame and offers Play the drawing', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/kit/fig/valve')
