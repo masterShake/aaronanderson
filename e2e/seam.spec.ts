@@ -2,7 +2,14 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import type { SeamScene } from './helpers/seam'
 import { DEMO_VIEWBOX, demoProbes } from '../src/app/kit/stage/demo-plan'
+import { SHIP } from '../src/stage/gates'
+import { SEAM as hero } from '../src/figures/hero/seam'
+import { SEAM as s02 } from '../src/figures/s02/seam'
+import { SEAM as s03 } from '../src/figures/s03/seam'
+import { SEAM as s04 } from '../src/figures/s04/seam'
+import { SEAM as s06 } from '../src/figures/s06/seam'
 
 /**
  * The seam (stage-hero §5.1, §B10): at the hand-off frame the WebGL canvas
@@ -10,9 +17,12 @@ import { DEMO_VIEWBOX, demoProbes } from '../src/app/kit/stage/demo-plan'
  *   strict: pixels with max |ΔRGB| > 24          ≤ 0.60% of the art box
  *   tolerant: no pixel within 24 in the other image's 3×3 neighbourhood  ≤ 0.05%
  *   line-centre probes ≤ 6 per channel; panel probes ≤ 2
- * W2 scene lanes add their scenes to SCENES below.
+ * Each scene's entry lives in src/figures/<id>/seam.ts, owned by its figure lane (null until
+ * the scene hands off). Scenes still gated to 'svg' in src/stage/gates.ts run only when named
+ * in SEAM_SCENES (comma list, or 'all'), with ?ship=<scene>.
  *
  *   npm run seam      (ARTIFACTS_DIR=… also keeps the PNGs and seam.json)
+ *   SEAM_SCENES=s04 npm run seam
  */
 
 const SIZES = [
@@ -20,15 +30,26 @@ const SIZES = [
   { name: '1280@1', viewport: { width: 1280, height: 800 }, dpr: 1 },
 ] as const
 
-const SCENES = [
-  {
-    scene: '_demo',
-    path: '/kit/stage',
-    figure: '#fig-stage-demo',
-    viewBox: DEMO_VIEWBOX,
-    probes: demoProbes(),
-  },
-] as const
+const DEMO: SeamScene = {
+  scene: '_demo',
+  path: '/kit/stage',
+  figure: '#fig-stage-demo',
+  viewBox: DEMO_VIEWBOX,
+  probes: demoProbes(),
+}
+
+const gated = (scene: string) => scene in SHIP && SHIP[scene as keyof typeof SHIP] !== 'webgl'
+const asked = new Set((process.env.SEAM_SCENES ?? '').split(',').filter(Boolean))
+
+const SCENES: readonly SeamScene[] = [DEMO, hero, s02, s03, s04, s06]
+  .filter((sc): sc is SeamScene => sc !== null)
+  .filter((sc) => !gated(sc.scene) || asked.has(sc.scene) || asked.has('all'))
+
+const url = (sc: SeamScene) => {
+  const q = new URLSearchParams({ tier: 'webgl' })
+  if (gated(sc.scene)) q.set('ship', sc.scene)
+  return `${sc.path}?${q}`
+}
 
 const LIMIT = { strict: 0.006, tolerant: 0.0005, line: 6, panel: 2 }
 
@@ -125,7 +146,7 @@ for (const size of SIZES) {
     test.use({ viewport: size.viewport, deviceScaleFactor: size.dpr })
     for (const sc of SCENES) {
       test(`seam ${sc.scene} at ${size.name}`, async ({ page, guard }) => {
-        await page.goto(`${sc.path}?tier=webgl`)
+        await page.goto(url(sc))
         await page.evaluate((s) => window.__aeStage!.holdAtHandoff(s as never), sc.scene)
         const box = page.locator(`${sc.figure} .box`)
         await box.scrollIntoViewIfNeeded()

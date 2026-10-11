@@ -363,6 +363,7 @@
 .dim {
   --tick: 10px;
   position: relative;
+  min-inline-size: 0;
   padding-block: calc(var(--tick) + 2px) var(--s-1);
   color: var(--c-asphalt);
 }
@@ -449,16 +450,18 @@
   block-size: 4px;
 }
 
+/* The label starts under its line, but never so far in that a long label runs off a
+   narrow container: at least 60% of the width stays for the text, which wraps if it must. */
 .dimLabel {
   display: block;
-  margin-inline-start: var(--a);
+  margin-inline-start: min(var(--a), 40%);
   padding-block-start: var(--s-1);
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 /* ── Dimension chain (process strip) ─────────────────────────────────────── */
@@ -843,6 +846,12 @@
 
 .glyph .rl {
   stroke: var(--c-redline);
+}
+
+/* As a grid or flex item the legend may shrink below its table, so the table scrolls inside
+   its .scroll region instead of widening the page. */
+.legend {
+  min-inline-size: 0;
 }
 
 .glossary {

@@ -39,7 +39,7 @@ export const ui = localFont({
 export const mono = localFont({
   src: './fonts/martian-mono-semicondensed-400-600.latin.woff2',
   weight: '400 600',
-  display: 'swap',
+  display: 'optional',
   preload: false,
   variable: '--font-mono',
 })

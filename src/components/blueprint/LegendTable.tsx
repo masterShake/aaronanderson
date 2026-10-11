@@ -100,7 +100,7 @@ export function LegendTable({
   compact?: boolean
 }) {
   return (
-    <div data-compact={compact ? '' : undefined}>
+    <div className={s.legend} data-compact={compact ? '' : undefined}>
       <div
         className="scroll"
         tabIndex={0}
