@@ -1,26 +1,24 @@
 'use client'
-import Link, { type LinkProps } from 'next/link'
-import type { Route } from 'next'
-import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { transitionTypes } from '@/lib/routes'
+import { IntentLink, type IntentLinkProps } from '@/components/ui/IntentLink.client'
 
-/** A Link that prints the next sheet forward or back, by reading order. */
+/** A Link that prints the next sheet forward or back, by reading order (prefetched on intent). */
 export function SheetLink({
   href,
   children,
   className,
   ...rest
-}: Omit<LinkProps<Route>, 'href'> & { href: Route; children: ReactNode; className?: string }) {
+}: IntentLinkProps & { className?: string }) {
   const pathname = usePathname()
   return (
-    <Link
+    <IntentLink
       href={href}
       className={className}
       transitionTypes={transitionTypes(pathname, href)}
       {...rest}
     >
       {children}
-    </Link>
+    </IntentLink>
   )
 }

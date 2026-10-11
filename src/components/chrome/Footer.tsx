@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { site } from '@/content/site'
 import { fact, resolveHeld } from '@/content/hold'
 import { HeldText } from '@/components/ui/HeldText'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import { BookCallButton } from '@/components/ui/BookCallButton'
 import { MotionSwitch } from '@/components/ui/MotionSwitch'
 import { GeneralNotes } from '@/components/blueprint/GeneralNotes'
@@ -32,9 +32,9 @@ export function Footer() {
               <ul>
                 {site.nav.map((it) => (
                   <li key={it.page}>
-                    <Link href={it.href}>
+                    <IntentLink href={it.href}>
                       <span className={s.indexSheet}>{it.sheet}</span> {it.label}
-                    </Link>
+                    </IntentLink>
                   </li>
                 ))}
               </ul>

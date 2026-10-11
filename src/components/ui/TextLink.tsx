@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
 import type { Route } from 'next'
 import type { Href } from '@/content/types'
+import { IntentLink } from './IntentLink.client'
 import s from './ui.module.css'
 
 /**
@@ -19,9 +19,9 @@ export function TextLink({
 }) {
   if (href.startsWith('/'))
     return (
-      <Link href={href as Route} className={s.link}>
+      <IntentLink href={href as Route} className={s.link}>
         {children}
-      </Link>
+      </IntentLink>
     )
   return (
     <a

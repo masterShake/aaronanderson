@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { site } from '@/content/site'
 import { BookCallButton } from '@/components/ui/BookCallButton'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import { MotionSwitch } from '@/components/ui/MotionSwitch'
 import { NavLinks } from './NavLinks.client'
 import { SheetChip } from './SheetChip.client'
@@ -18,10 +18,10 @@ export function Header() {
   return (
     <header className={s.header}>
       <div className={`${s.bar} wrap`}>
-        <Link href="/" className={s.brand} aria-label={site.header.home}>
+        <IntentLink href="/" className={s.brand} aria-label={site.header.home}>
           <Wordmark size="header" mark />
           <SheetChip items={site.nav} />
-        </Link>
+        </IntentLink>
         <nav aria-label={site.header.navLabel} className={s.wide}>
           <NavLinks items={site.nav} variant="bar" />
         </nav>

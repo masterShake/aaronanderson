@@ -1,9 +1,9 @@
 'use client'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { MouseEvent } from 'react'
 import type { NavItem } from '@/content/types'
 import { transitionTypes } from '@/lib/routes'
+import { IntentLink } from '@/components/ui/IntentLink.client'
 import s from './chrome.module.css'
 
 /** Closes the menu popover after a sheet is picked (a soft navigation never light-dismisses it). */
@@ -31,7 +31,7 @@ export function NavLinks({
     <ul className={menu ? s.menuList : s.barList} data-variant={variant}>
       {items.map((it, i) => (
         <li key={it.page}>
-          <Link
+          <IntentLink
             href={it.href}
             className={s.navLink}
             aria-current={pathname === it.href ? 'page' : undefined}
@@ -44,7 +44,7 @@ export function NavLinks({
                 {it.sheet} · {it.sheetTitle}
               </span>
             ) : null}
-          </Link>
+          </IntentLink>
         </li>
       ))}
     </ul>

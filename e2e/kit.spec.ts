@@ -369,6 +369,22 @@ test('404 sheet: one H1, links to all five sheets, Book a call, static cloud', a
   }
 })
 
+// ── Intent prefetch (§B10 initial JS, W2 handover #1) ────────────────────────
+test('links to other sheets prefetch on intent, never on viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  const prefetched: string[] = []
+  page.on('request', (r) => {
+    if (r.headers()['next-router-prefetch']) prefetched.push(new URL(r.url()).pathname)
+  })
+  await page.goto('/about', { waitUntil: 'load' })
+  await page.waitForTimeout(2500)
+  expect(prefetched, 'nothing prefetched before load + 2.5 s').toEqual([])
+  await page.locator('header').getByRole('link', { name: BOOK }).hover()
+  await expect.poll(() => prefetched.some((p) => p.startsWith('/contact'))).toBe(true)
+  await page.locator('header nav a[href="/services"]').filter({ visible: true }).first().focus()
+  await expect.poll(() => prefetched.some((p) => p.startsWith('/services'))).toBe(true)
+})
+
 // ── Term toggletip (WCAG 1.4.13) ─────────────────────────────────────────────
 test('term toggletip is hoverable, persistent and dismissible', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
