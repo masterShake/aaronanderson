@@ -474,6 +474,29 @@ test('axe: no serious or critical issues on /kit and the five sheets', async ({ 
   expect(failing, JSON.stringify(failing, null, 2)).toEqual([])
 })
 
+// ── Mono fallback (D7) ───────────────────────────────────────────────────────
+test('mono labels stay monospace when Martian Mono misses a cold visit', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 })
+  // display: optional gives up on a font that is not ready at first paint; never serving it
+  // reproduces that cold visit.
+  await page.route(/martian-mono-semicondensed.*\.woff2$/, (r) => r.abort())
+  await page.goto('/services')
+  const chip = page.locator('header > div > a[href="/"] > :last-child')
+  await expect(chip).toBeVisible()
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('DOM.enable')
+  await cdp.send('CSS.enable')
+  const { root } = await cdp.send('DOM.getDocument', { depth: 0 })
+  const { nodeId } = await cdp.send('DOM.querySelector', {
+    nodeId: root.nodeId,
+    selector: 'header > div > a[href="/"] > :last-child',
+  })
+  const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId })
+  const used = fonts.map((f) => f.familyName)
+  record('mono-fallback', { used })
+  expect(used.join(', ')).not.toMatch(/arial|helvetica/i)
+})
+
 // ── 12. Layout shift ─────────────────────────────────────────────────────────
 test('CLS on / at 390 (still tier, fonts arriving late) stays at or under 0.05', async ({
   page,
