@@ -23,6 +23,8 @@ export function CrewCard({
   const c = about.crew
   const H = level === 3 ? 'h3' : 'h4'
   const name = resolveHeld(p.name)
+  // In production, a name and a role both still held leave nothing to head the card with.
+  const showHead = name.show !== 'omit' || resolveHeld(p.role).show !== 'omit'
   const photo = resolveHeld(p.photo)
   const bio = compact ? p.oneLine : p.bio
   const showBio = resolveHeld(bio).show !== 'omit'
@@ -43,16 +45,18 @@ export function CrewCard({
         ) : null}
       </div>
       <div className={s.cells}>
-        <div className={s.cell}>
-          <H className={s.name}>
-            {name.show === 'omit' ? <HeldText value={p.role} /> : <HeldText value={p.name} />}
-          </H>
-          {name.show !== 'omit' ? (
-            <p className={s.role}>
-              <HeldText value={p.role} />
-            </p>
-          ) : null}
-        </div>
+        {showHead ? (
+          <div className={s.cell}>
+            <H className={s.name}>
+              {name.show === 'omit' ? <HeldText value={p.role} /> : <HeldText value={p.name} />}
+            </H>
+            {name.show !== 'omit' ? (
+              <p className={s.role}>
+                <HeldText value={p.role} />
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {showBio ? (
           <div className={s.cell}>
             <p className={s.bio}>
