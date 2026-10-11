@@ -1,0 +1,201 @@
+/*
+ * The ticket figure: which revision shows. The figure's data-rev (rev0 to
+ * rev4) is written by the frozen step driver; nothing shared keys off it, so
+ * this module shows the matching CAD group, labels and still. The REV 0 pencil
+ * survey stays under every revision. Timing comes from TICKET (--ticket-*).
+ */
+
+/* ── Drawing groups: the current revision's CAD group shows ─────────────── */
+.ticket :global(.l-cad g[data-rev]) {
+  transition:
+    opacity var(--ticket-rev-switch, 600ms) var(--ease-machine, ease),
+    visibility var(--ticket-rev-switch, 600ms),
+    translate var(--ticket-tracing, 600ms) var(--ease-settle, ease);
+}
+
+.ticket:global([data-rev='rev0']) :global(.l-cad g[data-rev]),
+.ticket:global([data-rev='rev1']) :global(.l-cad g[data-rev]:not([data-rev='rev1'])),
+.ticket:global([data-rev='rev2']) :global(.l-cad g[data-rev]:not([data-rev='rev2'])),
+.ticket:global([data-rev='rev3']) :global(.l-cad g[data-rev]:not([data-rev='rev3'])),
+.ticket:global([data-rev='rev4']) :global(.l-cad g[data-rev]:not([data-rev='rev4'])) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* REV 1: the tracing paper slides in from the right. */
+.ticket:not(:global([data-rev='rev1'])) :global(.l-cad g[data-rev='rev1']) {
+  translate: 40% 0;
+}
+
+/* REV 3 on: the old photo route is erased to a ghost. */
+.ticket :global(.l-pencil [data-part='r2']) {
+  transition: opacity var(--ticket-erase, 240ms) var(--ease-machine, ease);
+}
+
+.ticket:is(:global([data-rev='rev3']), :global([data-rev='rev4']))
+  :global(.l-pencil [data-part='r2']) {
+  opacity: var(--pencil-ghost, 0.22);
+}
+
+/* REV 2: the test packets run the line once. */
+.ticket:global([data-rev='rev2']) :global(.pkt) {
+  animation: ticket-run var(--ticket-packets, 2400ms) linear both;
+  animation-play-state: var(--gate, running);
+}
+
+@keyframes ticket-run {
+  from {
+    opacity: 0;
+    translate: -6% 0;
+  }
+  10% {
+    opacity: 1;
+  }
+}
+
+/* REV 3: the documents fan out from the right edge. */
+.ticket:global([data-rev='rev3']) :global(.doc) {
+  animation: ticket-fan var(--ticket-fan, 300ms) var(--ease-settle, ease) both;
+}
+
+@keyframes ticket-fan {
+  from {
+    opacity: 0;
+    translate: 12% 0;
+  }
+}
+
+/* REV 4: the flange pulses twice. */
+.ticket:global([data-rev='rev4']) :global(.pulse) {
+  animation: ticket-pulse var(--ticket-pulse, 500ms) var(--ease-machine, ease) 2 both;
+}
+
+@keyframes ticket-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Fills: the shared rule that clears unfilled shapes outranks the f-* classes,
+   so the panel, the boxes and the cut-outs restate theirs here. */
+.ticket.ticket :global(.box path.f-paper) {
+  fill: var(--c-paper);
+}
+
+.ticket.ticket :global(.box path.f-panel) {
+  fill: var(--panel);
+}
+
+.ticket.ticket :global(.box path.f-deep) {
+  fill: var(--c-blueprint-deep);
+}
+
+.ticket.ticket :global(.box path.f-cyan) {
+  fill: var(--c-cyan);
+}
+
+.ticket.ticket :global(.box path.f-cyan-dim) {
+  fill: var(--c-cyan-dim);
+}
+
+.ticket.ticket :global(.box path.o-55) {
+  opacity: 0.55;
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+.ticket .label {
+  inline-size: fit-content;
+  max-inline-size: calc(var(--lw, 20) * 1%);
+  white-space: normal;
+  overflow-wrap: break-word;
+  color: var(--c-asphalt);
+  transition:
+    opacity var(--ticket-rev-switch, 600ms) var(--ease-machine, ease),
+    visibility var(--ticket-rev-switch, 600ms);
+}
+
+@container fig (width < 560px) {
+  .ticket .label {
+    max-inline-size: calc(var(--lwt, var(--lw, 20)) * 1%);
+  }
+
+  .label[data-fam='wide'] {
+    display: none;
+  }
+}
+
+@container fig (width >= 560px) {
+  .label[data-fam='tall'] {
+    display: none;
+  }
+}
+
+.ticket:global([data-rev='rev0']) .label:not([data-revs~='rev0']),
+.ticket:global([data-rev='rev1']) .label:not([data-revs~='rev1']),
+.ticket:global([data-rev='rev2']) .label:not([data-revs~='rev2']),
+.ticket:global([data-rev='rev3']) .label:not([data-revs~='rev3']),
+.ticket:global([data-rev='rev4']) .label:not([data-revs~='rev4']) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Under the tracing paper, the old drawing's words fade with it. */
+.ticket:global([data-rev='rev1']) .label[data-tone='ink'][data-revs='rev0 rev1'] {
+  color: var(--c-graphite);
+}
+
+.label[data-tone='new'] {
+  color: var(--c-blueprint);
+  background: var(--c-paper);
+}
+
+.ticket:is(:global([data-rev='rev2']), :global([data-rev='rev3']), :global([data-rev='rev4']))
+  .label[data-tone='new'] {
+  color: var(--c-label-on-deep);
+  background: var(--c-blueprint-deep);
+}
+
+.label[data-tone='red'] {
+  color: var(--c-redline);
+  background: var(--c-paper);
+}
+
+.label[data-tone='hand'] {
+  color: var(--c-graphite);
+}
+
+.label[data-tone='doc'] {
+  display: grid;
+  gap: 2px;
+  color: var(--c-asphalt);
+}
+
+.label[data-tone='doc'][data-label='punch'] {
+  padding: 4px 6px;
+  background: var(--c-paper);
+}
+
+.tick::before {
+  content: '✓ ';
+  color: var(--c-blueprint);
+}
+
+.ticket:global([data-rev='rev3']) .tick {
+  animation: ae-fade var(--ticket-tick, 200ms) var(--ease-ui, ease)
+    calc(var(--ticket-fan, 300ms) + var(--i, 0) * var(--ticket-tick, 200ms)) both;
+}
+
+/* ── Stills: one per revision and family; the current one shows ────────── */
+.ticket:global([data-rev='rev0']) :global(img.still-img[data-rev]:not([data-rev='rev0'])),
+.ticket:global([data-rev='rev1']) :global(img.still-img[data-rev]:not([data-rev='rev1'])),
+.ticket:global([data-rev='rev2']) :global(img.still-img[data-rev]:not([data-rev='rev2'])),
+.ticket:global([data-rev='rev3']) :global(img.still-img[data-rev]:not([data-rev='rev3'])),
+.ticket:global([data-rev='rev4']) :global(img.still-img[data-rev]:not([data-rev='rev4'])) {
+  display: none;
+}
+
+/* The wide stills stack in the box; their family rules come from the frame. */
+.ticket :global(.still-wrap img.still-img) {
+  position: absolute;
+  inset: 0;
+}
