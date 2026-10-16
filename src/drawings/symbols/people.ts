@@ -362,7 +362,8 @@ export const POSES: Readonly<Partial<Record<SymbolId, Pose>>> = {
     props: ['stamp', 'stool', 'desk'],
   },
   'fig.walking': { armFar: [16, 10], armNear: [-16, 14], legFar: [-18, 6], legNear: [18, 12] },
-  'fig.survey': { lean: 8, armFar: [18, 30], armNear: [48, 20], legFar: [-8, 0], legNear: [12, 4] },
+  // the far arm hangs behind the body: half-raised, its forearm read as a stray stub
+  'fig.survey': { lean: 8, armFar: [6, 10], armNear: [48, 20], legFar: [-8, 0], legNear: [12, 4] },
   'fig.receive': {
     armFar: [56, 22],
     armNear: [64, 16],
