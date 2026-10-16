@@ -30,8 +30,8 @@ export function HeroFigure() {
   const tall = heroBuild('tall')
   const c = counts(heroGraph('wide'), 'asFound')
   const [, , ww, wh] = HERO_VIEWBOX.wide
-  const [vx, vy] = wide.valve
-  const [vxt, vyt] = tall.valve
+  const [vx, vy] = wide.approved
+  const [vxt, vyt] = tall.approved
   const r = wide.report
   const rt = tall.report
   const vars = {
@@ -88,13 +88,13 @@ export function HeroFigure() {
       labels={
         <>
           <HeroLabels wide={wide} tall={tall} copy={copy} />
-          {/* wide: under the line, right of the AI reader's label and below accounting */}
-          <span className={s.approved} style={box(vx + 100, vy + 90, vxt + 56, vyt - 6)}>
+          {/* beside the person at the valve, under the sign-off label */}
+          <span className={s.approved} style={box(vx, vy, vxt, vyt)}>
             {copy.ui.approved}
           </span>
           <span
             className={s.report}
-            style={box(r.at[0] - r.w / 4, r.at[1] + 6, rt.at[0] - rt.w / 4, rt.at[1] + 4)}
+            style={box(r.at[0] - r.w / 4, r.at[1] + 6, rt.at[0] + rt.w * 0.37, rt.at[1] + 4)}
           />
           <span className={s.idle}>{copy.ui.idle}</span>
           <span className={s.clock} data-clock="" />

@@ -115,9 +115,17 @@
   }
 }
 
+/* The ERASE ghost exists only during the scan beat: the pencil fades to a ghost as the bar
+   crosses, and the ghost is gone by the end of the beat (REV 1), long before REV 2. */
 @keyframes erase {
-  to {
+  0% {
+    opacity: 1;
+  }
+  70% {
     opacity: var(--pencil-ghost, 0.22);
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -276,6 +284,10 @@
   fill: var(--c-paper);
 }
 
+.hero.hero :global(.box) :global(.f-cyan) {
+  fill: var(--c-cyan);
+}
+
 .hero.hero :global(.box) :global(.f-orange) {
   fill: var(--c-orange);
 }
@@ -357,6 +369,13 @@
   animation-play-state: var(--gate);
 }
 
+.hero :global(.drawing .k-box .glyph) {
+  animation: fadein var(--hero-tool-dur) var(--ease-pencil)
+    calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap) + var(--hero-tool-dur) / 2)
+    both;
+  animation-play-state: var(--gate);
+}
+
 .hero :global(.drawing .k-box .f-paper) {
   animation: fadein var(--hero-tool-dur) var(--ease-pencil)
     calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap)) both;
@@ -433,6 +452,8 @@
   --py: var(--ly);
   --qx: var(--jx, var(--lx));
   --qy: var(--jy, var(--ly));
+  --t: var(--tw);
+  --ts: var(--tsw);
   translate: var(--tx, -50%) -50%;
   padding: 0 3px;
   color: var(--c-graphite);
@@ -469,11 +490,16 @@
   animation-play-state: var(--gate);
 }
 
+/* A tool's name sits on its name plate (right of the glyph) and never leaves it: it breaks only
+   between words, never inside one or inside a file name. */
 .hero .tool {
-  inline-size: 19%;
-  font-size: clamp(9px, 1.25cqi, 12px);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+  inline-size: calc(var(--pw, 15) * 1%);
+  padding: 0 5px;
+  font-size: clamp(9px, 1.2cqi, 12px);
+  line-height: 1.15;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .hero .sym,
@@ -481,10 +507,6 @@
   font-size: clamp(9px, 1.15cqi, 11px);
   line-height: 1.2;
   white-space: nowrap;
-}
-
-.hero .place {
-  --tx: 0%;
 }
 
 .hero .sub {
@@ -495,17 +517,12 @@
   opacity: 0.85;
 }
 
+/* Hand notes: one line each, in margin space, gone as the scan crosses them. */
 .hero .noteWrap {
   display: grid;
   inline-size: max-content;
-  max-inline-size: 30%;
   font-size: clamp(9px, 1.15cqi, 11px);
-}
-
-.hero .note,
-.hero .spec {
-  grid-area: 1 / 1;
-  justify-self: center;
+  white-space: nowrap;
 }
 
 .hero .note {
@@ -513,18 +530,6 @@
   animation:
     reveal var(--hero-note-dur) var(--ease-pencil) var(--t) both,
     labout 160ms linear var(--ts) both;
-  animation-play-state: var(--gate);
-}
-
-/* the CAD spec line sits centred on its anchor, on a chip of the panel tone (so a conduit
-   never runs through it), clear of its box: the report's sits under the report */
-.hero .spec {
-  align-self: center;
-  padding: 0 3px;
-  background-color: var(--c-blueprint-deep);
-  color: var(--c-label-on-deep);
-  white-space: nowrap;
-  animation: fadein 160ms linear var(--ts) both;
   animation-play-state: var(--gate);
 }
 
@@ -551,7 +556,7 @@
 }
 
 .hero .report {
-  inline-size: clamp(22px, 4cqi, 40px);
+  inline-size: clamp(24px, 5cqi, 48px);
   aspect-ratio: 3 / 4;
   border: 1px solid var(--c-asphalt);
   background:
@@ -651,14 +656,12 @@
     --py: var(--lyt, var(--ly));
     --qx: var(--jxt, var(--lxt, var(--lx)));
     --qy: var(--jyt, var(--lyt, var(--ly)));
+    --t: var(--tt, var(--tw));
+    --ts: var(--tst, var(--tsw));
   }
 
   .hero .tool {
-    inline-size: 36%;
-  }
-
-  .hero .noteWrap {
-    max-inline-size: 45%;
+    inline-size: calc(var(--pwt, 30) * 1%);
   }
 
   .hero.hero [data-wide-only] {
@@ -692,7 +695,9 @@
 }
 
 /* the hand-off: the cut-outs fade with the CAD layer while the canvas fades in */
-.hero[data-stage='handoff'] :global(.drawing) :is(:global(.k-cut), :global(.l-pkt)) {
+.hero[data-stage='handoff']
+  :global(.drawing)
+  :is(:global(.k-cut), :global(.k-lead), :global(.l-pkt)) {
   visibility: hidden;
 }
 
@@ -896,7 +901,14 @@
 
 .hero[data-frame='plan']
   :global(.drawing)
-  :is(:global(.l-pencil), :global(.l-pkt), :global(.l-iso), :global(.l-ghost), :global(.k-cut)),
+  :is(
+    :global(.l-pencil),
+    :global(.l-pkt),
+    :global(.l-iso),
+    :global(.l-ghost),
+    :global(.k-cut),
+    :global(.k-lead)
+  ),
 .hero[data-frame='plan'] :is(:global(.scan-bar), :global(.labels)) {
   visibility: hidden;
 }

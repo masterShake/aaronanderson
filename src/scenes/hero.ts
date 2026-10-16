@@ -21,6 +21,7 @@ import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
+import { centre, modelDecor, plate, segs, trace, wheel } from '@/stage/runtime/kit/decor'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -55,49 +56,6 @@ type Solid = FlatMixed<ReturnType<typeof aluminum>>
 const SEQ = ['r01', 'r05', 'r02', 'r09', 'r11', 'r08', 'r03', 'r10'] as const
 const HOLD = 600
 
-/**
- * A plan polyline as Line2 segment positions at height y. Corners stay sharp: the decal draws
- * the plan frame, and pipe lines only show while they fade into the grown pipes.
- */
-function linePositions(pts: readonly Pt[], closed: boolean, y: number) {
-  const P = closed ? [...pts, pts[0]!] : pts
-  const out: number[] = []
-  for (let i = 1; i < P.length; i++) out.push(P[i - 1]![0], y, P[i - 1]![1], P[i]![0], y, P[i]![1])
-  return out
-}
-
-/** A frame line on a 2D context, as lib/geometry's polyD draws it (fillets clamped to half a leg). */
-function trace(g: CanvasRenderingContext2D, l: LiteLine) {
-  const P = l.pts
-  g.moveTo(P[0]![0], P[0]![1])
-  for (let i = 1; i < P.length; i++) {
-    const b = P[i]!
-    const c = P[i + 1]
-    if (l.r && c) {
-      const a = P[i - 1]!
-      const rr = Math.min(
-        l.r,
-        Math.hypot(b[0] - a[0], b[1] - a[1]) / 2,
-        Math.hypot(c[0] - b[0], c[1] - b[1]) / 2,
-      )
-      g.arcTo(b[0], b[1], c[0], c[1], rr)
-    } else g.lineTo(b[0], b[1])
-  }
-  if (l.closed) g.closePath()
-}
-
-/** A part's plan centre: a rect's, a circle's, or (the valve) its bow-tie's shared tip. */
-const centre = (p: ModelPart): Pt => {
-  const q = p.prims[0]!
-  return q.t === 'rect'
-    ? [q.at[0] + q.size[0] / 2, q.at[1] + q.size[1] / 2]
-    : q.t === 'circle'
-      ? q.c
-      : q.t === 'poly'
-        ? q.pts[1]!
-        : [0, 0]
-}
-
 const mod: SceneModule = {
   id: 'hero',
   create(ctx) {
@@ -125,9 +83,17 @@ const mod: SceneModule = {
     const anchors = new Map<string, Object3D>()
     const bounds: Vector3[] = []
     const frame = spec.parts.flatMap((p) => partLines(p))
+    // the tool glyphs, plate dividers and the instruments' detail, as the CAD SVG draws them;
+    // the screws (each tool's last four) show only on the 3D top faces
+    const deco = modelDecor(spec)
+    const decoAll: LiteLine[] = [
+      ...Object.values(deco.tools).flatMap((ls) => ls.slice(0, -4)),
+      ...deco.instruments,
+    ].map((l) => ({ id: '', pts: l.pts, closed: l.closed, pen: '035', ink: 'cyan' }))
     let packets: PacketField | null = null
     let plans: PacketPlan[] = []
     let level: Mesh | null = null
+    let glassM: Mesh | null = null
     let card: Mesh | null = null
     let cardOut = new Vector3()
     let cardIn = new Vector3()
@@ -176,7 +142,7 @@ const mod: SceneModule = {
       if (!g) return
       g.setTransform(cv.width / vb[2], 0, 0, cv.height / vb[3], -vb[0] * s, -vb[1] * s)
       g.lineCap = g.lineJoin = 'round'
-      for (const l of frame) {
+      for (const l of [...frame, ...decoAll]) {
         g.beginPath()
         trace(g, l)
         g.strokeStyle = l.ink === 'orange' ? COLOR.orange : COLOR.cyan
@@ -194,12 +160,24 @@ const mod: SceneModule = {
         width: 1,
         a2c: true,
       })
-      const o = segments(linePositions(l.pts, l.closed, y), m)
+      // corners stay sharp: the decal draws the plan frame, and pipe lines only show while
+      // they fade into the grown pipes
+      const o = segments(segs([l], y), m)
       o.renderOrder = 10 + order
       own.push({ geometry: o.geometry })
       lines.push({ m, pen: l.pen, o })
       parent.add(o)
       return m
+    }
+
+    /** Segment positions (6 numbers each) into a detail line set on `parent`. */
+    const addSegs = (pos: number[], color: string, order: number, parent: Object3D) => {
+      const m = lineMat({ color, width: 1, a2c: true })
+      const o = segments(pos, m)
+      o.renderOrder = 10 + order
+      own.push({ geometry: o.geometry })
+      lines.push({ m, pen: '035', o })
+      parent.add(o)
     }
 
     function addPart(p: ModelPart, order: number) {
@@ -241,16 +219,31 @@ const mod: SceneModule = {
           own.push({ geometry: geo })
           const l = partLines(p)[i]!
           for (const y of [0, top]) mkLine(l, y, order, mesh)
+          // the decor sits on the top face, engraved in a darker tone than the edges
+          const d = deco.tools[p.id]
+          const t = top + 0.2
+          if (d) addSegs(segs(d, t), orange ? COLOR.asphalt : COLOR.graphite, order, mesh)
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order })
           three.add(mesh)
+          if (i) return
+          const [cx, cz] = centre(p)
+          // the valve's bonnet stem and handwheel (it reads as a valve from any side); the AI
+          // reader's lens on its top
+          if (p.kind === 'valve')
+            addSegs(wheel(cx, cz, t, top * 1.3, top * 0.8), COLOR.asphalt, order, mesh)
+          else if (p.id === 'ai')
+            addSegs(segs(deco.instruments.slice(0, 2), t), COLOR.cyan, order, mesh)
         })
         if (p.anchor) {
           const a = new Object3D()
-          const [cx, cz] = centre(p)
-          // the AI reader's label below it, the valve's above it (they sit close in plan)
+          const q = p.prims[0]!
+          // a tool's label sits on its name plate (right of the glyph)
+          const [cx, cz] =
+            q.t === 'rect' ? plate([q.at[0], q.at[1], q.size[0], q.size[1]]).c : centre(p)
+          // the AI reader's label below it, the valve's above its handwheel (close in plan)
           const [dx, dy, dz] =
-            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [14, 34, -24] : [0, 6, 0]
+            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [-26, 44, -34] : [0, 1, 0]
           a.position.set(cx + dx, z0 + top + dy, cz + dz)
           anchors.set(p.anchor, a)
           three.add(a)
@@ -312,17 +305,27 @@ const mod: SceneModule = {
       yield
       // the DATA tank's sight glass, on its camera-facing side
       if (tank && tc?.t === 'circle') {
-        const g = new BoxGeometry(wide ? 8 : 6, 1, 2).translate(0, 0.5, 0)
-        level = new Mesh(g, emissive())
-        own.push({ geometry: g })
-        level.position.set(
-          tc.c[0] + tc.r * Math.SQRT1_2 + 1,
-          tank.depth * 0.12,
-          tc.c[1] + tc.r * Math.SQRT1_2 + 1,
-        )
-        level.rotation.y = Math.PI / 4
-        level.userData.h = tank.depth * 0.76
-        three.add(level)
+        // a dark glass the cyan level rises in (orange stays for the packets and the valve)
+        const w0 = wide ? 8 : 6
+        const H = tank.depth * 0.76
+        const g = new BoxGeometry(w0, 1, 2).translate(0, 0.5, 0)
+        const gg = new BoxGeometry(w0 + 4, H + 4, 1.5).translate(0, H / 2, 0)
+        level = new Mesh(g, emissive(COLOR.cyan))
+        const glass = (glassM = new Mesh(gg, emissive(COLOR.asphalt)))
+        own.push({ geometry: g }, { geometry: gg })
+        for (const [m, o] of [
+          [level, 1],
+          [glass, 0],
+        ] as const) {
+          m.position.set(
+            tc.c[0] + tc.r * Math.SQRT1_2 + o,
+            tank.depth * 0.12 - 2 + 2 * o,
+            tc.c[1] + tc.r * Math.SQRT1_2 + o,
+          )
+          m.rotation.y = Math.PI / 4
+          three.add(m)
+        }
+        level.userData.h = H
       }
       // the owner's report card slides out of the report box's south face
       const rep = part('report')
@@ -344,7 +347,8 @@ const mod: SceneModule = {
         if (!sym) continue
         const c = makeCutout(
           { viewBox: [0, 0, 40, 72], d: sym },
-          data.person * 1.25,
+          // the person at the valve is the subject of the approval: larger than the others
+          data.person * (p.id === 'p1' ? 2.1 : 1.6),
           p.at,
           ctx.renderer,
         )
@@ -392,6 +396,8 @@ const mod: SceneModule = {
       }
       // the decal holds the plan frame; the Line2 edges take over as it tilts
       decal.visible = at < TILT * 0.15
+      // the sight glass stands up with the model (none at the plan frame: the seam)
+      if (glassM) glassM.visible = at > TILT * 0.3
       decalMat.opacity = 1 - span(at, 0, TILT * 0.15)
       // the Line2 edges (depth-tested) show only once the model leaves the plan frame
       for (const l of lines) l.o.visible = at > 0

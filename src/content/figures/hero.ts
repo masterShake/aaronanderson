@@ -5,7 +5,7 @@ import { site } from '../site'
  * Home hero figure, DETAIL 1 / G-01 (owner: hero lane). Label keys follow the
  * firm graph (src/drawings/graphs/firm.ts): tool.<ToolId>, sym.*, place.*.
  * Render-time vars in longDescription: {tools}, {lines}, {people} from
- * counts(graph) for the hero view. Hand notes: 4 of the site's 12.
+ * counts(graph) for the hero view. Hand notes: 3 of the site's 12, in the AS FOUND margins.
  */
 export const heroFigure = {
   id: 'hero',
@@ -22,27 +22,21 @@ export const heroFigure = {
     'tool.field': 'Field phones',
     'tool.inbox': 'Inbox',
     'tool.crm': 'CRM',
-    'tool.estimate': 'Estimate_FINAL_v7.xlsx',
+    // the file name fits its name plate on one line at every size (it never wraps)
+    'tool.estimate': 'Estimate.xlsx',
     'tool.pm': 'Project management',
     'tool.accounting': 'Accounting',
     'tool.report': "Owner's report",
     'sym.ai': 'AI reader',
     'sym.ai-sub': 'reads, never signs',
     'sym.valve': 'Sign-off',
-    'sym.valve-sub': 'a person decides (HV)',
-    'sym.store': 'One data store',
-    'sym.store-sub': 'DATA',
+    'sym.store': 'Data store',
     'place.estimating': 'Estimating',
     'place.site': 'On site',
-    'spec.estimate': 'ONE CURRENT COPY',
-    'spec.inbox': 'FILED ON ARRIVAL',
-    'spec.field': 'ANSWER SENT TO SITE',
-    'spec.report': 'REPORT WRITES ITSELF',
   },
   notes: {
     estimate: 'Which one is current??',
     inbox: "Lives in someone's inbox",
-    field: 'Ask the office',
     report: 'Copy-paste Mondays',
   },
   revs: {

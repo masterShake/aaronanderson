@@ -88,13 +88,14 @@ test('60 s of mechanism: the guard never trips and the median rAF is at most 17.
   expect(guard.errors).toEqual([])
 })
 
-test('the 3D idle carries the svg idle words: idle note, AI and sign-off sub-lines', async ({
+test('the 3D idle carries the svg idle words: idle note, AI sub-line, sign-off label', async ({
   page,
   guard,
 }) => {
   test.setTimeout(90_000)
   await handedOff(page)
-  // D2 A steps 4 and 7: REV 3 shows the idle note; the AI and valve keep their sub-lines
+  // D2 A steps 4 and 7: REV 3 shows the idle note; the AI reader keeps "reads, never signs"
+  // and the valve its SIGN-OFF label (W4: one label per object, no valve sub-line)
   await expect(page.locator(FIG)).toHaveAttribute('data-rev', 'done', { timeout: 45_000 })
   await page.waitForTimeout(800)
   const seen = await page.evaluate(() => {
@@ -107,7 +108,12 @@ test('the 3D idle carries the svg idle words: idle note, AI and sign-off sub-lin
       (el) => el.textContent?.trim().toLowerCase() === 'waiting for paperwork',
     )
     const sub = (k: string) => fig.querySelector(`.labels [data-anchor="${k}"] > span`)
-    return { idle: on(idle ?? null), ai: on(sub('sym.ai')), valve: on(sub('sym.valve')) }
+    const valve = fig.querySelector('.labels [data-anchor="sym.valve"]')
+    return {
+      idle: on(idle ?? null),
+      ai: on(sub('sym.ai')),
+      valve: on(valve) && /sign-off/i.test(valve?.textContent ?? ''),
+    }
   })
   await page
     .locator(FIG)
