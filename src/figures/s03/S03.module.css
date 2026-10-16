@@ -33,11 +33,12 @@
   margin-inline: auto;
 }
 
-/* A whole-pixel strip, so the box below it starts on a whole pixel when the figure does. */
+/* A whole-pixel strip, so the box below it starts on a whole pixel when the figure does.
+   It holds one row: the title and the motion switch (Approve lives in the sign-off bar). */
 @media (min-width: 1024px) {
   .root :global(.strip) {
     box-sizing: border-box;
-    min-block-size: 6rem;
+    min-block-size: 3rem;
   }
 }
 
@@ -462,10 +463,41 @@
     0 0 / 100% 2px no-repeat;
 }
 
-/* ── Strip: status chip, Approve and the waiting note ─────────────────── */
+/* ── Sign-off bar (under the box): Approve, then one status slot ──────── */
+
+/* The status slot stacks the waiting note and the chip in one grid cell and shows one of
+   them, so the bar keeps its size whatever the batch is doing (no layout shift). */
+.signoff {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: var(--s-2) var(--s-3);
+  padding: 0 var(--s-3) var(--s-3);
+}
+
+.signoff > .approve {
+  grid-area: 1 / 1;
+}
+
+.signoff > .chip,
+.signoff > .wait {
+  grid-area: 1 / 2;
+}
+
+@container fig (width < 560px) {
+  .signoff {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .signoff > .chip,
+  .signoff > .wait {
+    grid-area: 2 / 1;
+  }
+}
 
 .chip {
-  display: none;
+  visibility: hidden;
   padding: 2px var(--s-2);
   border: 1px solid currentColor;
   font-family: var(--ff-mono);
@@ -479,7 +511,13 @@
 }
 
 .root:global([data-batch]) .chip {
-  display: inline-block;
+  visibility: visible;
+}
+
+/* Before the batch is held the slot shows the waiting note; the chip takes over while the
+   batch runs and once it is held. */
+.root:global([data-batch]) .wait {
+  visibility: hidden;
 }
 
 .root:global([data-batch='run']) .chip > [data-when='running'],
@@ -498,8 +536,8 @@
   min-inline-size: 44px;
 }
 
+/* Waiting: the same solid control as the figure's other buttons, in graphite. */
 .approve[aria-disabled='true'] {
-  border-style: dashed;
   color: var(--c-graphite);
   cursor: not-allowed;
 }
@@ -515,24 +553,8 @@
 
 .wait {
   font-size: var(--fs-small);
+  line-height: var(--lh-small, 1.4);
   color: var(--c-graphite);
-}
-
-/* On narrow figures the waiting note stays for screen readers (it describes the dashed
-   Approve button) but leaves the strip, which keeps the strip short. */
-@container fig (width < 560px) {
-  .wait {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}
-
-.root:global([data-batch='held']) .wait {
-  display: none;
 }
 
 /* ── Still tier: the held and approved stills, swapped with a short cross-fade ─ */

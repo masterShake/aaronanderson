@@ -3,14 +3,17 @@
  * --s04-* vars) and its controller.
  *
  * Scrub progress p: the 2D phases end at handoffP (.50); time loops start at motionFromP.
- *   sketch .00–.25 (five pencil tiles at ±12°) · lock .25–.44 (tiles square up into the
- *   grid, machine ease) · scan .30–.42 (paper to deep, pencil to ghost; the ghost is gone
- *   by .46) · the data store and its risers draw .42–.50 · the panel names fade in
- *   .45–.50, after what they name
+ *   sketch: the five pencil tiles at ±12° are already drawn at p = 0 (their draw-on
+ *   windows end before 0, so the figure never enters as an empty panel) · lock .04–.30
+ *   (tiles square up into the grid, machine ease) · scan .20–.36 (paper to deep, pencil to
+ *   ghost; the ghost is gone by .40) · the data store and its risers draw .22–.36, under
+ *   the scan, so the panel never stands over an empty floor · the panel names fade in
+ *   .36–.42, after what they name
  * Loops (ms): packets rise up the risers from 0, one every packetEvery, until packetsTo;
  * the needles settle on their end readings (S04_END: CHECK, IN RANGE, LOW) at settleAt
- * (needleMs, settle ease); the owner's report
- * slides out of the printer slot over cardA–cardB. Three loops, then idle with Run again.
+ * (needleMs, settle ease); in the first loop the owner's report slides out of the printer
+ * slot over cardA–cardB, over the last printed page, and stays out. Three loops, then idle
+ * with Run again.
  * Question chips answer at once (no typewriter) and move one needle (needleMs).
  * WebGL (optional, behind SHIP.s04): hand-off in [.50, .54]; tilt to iso .54–.74; the
  * panel slab extrudes .56–.62 and hinges hingeDeg about its south edge .60–.72; anodize
@@ -20,16 +23,16 @@
 export const S04 = {
   handoffP: 0.5,
   motionFromP: 0.76,
-  sketchA: 0,
-  sketchB: 0.25,
-  lockA: 0.25,
-  lockB: 0.44,
-  scanA: 0.3,
-  scanB: 0.42,
-  namesA: 0.45,
-  namesB: 0.5,
-  tankA: 0.42,
-  tankB: 0.5,
+  sketchA: -0.23,
+  sketchB: 0,
+  lockA: 0.04,
+  lockB: 0.3,
+  scanA: 0.2,
+  scanB: 0.36,
+  namesA: 0.36,
+  namesB: 0.42,
+  tankA: 0.22,
+  tankB: 0.36,
   tiltA: 0.54,
   tiltB: 0.74,
   extrudeA: 0.56,

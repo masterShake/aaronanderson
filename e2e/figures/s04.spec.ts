@@ -118,6 +118,32 @@ test('s04 runs three loops, settles the needles, then idles with Run again', asy
   expect(new Set(await shown.allTextContents())).toEqual(new Set(['LOW', 'IN RANGE', 'CHECK']))
 })
 
+test('s04 p = 0 shows the five pencil tiles, drawn', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s04?p=0', 'svg')
+  const fig = await ready(page)
+  const tiles = await fig.evaluate((el) =>
+    [...el.querySelectorAll<SVGPathElement>('svg.l-ghost g.tile path')].map((p) =>
+      Number(getComputedStyle(p).opacity),
+    ),
+  )
+  expect(tiles.length).toBeGreaterThan(0)
+  for (const o of tiles) expect(o).toBe(1)
+})
+
+test('s04 the printer cell is never empty: a printed page waits under the slot', async ({
+  page,
+}) => {
+  await gotoTier(page, '/kit/fig/s04?p=0.6', 'svg')
+  const fig = await ready(page)
+  await expect(fig.locator('svg.l-cad [data-part="report.last"]').first()).toBeAttached()
+  // the composition is whole mid-scrub: the data store is drawn with the panel
+  const tank = await fig
+    .locator('svg.l-cad path[data-part="tank"]')
+    .first()
+    .evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset))
+  expect(tank).toBeLessThanOrEqual(0.001)
+})
+
 test('s04 question chips are square and at least 44 px tall', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s04', 'svg')
   const fig = await ready(page)
