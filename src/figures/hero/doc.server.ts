@@ -268,9 +268,10 @@ const TALL_ISO_NUDGE: Readonly<Record<string, Pt>> = {
 
 /**
  * The tall iso print fits the box's width and leaves its lower quarter empty: it moves down by
- * this much (viewBox units), so it sits at the optical centre, under the AS FOUND inset.
+ * this much (viewBox units), so it sits near the optical centre both on its own (svg idle) and
+ * under the still tier's AS FOUND inset.
  */
-const ISO_SHIFT: Readonly<Record<Fam, number>> = { wide: 0, tall: 50 }
+const ISO_SHIFT: Readonly<Record<Fam, number>> = { wide: 0, tall: 28 }
 
 const cache = new Map<Fam, HeroBuild>()
 
