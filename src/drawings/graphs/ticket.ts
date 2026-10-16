@@ -80,7 +80,7 @@ const AS_FOUND: readonly TicketRev[] = ['rev0']
 
 export const TICKET_NODES: readonly N[] = [
   // the paper itself, drawn large; it never changes
-  node('ticket', 'ticket', 'doc', undefined, { size: [200, 168], sizeTall: [140, 80] }),
+  node('ticket', 'ticket', 'doc', undefined, { size: [240, 180], sizeTall: [140, 128] }),
   node('truck', 'truck', 'tool', undefined, { size: [180, 72] }),
   node('field', 'field', 'person'),
   // as found

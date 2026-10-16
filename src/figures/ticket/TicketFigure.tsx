@@ -11,6 +11,7 @@ import { TICKET_REVS, ticketGraph, type TicketRev } from '@/drawings/graphs/tick
 import { TICKET_EXTRAS, TICKET_VIEW, ticketGeometry } from '@/drawings/views/ticket'
 import { TICKET } from '@/motion/timing/ticket'
 import { cssVars } from '@/motion/timing-css'
+import { labelRoom } from './glyphs'
 import { TicketController } from './TicketController.client'
 import s from './ticket.module.css'
 
@@ -22,7 +23,7 @@ import s from './ticket.module.css'
  * overlay, positioned in percent of the box, and wrap inside their tag.
  */
 
-type Tone = 'ink' | 'new' | 'red' | 'hand' | 'doc'
+type Tone = 'ink' | 'new' | 'red' | 'hand' | 'doc' | 'stamp'
 type Box = readonly [x: number, y: number, w: number]
 interface Tag {
   key: string
@@ -72,7 +73,7 @@ function tags(): Tag[] {
         if (!node) return undefined
         const r = nodeRect(node, fam)
         const pad = fam === 'wide' ? 10 : 7
-        return [r.x + pad, r.y + pad, r.w - pad * 2]
+        return [r.x + pad, r.y + pad, labelRoom(n.id, r, fam)]
       }),
     })
   }
@@ -124,6 +125,17 @@ function tags(): Tag[] {
     revs: ['rev3', 'rev4'],
     at: both((fam) => tag(fam, 'punch')),
   })
+  // the status stamp on the ticket: one per revision, it lands as the step arrives (wide only)
+  const tk = geo.wide.graph.nodes.find((x) => x.id === 'ticket')!
+  const tr = nodeRect(tk, 'wide')
+  for (const rev of TICKET_REVS)
+    out.push({
+      key: `stamp.${rev}`,
+      text: copy.ui[`stamp.${rev}`],
+      tone: 'stamp',
+      revs: [rev],
+      at: { wide: [tr.x + 12, tr.y + 126, tr.w * 0.48] },
+    })
   // the hand-over documents carry their names
   for (const fam of FAMILIES)
     ex[fam].docs.forEach(([key, [x, y, w]], i) => {

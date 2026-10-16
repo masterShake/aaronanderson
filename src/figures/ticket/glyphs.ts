@@ -270,6 +270,41 @@ export function cabinet(x: number, y: number, w: number, h: number, drawers = 3)
   return { outline: [rectP(x, y, w, h)], detail }
 }
 
+type Box = { x: number; y: number; w: number; h: number }
+
+/** The ticket figure: the glyph that names each tool, bottom right in its box (null: none). */
+export function nodeGlyph(id: string, r: Box, family: 'wide' | 'tall'): Glyph | null {
+  const s = family === 'wide' ? Math.min(34, r.h * 0.56) : Math.min(24, r.h * 0.5)
+  const c: Pt = [r.x + r.w - s / 2 - (family === 'wide' ? 12 : 8), r.y + r.h - s / 2 - 6]
+  switch (id) {
+    case 'field':
+    case 'pm':
+      return phone(c, s)
+    case 'inbox':
+      return envelope(c, s)
+    case 'office':
+      return printer(c, s)
+    case 'po':
+      return cardFile(c, s)
+    case 'match':
+      return gridSheet(c, s)
+    case 'accounting':
+    case 'acct':
+      return ledger(c, s)
+    case 'jobCost':
+    case 'job':
+      return chartSheet(c, s)
+    default:
+      return null
+  }
+}
+
+/** The ticket figure: the width a node's label may use (its box less padding and glyph). */
+export function labelRoom(id: string, r: Box, family: 'wide' | 'tall'): number {
+  const pad = family === 'wide' ? 10 : 7
+  return nodeGlyph(id, r, family) ? r.w - pad * 2 - (family === 'wide' ? 40 : 28) : r.w - pad * 2
+}
+
 /** Two flange plates across a pipe at c (dir: the pipe's direction). */
 export function flange(c: Pt, dir: 'h' | 'v', half: number, gap = 3): Prim[] {
   if (dir === 'h')

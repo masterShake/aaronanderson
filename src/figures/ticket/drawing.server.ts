@@ -14,6 +14,7 @@ import {
   type TicketRev,
 } from '@/drawings/graphs/ticket'
 import { TICKET_EXTRAS, ticketGeometry } from '@/drawings/views/ticket'
+import { nodeGlyph, type Glyph } from './glyphs'
 
 /**
  * The ticket drawing files served by /drawings/[file] (owner: how):
@@ -98,17 +99,31 @@ function asFound(family: LayoutId): SvgDoc {
   const faint = strokeCls({ pen: '018', ink: 'pencil' })
   const kids: SvgNode[] = [...doc.groups[0]!.children]
 
-  // the ticket: a header band, item lines and a signature line
+  // the ticket: a header block, a table of line items and a signature line
   const t = nodeRect(
     g.nodes.find((n) => n.id === 'ticket')!,
     family,
   )
-  const lh = family === 'wide' ? 18 : 12
-  const top = t.y + (family === 'wide' ? 56 : 40)
-  const rows: Prim[] = []
-  for (let y = top; y < t.y + t.h - lh * 1.5; y += lh)
-    rows.push(line([t.x + 12, y], [t.x + t.w - (y === top ? 12 : 40 + ((y * 7) % 30)), y]))
-  kids.push(group('ticket.lines', rough(rows, `${family}:lines`, 'ticket.lines', 0, faint)))
+  const doc0 = ticketDocument(t, family)
+  kids.push(
+    group('ticket.doc', [
+      ...rough(doc0.outline, `${family}:doc`, 'ticket.doc', 0, pen),
+      ...rough(doc0.detail, `${family}:doc.d`, 'ticket.doc', 0, faint),
+    ]),
+  )
+
+  // each tool reads as the thing it names: a glyph in its box
+  for (const n of g.nodes) {
+    if (n.revs && !n.revs.includes('rev0')) continue
+    const gl = nodeGlyph(n.id, nodeRect(n, family), family)
+    if (!gl) continue
+    kids.push(
+      group(`${n.id}.glyph`, [
+        ...rough(gl.outline, `${family}:${n.id}:g`, `${n.id}.glyph`, 0, pen),
+        ...rough(gl.detail, `${family}:${n.id}:gd`, `${n.id}.glyph`, 0, faint),
+      ]),
+    )
+  }
 
   // the truck: a cab and two wheels under the box
   const tr = nodeRect(
@@ -125,13 +140,74 @@ function asFound(family: LayoutId): SvgDoc {
 
   // the tape measure under the count
   const [x, y, w, h] = ex.tape
-  const ticks: Prim[] = [rect(x, y, w, h)]
-  for (let i = 1; i * 12 < w; i++)
-    ticks.push(line([x + i * 12, y], [x + i * 12, y + (i % 2 ? h / 3 : h / 2)]))
-  kids.push(group('tape', rough(ticks, `${family}:tape`, 'tape', 0, faint)))
+  if (w > 0) {
+    const ticks: Prim[] = [rect(x, y, w, h)]
+    for (let i = 1; i * 12 < w; i++)
+      ticks.push(line([x + i * 12, y], [x + i * 12, y + (i % 2 ? h / 3 : h / 2)]))
+    kids.push(group('tape', rough(ticks, `${family}:tape`, 'tape', 0, faint)))
+  }
 
   for (const p of ex.people.filter((q) => q.id === 'lead')) kids.push(person(family, p, 0))
   return { viewBox: ex.viewBox, groups: [{ layer: 'pencil', rev: 'rev0', children: kids }] }
+}
+
+type R = { x: number; y: number; w: number; h: number }
+
+/**
+ * The delivery ticket as a document: a header block (number, date, job),
+ * a table of line items (quantity, item, unit) with short strokes for the
+ * entries, and a signature line with its X and a signature. Wide leaves the
+ * lower left clear for the status stamp (HTML).
+ */
+export function ticketDocument(t: R, family: LayoutId): Glyph {
+  const wide = family === 'wide'
+  const pad = wide ? 12 : 8
+  const x0 = t.x + pad
+  const x1 = t.x + t.w - pad
+  const iw = x1 - x0
+  // tall: the name may take two rows above the header block
+  const hy = t.y + (wide ? 38 : 46)
+  const hh = wide ? 24 : 14
+  const ty = hy + hh + (wide ? 8 : 6)
+  const th = wide ? 48 : 34
+  const rowH = (th - (wide ? 16 : 10)) / 3
+  const outline: Prim[] = [rect(x0, hy, iw, hh), rect(x0, ty, iw, th)]
+  const detail: Prim[] = [
+    line([x0 + iw * 0.42, hy], [x0 + iw * 0.42, hy + hh]),
+    line([x0 + iw * 0.72, hy], [x0 + iw * 0.72, hy + hh]),
+    line([x0, ty + th - rowH * 3], [x1, ty + th - rowH * 3]),
+    line([x0 + iw * 0.16, ty], [x0 + iw * 0.16, ty + th]),
+    line([x0 + iw * 0.76, ty], [x0 + iw * 0.76, ty + th]),
+  ]
+  for (let i = 0; i < 3; i++) {
+    const ry = ty + th - rowH * (3 - i) + rowH / 2
+    if (i > 0) detail.push(line([x0, ty + th - rowH * (3 - i)], [x1, ty + th - rowH * (3 - i)]))
+    detail.push(line([x0 + iw * 0.04, ry], [x0 + iw * 0.1, ry]))
+    detail.push(line([x0 + iw * 0.2, ry], [x0 + iw * (0.5 + ((i * 13) % 3) * 0.07), ry]))
+    detail.push(line([x0 + iw * 0.8, ry], [x0 + iw * 0.92, ry]))
+  }
+  // the header cells carry a short entry each
+  for (const [a, b] of [
+    [0.05, 0.3],
+    [0.47, 0.64],
+    [0.77, 0.94],
+  ] as const)
+    detail.push(line([x0 + iw * a, hy + hh * 0.6], [x0 + iw * b, hy + hh * 0.6]))
+  // the signature line, its X and the signature
+  const sy = t.y + t.h - (wide ? 16 : 10)
+  const sx = x0 + iw * (wide ? 0.6 : 0.36)
+  detail.push(line([sx, sy], [x1, sy]))
+  const xs = wide ? 4 : 3
+  detail.push(line([sx - xs * 2.5, sy - xs * 2.5], [sx - xs * 0.5, sy - xs * 0.5]))
+  detail.push(line([sx - xs * 0.5, sy - xs * 2.5], [sx - xs * 2.5, sy - xs * 0.5]))
+  outline.push({
+    t: 'cubic',
+    a: [sx + 4, sy - 3],
+    c1: [sx + iw * 0.12, sy - (wide ? 20 : 12)],
+    c2: [sx + iw * 0.16, sy + 2],
+    b: [sx + iw * 0.32, sy - (wide ? 10 : 6)],
+  })
+  return { outline, detail }
 }
 
 /** The ticket graph laid out for a family, with the valve drawn by hand on its branch. */
@@ -169,6 +245,18 @@ function rewired(family: LayoutId, rev: TicketRev): SvgDoc {
       'valve',
     ),
   ]
+  // the new tools read as what they are: a glyph in each box
+  for (const id of ['match', 'acct', 'job']) {
+    const node = g.nodes.find((x) => x.id === id)
+    const gl = node && nodeGlyph(id, nodeRect(node, family), family)
+    if (gl)
+      marks.push(
+        group(`${id}.glyph`, [
+          clean(gl.outline, `${id}.glyph`, 3, cyan('050')),
+          clean(gl.detail, `${id}.glyph`, 3, strokeCls({ pen: '025', ink: 'cyan' })),
+        ]),
+      )
+  }
   const body = recolor([...route, ...marks], n === 1 ? INK_ON_PAPER : INK_ON_DEEP)
 
   const [zx, zy, zw, zh] = ex.zone
