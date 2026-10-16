@@ -14,12 +14,13 @@
 .schematic {
   position: relative;
   /* the beats of the change, from the shared timing tokens */
-  --sch-stagger: calc(var(--pencil-stagger-min, 45ms) * 0.67);
+  /* 60 ms between lines (W4 finish C1: 60–120 ms); the last of about 26 starts near 1.9 s */
+  --sch-stagger: calc(var(--pencil-stagger-min, 45ms) * 4 / 3);
   --sch-ink: var(--dur-sheet, 420ms);
   --sch-names: calc(var(--dur-sheet, 420ms) * 0.6);
   --sch-pipes: var(--dur-sheet, 420ms);
-  --sch-labels: calc(var(--dur-state, 900ms) * 1.9);
-  --sch-flow: calc(var(--dur-state, 900ms) * 2.2);
+  --sch-labels: calc(var(--dur-state, 900ms) * 2.6);
+  --sch-flow: calc(var(--dur-state, 900ms) * 3);
 }
 
 /* Panels and layers per state */
@@ -60,8 +61,8 @@
   animation-delay: var(--sch-pipes);
 }
 
-/* a tool's name follows its box */
-.schematic[data-toggle='rewired'] .tool > * {
+/* a tool keeps its name through the change; a name that changes (Estimating) follows its box */
+.schematic[data-toggle='rewired'] .tool > [data-show='rewired'] {
   animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
   animation-delay: var(--sch-names);
 }
@@ -78,7 +79,7 @@
 }
 
 /* chevrons, flanges and the instruments on a line: once the line has drawn past them */
-.schematic[data-toggle='rewired'] :global(.l-cad g.k-pipe > path:not(.draw)),
+.schematic[data-toggle='rewired'] :global(.l-cad g:is(.k-pipe, .k-inst) > path:not(.draw)),
 .schematic[data-toggle='rewired']
   :global(
     .l-cad g.k-pipe > path:is([data-part$='.flange'], [data-part$='.ai'], [data-part$='.hv'])
