@@ -8,7 +8,8 @@ import { site } from '../site'
 export const s02Figure = {
   id: 's02',
   detail: 'DETAIL 2 / S-02',
-  title: 'ONE LEAD, EVERY PLACE IT BELONGS',
+  // short enough for the one-line strip at 360 with WCAG 1.4.12 spacing (kit FigureFrame)
+  title: 'ONE LEAD, EVERYWHERE',
   tag: site.exampleTag,
   caption: 'Enter a lead once, and it reaches the estimate, the project and accounting.',
   longDescription: [
