@@ -117,6 +117,29 @@
   opacity: var(--lp);
 }
 
+/* Each tool is handed down into the hand while it draws (ease-out, user units). */
+.fig :global(g[data-part='tool.playbook']) {
+  --i: 0;
+}
+
+.fig :global(g[data-part='tool.guideline']) {
+  --i: 1;
+}
+
+.fig :global(g[data-part='tool.walkthrough']) {
+  --i: 2;
+}
+
+.fig :global(g[data-part^='tool.']) {
+  --h: clamp(
+    0,
+    (var(--p) - var(--s05-hand-from-p) - var(--i) * var(--s05-hand-step-p)) / var(--s05-tool-p),
+    1
+  );
+  translate: calc((1 - var(--h)) * (1 - var(--h)) * -12px)
+    calc((1 - var(--h)) * (1 - var(--h)) * -28px);
+}
+
 /* The new hire walks in from the right (no walk cycle), visible from the walk's start. */
 .fig :global(.s05-walk) {
   translate: calc((1 - var(--s05-walk)) * var(--s05-walk-from)) 0;

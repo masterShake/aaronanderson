@@ -68,6 +68,14 @@
   stroke-dashoffset: calc(1 - var(--lp));
 }
 
+/* the plan's fills (the owner's report, the valve) arrive with the first lines, not before */
+.s06
+  :global(
+    .drawing .l-cad path:not(.draw, [data-part^='m1'], [data-part^='m2'], [data-part^='m3'])
+  ) {
+  opacity: clamp(0, var(--p, 1) / 0.05, 1);
+}
+
 .s06 :global(.drawing .l-cad) {
   opacity: calc(1 - var(--print));
 }
@@ -76,17 +84,26 @@
   opacity: var(--print);
 }
 
-/* Month instruments, on the plan and on the print. */
+/* Month instruments, on the plan and on the print: the stub fades in and the enclosure drops
+   onto it (ease-out), over .03 of p. */
 .s06 :global(.drawing) :global([data-part^='m1']) {
-  opacity: clamp(0, (var(--p, 1) - var(--m1)) * 40, 1);
+  --mk: clamp(0, (var(--p, 1) - var(--m1)) / 0.03, 1);
 }
 
 .s06 :global(.drawing) :global([data-part^='m2']) {
-  opacity: clamp(0, (var(--p, 1) - var(--m2)) * 40, 1);
+  --mk: clamp(0, (var(--p, 1) - var(--m2)) / 0.03, 1);
 }
 
 .s06 :global(.drawing) :global([data-part^='m3']) {
-  opacity: clamp(0, (var(--p, 1) - var(--m3)) * 40, 1);
+  --mk: clamp(0, (var(--p, 1) - var(--m3)) / 0.03, 1);
+}
+
+.s06 :global(.drawing) :global(:is([data-part^='m1'], [data-part^='m2'], [data-part^='m3'])) {
+  opacity: var(--mk);
+}
+
+.s06 :global(.drawing) :global(:is([data-part='m1'], [data-part='m2'], [data-part='m3'])) {
+  translate: 0 calc((1 - var(--mk)) * (1 - var(--mk)) * -16px);
 }
 
 /* ── Labels on the print (and on the Stage's anchors) ─────────────────────────────── */
@@ -142,7 +159,8 @@
 .s06.s06 .add {
   translate: -50% -175%;
   border: 1px solid var(--c-orange);
-  opacity: clamp(0, (var(--p, 1) - var(--a, 0)) * 40, 1);
+  /* after its instrument has landed */
+  opacity: clamp(0, (var(--p, 1) - var(--a, 0) - 0.02) / 0.02, 1);
 }
 
 .s06.s06 .add[data-anchor='add.report'] {
@@ -232,9 +250,13 @@
 }
 
 /* The inspection's name: a chip in the corner while the light sweeps (both media). */
+/* (placed through the label vars, so the tall family's position rule keeps it in the corner) */
 .s06.s06 .inspectTag {
-  inset-inline-start: max(10px, 3%);
-  inset-block-start: max(10px, 3%);
+  --lx: 3;
+  --ly: 3;
+  --lxt: 3.5;
+  --lyt: 2.5;
+
   padding: 1px 6px;
   border: 1px solid var(--c-cyan-dim);
   background: var(--c-blueprint-deep);
