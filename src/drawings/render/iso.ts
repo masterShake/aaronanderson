@@ -26,17 +26,17 @@ interface Item {
   depth: number
   part: string
   faces: Face[]
-  /** Pipe and open-run polylines (drawn as a thick line). */
-  runs: Pt[][]
+  /** Pipe and open-run segments in screen space, with the pipe's screen radius h. */
+  runs: { pts: Pt[]; h: number }[]
 }
 
-function footprint(p: ModelPart): { pts: Pt[]; closed: boolean }[] {
+function footprint(p: ModelPart): { pts: Pt[]; closed: boolean; round?: boolean }[] {
   return p.prims.map((prim: Prim) => {
     switch (prim.t) {
       case 'rect':
         return { pts: primPts(prim), closed: true }
       case 'circle':
-        return { pts: primPts(prim, 24), closed: true }
+        return { pts: primPts(prim, 24), closed: true, round: true }
       case 'poly':
         return { pts: [...prim.pts], closed: prim.closed ?? false }
       default:
@@ -102,7 +102,18 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
             depth: planDepth(seg),
             part: p.id,
             faces: [],
-            runs: [seg.map((q) => P(planToWorld(q, (z0 + z1) / 2)))],
+            runs: [
+              {
+                pts: seg.map((q) => P(planToWorld(q, (z0 + z1) / 2))),
+                // the pipe's screen radius: half its depth, projected
+                h:
+                  p.material === 'line'
+                    ? 0
+                    : Math.abs(
+                        P(planToWorld(seg[0]!, z1))[1] - P(planToWorld(seg[0]!, (z0 + z1) / 2))[1],
+                      ),
+              },
+            ],
           })
         }
         continue
@@ -111,16 +122,41 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
       const ccw = signedArea(f.pts) <= 0
       const n = f.pts.length
       const sides: { face: Face; d: number }[] = []
-      for (let i = 0; i < n; i++) {
-        const a = f.pts[i]!
-        const b = f.pts[(i + 1) % n]!
+      const facing = (i: number) => {
+        const a = f.pts[((i % n) + n) % n]!
+        const b = f.pts[(((i + 1) % n) + n) % n]!
         let nx = b[1] - a[1]
         let ny = -(b[0] - a[0])
         if (ccw) {
           nx = -nx
           ny = -ny
         }
-        if (nx * ISO.b[0] + ny * ISO.b[2] <= 1e-9) continue
+        return nx * ISO.b[0] + ny * ISO.b[2] > 1e-9
+      }
+      if (f.round) {
+        // a cylinder's visible side is one smooth band (no facet lines)
+        let s = 0
+        while (s < n && !(facing(s) && !facing(s - 1))) s++
+        const idx: number[] = []
+        for (let k = s; idx.length < n && facing(k); k++) idx.push(((k % n) + n) % n)
+        if (idx.length) {
+          const ring = [...idx, (idx[idx.length - 1]! + 1) % n].map((k) => f.pts[k]!)
+          sides.push({
+            face: {
+              pts: [
+                ...ring.map((q) => P(planToWorld(q, z0))),
+                ...ring.reverse().map((q) => P(planToWorld(q, z1))),
+              ],
+              fill: orange ? 'orange-dark' : 'alu-300',
+            },
+            d: 0,
+          })
+        }
+      }
+      for (let i = 0; i < n && !f.round; i++) {
+        const a = f.pts[i]!
+        const b = f.pts[(i + 1) % n]!
+        if (!facing(i)) continue
         const ws: V3[] = [
           planToWorld(a, z0),
           planToWorld(b, z0),
@@ -165,15 +201,77 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         i: i++,
         cls: `f-${f.fill} p-018 i-cyan-dim`,
       })
-    for (const r of it.runs)
+    for (const r of it.runs) {
+      const [a, b] = [r.pts[0]!, r.pts[r.pts.length - 1]!]
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1])
+      if (r.h < 1.5 || l < 0.01) {
+        children.push({
+          el: 'path',
+          d: d(r.pts, false),
+          len: 0,
+          part: it.part,
+          i: i++,
+          cls: 'p-070 i-cyan',
+        })
+        continue
+      }
+      // a tube: a lit aluminum band with clean edges, round where runs meet
+      const n: Pt = [(-(b[1] - a[1]) / l) * r.h, ((b[0] - a[0]) / l) * r.h]
+      const band: Pt[] = [
+        [a[0] + n[0], a[1] + n[1]],
+        [b[0] + n[0], b[1] + n[1]],
+        [b[0] - n[0], b[1] - n[1]],
+        [a[0] - n[0], a[1] - n[1]],
+      ]
+      const disk = (c: Pt): Pt[] =>
+        Array.from({ length: 12 }, (_, k) => [
+          c[0] + Math.cos((k * Math.PI) / 6) * r.h,
+          c[1] + Math.sin((k * Math.PI) / 6) * r.h,
+        ])
+      for (const c of [a, b])
+        children.push({
+          el: 'path',
+          d: d(disk(c), true),
+          len: 0,
+          part: it.part,
+          i: i++,
+          cls: 'f-alu-300',
+        })
       children.push({
         el: 'path',
-        d: d(r, false),
+        d: d(band, true),
         len: 0,
         part: it.part,
         i: i++,
-        cls: 'p-070 i-cyan',
+        cls: 'f-alu-300',
       })
+      const up = n[1] < 0 ? 1 : -1
+      for (const s of [1, -1])
+        children.push({
+          el: 'path',
+          d: d([band[s === 1 ? 0 : 3]!, band[s === 1 ? 1 : 2]!], false),
+          len: 0,
+          part: it.part,
+          i: i++,
+          cls: 'p-018 i-cyan-dim',
+        })
+      // the highlight along the upper side
+      const k = 0.45 * up
+      children.push({
+        el: 'path',
+        d: d(
+          [
+            [a[0] + n[0] * k, a[1] + n[1] * k],
+            [b[0] + n[0] * k, b[1] + n[1] * k],
+          ],
+          false,
+        ),
+        len: 0,
+        part: it.part,
+        i: i++,
+        cls: 'p-025 i-paper',
+      })
+    }
   }
   return { viewBox: vb, groups: [{ layer: 'iso', children }] }
 }
