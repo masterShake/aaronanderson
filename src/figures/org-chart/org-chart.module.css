@@ -34,10 +34,10 @@
   visibility: visible;
 }
 
-/* the chain erases as the panel goes deep */
+/* the chain erases as the panel goes deep, quickly, as its titles leave with it */
 .org[data-toggle='ours'] :global(.drawing .l-pencil) {
   opacity: 0;
-  transition: opacity var(--org-ink) var(--ease-machine, ease);
+  transition: opacity var(--dur-ui, 200ms) var(--ease-machine, ease);
 }
 
 /* ours: the cards ink in, then the wire draws on, then everything on it */
@@ -172,6 +172,11 @@
 
 .org[data-toggle='ours'] :global(.labels) > .node {
   color: var(--c-label-on-deep);
+}
+
+/* a title that stays (YOU) changes ink with the panel under it, so it never vanishes */
+.org :global(.labels) > .node {
+  transition: color var(--dur-state, 900ms) var(--ease-machine, ease);
 }
 
 @container fig (width < 560px) {

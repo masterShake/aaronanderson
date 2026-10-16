@@ -290,6 +290,21 @@
   color: var(--c-label-on-deep);
 }
 
+/* the (E) line keeps its room as found, so a tool's name never jumps when the state changes */
+.schematic:not([data-toggle='rewired']) .tool > .era[data-show='rewired'] {
+  display: block !important;
+  visibility: hidden;
+}
+
+/* names change ink with the panel under them, so they never vanish mid-change */
+.tool {
+  transition: color var(--dur-state, 900ms) var(--ease-machine, ease);
+}
+
+:global(html[data-motion='paused']) .tool {
+  transition: none;
+}
+
 .tool:hover,
 .tool[aria-expanded='true'] {
   outline: 2px solid currentColor;
