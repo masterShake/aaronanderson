@@ -22,6 +22,11 @@ export const S01 = {
   glyphStepP: 0.01,
   glyphP: 0.03,
   labelLagP: 0.02,
+  /**
+   * The starting sketch (boxes, lines, glyphs, names) ends here. It draws on max(p, pre ×
+   * leadP), where pre is the lead-in as the figure scrolls in, so p = 0 already shows it whole.
+   */
+  leadP: 0.22,
   /** Survey: the instrument draws, then the fan sweeps; each crossed box gets a crosshair and a tag. */
   surveyFromP: 0.2,
   sweepFromP: 0.26,

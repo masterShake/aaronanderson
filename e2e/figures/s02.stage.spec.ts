@@ -47,6 +47,35 @@ const scrub = (page: Page, a: number, b: number, ms: number) =>
     { a, b, ms },
   )
 
+test('s02 names stay on their enclosures through the turn and the end pose', async ({ page }) => {
+  const fig = await handedOff(page)
+  const keys = ['tool.crm', 'tool.estimate', 'tool.pm', 'tool.accounting']
+  for (const p of [0.5, 0.6, 0.75, 0.9, 1]) {
+    await scrub(page, p - 0.02, p, 120)
+    await page.waitForTimeout(900)
+    await expect(fig).toHaveAttribute('data-labels', 'iso')
+    const r = await fig.evaluate((el, keys) => {
+      const art = el.querySelector('.box')!.getBoundingClientRect()
+      return keys.map((k) => {
+        const n = el.querySelector<HTMLElement>(`.labels [data-anchor="${k}"]`)!
+        const b = n.getBoundingClientRect()
+        return {
+          shown: getComputedStyle(n).visibility === 'visible' && !('hidden' in n.dataset),
+          x: b.x + b.width / 2 - art.x,
+          y: b.y + b.height / 2 - art.y,
+          inside: b.x >= art.x && b.right <= art.right && b.y >= art.y && b.bottom <= art.bottom,
+        }
+      })
+    }, keys)
+    const [crm, est, pm, acct] = r as [(typeof r)[0], (typeof r)[0], (typeof r)[0], (typeof r)[0]]
+    for (const l of r) expect(l.shown && l.inside, `p ${p}`).toBe(true)
+    // the CRM is the left enclosure; the three places stack estimating, project, accounting
+    expect(crm.x, `p ${p}`).toBeLessThan(Math.min(est.x, pm.x, acct.x))
+    expect(est.y, `p ${p}`).toBeLessThan(pm.y)
+    expect(pm.y, `p ${p}`).toBeLessThan(acct.y)
+  }
+})
+
 test('s02 hands off on a hardware renderer, with its perf marks', async ({ page, guard }) => {
   await handedOff(page)
   const s = await state(page)

@@ -51,7 +51,8 @@ import { modelCorners, planLines, ringSegments } from './plumbing/plan'
  * enclosure faces flat at the panel tone with cyan outlines, conduits and the junction in
  * cyan, orange flange ticks. Scrub p (S02 table): tilt to iso .48–.68, enclosures extrude
  * from .50, anodize, the conduits lift into flanged aluminium pipes, flanges and lamps
- * settle in, labels return at .68. From S02.motionFromP the loops run (s02Mech, shared
+ * settle in; the names ride their enclosures' tops the whole way (projected anchors), and
+ * the fail chip's anchor shows from .68. From S02.motionFromP the loops run (s02Mech, shared
  * with the SVG): one NEW LEAD to the junction, three copies out, the loop-3 sync failure.
  */
 
@@ -98,11 +99,11 @@ const mod: SceneModule = {
       list?.push(m)
       return m
     }
-    const anchor = (key: string, x: number, y: number, z: number) => {
+    const anchor = (key: string, x: number, y: number, z: number, parent: Object3D = three) => {
       const o = new Object3D()
       o.position.set(x, y, z)
       anchors.set(key, o)
-      three.add(o)
+      parent.add(o)
       return o
     }
 
@@ -129,8 +130,9 @@ const mod: SceneModule = {
           hosts[tool] = e.mesh
           verticals.push(e.verticals, e.panels!)
           three.add(e.mesh)
+          // the name rides its enclosure's top (a child, so it rises with the extrusion)
           const [ax, az] = s02LabelAt(L, tool, 'plan')
-          anchor(S02_LABEL[tool], ax, L.heights[tool] + 2, az)
+          anchor(S02_LABEL[tool], ax, L.heights[tool] + 2, az, e.mesh)
           labelAt.push([S02_LABEL[tool], s02LabelAt(L, tool, 'plan'), s02LabelAt(L, tool, 'iso')])
         } else if (pl.id.startsWith('glyph.')) {
           // The tool's glyph rides on its enclosure's top (a child, so it extrudes with it).
@@ -288,7 +290,9 @@ const mod: SceneModule = {
         g.visible = fl > 0
         g.scale.setScalar(Math.max(0.001, fl))
       }
-      const tick = span(p, S02.tiltA, S02.flangeInA)
+      // the plan's flange ticks go as the model starts to turn (they stay on the floor while
+      // the conduits lift, so lingering they read as stray marks); the 3D flanges replace them
+      const tick = ease.machine(span(p, S02.tiltA, S02.extrudeA))
       for (const m of ticks) {
         fadeEdge(m, COLOR.orange, COLOR.blueprintDeep, tick)
         m.depthTest = tilting
@@ -335,20 +339,22 @@ const mod: SceneModule = {
         if (leadNow >= 0)
           paths.lead.getPoint(leadNow / paths.lead.length, anchors.get('lead')!.position).y +=
             L.pipeR * 2
-        // labels stay through the hand-off (plan pose), hide while the model turns, and return
-        // at their iso place (further forward on the top, clear of the enclosure behind)
-        const show = p >= S02.labelsP || p < S02.tiltA
+        // Each name stays on its enclosure's top through the hand-off, the turn and the end
+        // pose: its anchor is a child of the enclosure, and slides with the camera's turn from
+        // the plan place (where the SVG label was) to the iso place (forward on the top,
+        // clear of the enclosure behind).
+        const k = ease.machine(span(p, S02.tiltA, S02.tiltB))
         for (const [key, plan, iso] of labelAt) {
-          const [x, z] = p < S02.tiltA ? plan : iso
-          anchors.get(key)!.position.x = x
-          anchors.get(key)!.position.z = z
+          const a = anchors.get(key)!
+          a.position.x = plan[0] + (iso[0] - plan[0]) * k
+          a.position.z = plan[1] + (iso[1] - plan[1]) * k
         }
         projectAnchors(
           anchors,
           rig.camera,
           w,
           h,
-          (k) => (k === 'lead' ? leadNow >= 0 : show),
+          (key) => (key === 'lead' ? leadNow >= 0 : key !== 'flange.acct' || p >= S02.labelsP),
           labels,
         )
         const beat: Beat = st ? st.beat : 'built'

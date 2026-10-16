@@ -65,6 +65,38 @@ for (const [family, width] of [
   })
 }
 
+/** Opacities of the starting sketch: pencil boxes, the hand-carry line, glyphs and names. */
+const sketch = (fig: import('@playwright/test').Locator) =>
+  fig.evaluate((el) =>
+    [...el.querySelectorAll('svg .w-sk, svg .w-sr, svg .w-hc, .labels > [data-anchor^="tool."]')]
+      .filter((n) => !n.closest('svg.l-iso'))
+      .map((n) => Number(getComputedStyle(n).opacity)),
+  )
+
+test('s02 p = 0 opens on the whole sketch, never an empty panel (W4b)', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s02?p=0', 'svg')
+  const fig = await ready(page)
+  const o = await sketch(fig)
+  expect(o.length).toBeGreaterThan(8)
+  for (const v of o) expect(v).toBeGreaterThanOrEqual(0.99)
+})
+
+test('s02 on the sheet draws its sketch as it scrolls in (lead-in)', async ({ page }) => {
+  await gotoTier(page, '/services', 'svg')
+  const fig = page.locator(FIG)
+  // the figure's own top, measured before it sticks
+  await page.evaluate(() => scrollTo(0, 0))
+  const top = await fig.evaluate((el) => el.getBoundingClientRect().top + scrollY)
+  const at = (k: number) => page.evaluate(([y, k]) => scrollTo(0, y - innerHeight * k), [top, k])
+  const pre = () => fig.evaluate((el) => Number(getComputedStyle(el).getPropertyValue('--pre')))
+  await at(1.5)
+  await expect.poll(pre).toBe(0)
+  await at(0.5)
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  await expect.poll(pre).toBe(1)
+  for (const v of await sketch(fig)) expect(v).toBeGreaterThanOrEqual(0.99)
+})
+
 test('s02 pins --p from ?p= on the harness', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s02?p=0.3', 'svg')
   const fig = await ready(page)

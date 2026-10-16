@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { StageEvent } from '@/stage/types'
 import type { FigureConfig } from '@/figures/types'
 import { useFigure } from '@/figures/use-figure.client'
-import { scrubMode, whenNear } from './env.client'
+import { leadIn } from '@/figures/s01/lead-in.client'
+import { pinnedP, scrubMode, whenNear } from './env.client'
 import type { S02Geo, S02Props } from './run.client'
 
 export type { S02Geo }
@@ -25,6 +26,9 @@ export function S02Controller({ geo, live }: S02Props) {
   useEffect(() => {
     const root = document.getElementById('fig-s02')
     if (!root) return
+    // the starting sketch draws on as the figure scrolls in (--pre), complete by p = 0;
+    // at mount, not with run.client, so a late load never takes a drawn sketch back
+    const offLead = pinnedP() === null ? leadIn(root) : () => {}
     let off: (() => void) | null = null
     let gone = false
     const stop = whenNear(root, () => {
@@ -34,6 +38,7 @@ export function S02Controller({ geo, live }: S02Props) {
     })
     return () => {
       gone = true
+      offLead()
       stop()
       off?.()
     }

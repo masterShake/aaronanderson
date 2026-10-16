@@ -104,6 +104,18 @@
 }
 
 /* ── Sketch: boxes, then lines, then each box's glyph ───────────────────── */
+/* The starting sketch runs on --ps: the lead-in (--pre, written as the figure scrolls in)
+   draws it before the scrub or the play starts, so p = 0 never shows an empty panel. --ps is
+   declared on the root only; the sketch's paths and names read it as their own --p. */
+.fig {
+  --ps: max(var(--p, 1), var(--pre, 1) * var(--s01-lead-p));
+}
+
+.fig :global(path:is(.sk, .gl)),
+.fig .tool {
+  --p: var(--ps);
+}
+
 .fig :global(path.sk) {
   --a: calc(var(--s01-sketch-from-p) + var(--i) * var(--s01-sketch-stagger-p));
   --b: calc(var(--a) + var(--s01-sketch-stroke-p));

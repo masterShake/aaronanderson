@@ -47,6 +47,42 @@ test('layers load and --p drives the beats', async ({ page, guard }) => {
   expect(guard.errors).toEqual([])
 })
 
+/** Opacities of the starting sketch: boxes, lines and glyphs (paths) and the tool names. */
+const sketch = (fig: import('@playwright/test').Locator) =>
+  fig.evaluate((el) =>
+    // (the paper backings under the hand-off lines are 0.8 by design)
+    [...el.querySelectorAll('svg path.sk:not(.f-paper), svg path.gl, .labels > span')]
+      .filter((n) => n.matches('path') || /tool/.test(n.className))
+      .map((n) => Number(getComputedStyle(n).opacity)),
+  )
+
+test('p = 0 opens on the whole sketch, never an empty panel (W4b)', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s01?p=0', 'svg')
+  const fig = page.locator('#fig-s01')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const o = await sketch(fig)
+  expect(o.length).toBeGreaterThan(S01_TOOLS.length * 2)
+  for (const v of o) expect(v).toBeGreaterThanOrEqual(0.99)
+})
+
+test('on the sheet the sketch draws on as the figure scrolls in (lead-in)', async ({ page }) => {
+  await gotoTier(page, '/services', 'svg')
+  const fig = page.locator('#fig-s01')
+  // the figure's own top, measured before it sticks
+  await page.evaluate(() => scrollTo(0, 0))
+  const top = await fig.evaluate((el) => el.getBoundingClientRect().top + scrollY)
+  const at = (k: number) => page.evaluate(([y, k]) => scrollTo(0, y - innerHeight * k), [top, k])
+  const pre = () => fig.evaluate((el) => Number(getComputedStyle(el).getPropertyValue('--pre')))
+  // its top half a viewport below the fold: nothing drawn yet
+  await at(1.5)
+  await expect.poll(pre).toBe(0)
+  // its top at half the viewport: the sketch is whole
+  await at(0.5)
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  await expect.poll(pre).toBe(1)
+  for (const v of await sketch(fig)) expect(v).toBeGreaterThanOrEqual(0.99)
+})
+
 test('tool labels and survey tags cover every tool', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
   const n = await page.locator('#fig-s01 .labels > span').count()

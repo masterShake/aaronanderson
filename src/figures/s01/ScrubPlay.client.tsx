@@ -7,6 +7,7 @@ import { drivePlay } from '@/motion/scroll-driver'
 import { gate } from '@/motion/visibility'
 import { GATE } from '@/motion/timing/global'
 import { SERVICE_3D_QUERY } from '@/stage/host'
+import { leadIn } from './lead-in.client'
 
 /**
  * The client half of an SVG-only service figure (S-01, S-05). On a service
@@ -28,7 +29,16 @@ const pinned = (): number | null => {
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null
 }
 
-export function ScrubPlay({ id, playMs }: { id: FigureId; playMs: number }) {
+export function ScrubPlay({
+  id,
+  playMs,
+  lead = false,
+}: {
+  id: FigureId
+  playMs: number
+  /** Opt in to the lead-in (--pre): the figure's CSS reads it for its starting sketch. */
+  lead?: boolean
+}) {
   const config = useMemo<FigureConfig>(
     () => ({
       driver: 'scroll',
@@ -46,7 +56,9 @@ export function ScrubPlay({ id, playMs }: { id: FigureId; playMs: number }) {
       el.style.setProperty('--p', String(p))
       return
     }
-    if (config.track?.()) return
+    // the starting sketch draws on as the figure scrolls in (--pre), complete by p = 0
+    const offLead = lead ? leadIn(el) : () => {}
+    if (config.track?.()) return offLead
     let stop: (() => void) | null = null
     const play = () => {
       stop?.()
@@ -60,11 +72,12 @@ export function ScrubPlay({ id, playMs }: { id: FigureId; playMs: number }) {
     }
     el.addEventListener('click', onClick)
     return () => {
+      offLead()
       offGate()
       stop?.()
       el.removeEventListener('click', onClick)
     }
-  }, [api, config, playMs])
+  }, [api, config, playMs, lead])
 
   return null
 }

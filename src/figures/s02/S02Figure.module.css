@@ -90,6 +90,19 @@
   );
 }
 
+/* The starting sketch (boxes, hand-carry line, glyphs, names) runs on --ps: the lead-in
+   (--pre, written as the figure scrolls in) draws it before the scrub or the play starts, so
+   p = 0 never shows an empty panel. --ps is declared on the root only; the sketch's paths
+   and names read it as their own --p. The carrier and everything after stay on --p. */
+.s02 {
+  --ps: max(var(--p, 1), var(--pre, 1) * var(--s02-sketch-b));
+}
+
+.s02 :global(:is(.w-sk, .w-sr, .w-hc)),
+.s02 .lbl {
+  --p: var(--ps);
+}
+
 /* Draw-on windows: boxes (structure), the hand-carry line, then each box's glyph (detail). */
 .s02 :global(.w-sk) {
   --a: calc(var(--s02-sketch-a) + var(--i) * var(--s02-sketch-step));
