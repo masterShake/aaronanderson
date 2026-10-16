@@ -412,10 +412,11 @@
   margin-block-start: var(--s-6);
 }
 
-/* Below 1024 px a sheet's end gets more air before the next sheet's tab. */
+/* Below 1024 px a sheet's end gets a little air before the next sheet's rule (no more:
+   a full band under a one-line link reads as empty). */
 @media (max-width: 1023px) {
   .talk {
-    padding-block-end: var(--s-8);
+    padding-block-end: var(--s-4);
   }
 }
 

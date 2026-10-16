@@ -220,6 +220,13 @@
   font-weight: 700;
 }
 
+/* The home crew section ends on that link: from 1024 px a short pad under it. */
+@media (width >= 1024px) {
+  .homeSection {
+    padding-block-end: var(--s-5);
+  }
+}
+
 .cardsAbout {
   margin-block-start: var(--s-2);
 }
