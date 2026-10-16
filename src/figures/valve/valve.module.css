@@ -71,6 +71,31 @@
   animation-play-state: var(--gate);
 }
 
+/* The structure (in-tray, reader, gauge, valve body, cabinet, logbook card) is there from the
+   first frame, faint, and inks up in its turn: the panel is never empty while it waits for the
+   gate (W4b: no blank frame). Connections and details then draw on over it. */
+.valve.valve:global([data-run])
+  :global(.l-cad)
+  :global(
+    path:is(
+      [data-part='tray.box'],
+      [data-part='reader.body'],
+      [data-part='gauge.stem'],
+      [data-part='gauge.bezel'],
+      [data-part='valve.body'],
+      [data-part='cabinet'],
+      [data-part='logbook.card']
+    )
+  ) {
+  animation-name: valve-ink;
+}
+
+@keyframes valve-ink {
+  from {
+    opacity: var(--valve-ghost, 0.4);
+  }
+}
+
 @keyframes valve-draw {
   0% {
     stroke-dashoffset: 1;
@@ -96,6 +121,14 @@
 .valve:global([data-run]) .label {
   animation: valve-pop var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
   animation-play-state: var(--gate);
+}
+
+/* The logbook's header and opening line belong to its card: faint with it from the first
+   frame, inked up with it (--i 5). */
+.valve.valve:global([data-run]) .label.logbook {
+  animation-name: valve-ink;
+  animation-duration: var(--valve-draw, 480ms);
+  animation-delay: calc(5 * var(--valve-stagger, 80ms));
 }
 
 @keyframes valve-pop {
@@ -345,6 +378,21 @@
   animation-delay: var(--log5, 7600ms);
 }
 
+/* The still tier (Pause motion, or no WebGL budget) rests on the final frame: labels, APPROVED
+   and every log line show, whatever the paused gate holds. */
+:global(html[data-tier='still']) .valve.valve:not(:global([data-user-play])) :is(.label, .logLine),
+.valve.valve:global([data-phase='still']):not(:global([data-user-play])) :is(.label, .logLine) {
+  animation: none;
+}
+
+/* One button at a time keeps the strip on one row on phones: on the still tier Play the
+   drawing starts the sequence (Replay would do the same); once the visitor plays it, Replay. */
+:global(html[data-tier='still']) .valve.valve:not(:global([data-user-play])) [data-action='replay'],
+.valve.valve:global([data-phase='still']):not(:global([data-user-play])) [data-action='replay'],
+.valve.valve:global([data-user-play]) [data-action='play'] {
+  display: none;
+}
+
 /* ── Labels and the logbook ─────────────────────────────────────────────── */
 .valve .label {
   display: grid;
@@ -406,8 +454,14 @@
   list-style: decimal-leading-zero;
 }
 
-.logLine {
+.logLine,
+.logOpen {
   white-space: nowrap;
+}
+
+/* the opening line prints with the header, quieter than the records */
+.logOpen {
+  color: var(--c-cyan);
 }
 
 /* a narrow wide drawing has room for the last three lines only (numbers kept by value) */

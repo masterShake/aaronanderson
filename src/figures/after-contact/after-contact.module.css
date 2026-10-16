@@ -47,6 +47,18 @@
   animation-play-state: var(--gate);
 }
 
+/* The four enclosures are there from the first frame, faint, and ink up in turn: the panel is
+   never empty while the figure waits for its gate (W4b: no blank frame). */
+.fig.fig:global([data-run]) :global(.l-cad path[data-part$='.box']) {
+  animation-name: ac-ink;
+}
+
+@keyframes ac-ink {
+  from {
+    opacity: var(--ac-ghost, 0.4);
+  }
+}
+
 @keyframes ac-draw {
   0% {
     stroke-dashoffset: 1;
@@ -173,4 +185,10 @@
   from {
     opacity: 0;
   }
+}
+
+/* The still tier (Pause motion) rests on the final frame: the names show whatever the gate holds. */
+:global(html[data-tier='still']) .fig.fig:not(:global([data-user-play])) .label,
+.fig.fig:global([data-phase='still']):not(:global([data-user-play])) .label {
+  animation: none;
 }

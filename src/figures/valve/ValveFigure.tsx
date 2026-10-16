@@ -27,7 +27,8 @@ const AFTER: Readonly<Record<string, number>> = {
   inRange: 11,
   valve: 12,
   record: 13,
-  logbook: 15,
+  // the logbook's header and opening line print as soon as its card is inked (--i 5)
+  logbook: 5,
 }
 const popAt = (k: string) =>
   k === 'approved' ? VALVE.approvedAt : (AFTER[k] ?? 15) * VALVE.stagger + VALVE.draw + 40
@@ -81,6 +82,9 @@ export function ValveFigure({ className }: { className?: string } = {}) {
       <Tag k="logbook" className={s.logbook}>
         <span className={s.logTitle}>{l.logbook}</span>
         <ol className={s.log}>
+          <li className={s.logOpen} data-line={0} value={0}>
+            {copy.ui['log.open']}
+          </li>
           {LOG.map((key, i) => (
             <li key={i} className={s.logLine} data-line={i + 1} value={i + 1}>
               {copy.ui[key]}

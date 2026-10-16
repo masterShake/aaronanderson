@@ -23,7 +23,7 @@ import s from './ticket.module.css'
  * overlay, positioned in percent of the box, and wrap inside their tag.
  */
 
-type Tone = 'ink' | 'new' | 'red' | 'hand' | 'doc' | 'stamp'
+type Tone = 'ink' | 'old' | 'new' | 'red' | 'hand' | 'doc' | 'stamp'
 type Box = readonly [x: number, y: number, w: number]
 interface Tag {
   key: string
@@ -60,14 +60,15 @@ function tags(): Tag[] {
     return t ? [t[0], t[1], t[2]] : undefined
   }
 
-  // node labels sit inside their boxes
+  // node labels sit inside their boxes; the old tools keep their names through the parallel run
   for (const n of ticketGraph.nodes) {
-    const tone: Tone = n.revs?.includes('rev2') ? 'new' : 'ink'
+    const asFound = n.revs?.length === 1 && n.revs[0] === 'rev0'
+    const tone: Tone = n.revs?.includes('rev2') ? 'new' : asFound ? 'old' : 'ink'
     out.push({
       key: n.id,
       text: copy.labels[n.label],
       tone,
-      revs: n.revs ?? TICKET_REVS,
+      revs: asFound ? ['rev0', 'rev2'] : (n.revs ?? TICKET_REVS),
       at: both((fam) => {
         const node = geo[fam].graph.nodes.find((x) => x.id === n.id)
         if (!node) return undefined
@@ -219,7 +220,11 @@ export function TicketFigure({ className }: { className?: string } = {}) {
       still={<>{stills}</>}
       labels={<Labels />}
     >
-      <TicketController revs={copy.revs} />
+      <TicketController
+        revs={copy.revs}
+        status={Object.fromEntries(TICKET_REVS.map((r) => [r, copy.ui[`stamp.${r}`]]))}
+        statusClass={s.chipStatus}
+      />
     </FigureFrame>
   )
 }

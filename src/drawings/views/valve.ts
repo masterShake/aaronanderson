@@ -70,7 +70,7 @@ export const VALVE_LAYOUT: Readonly<Record<LayoutId, ValveLayout>> = {
     ],
     tags: {
       incoming: [28, 214, 160, 0],
-      reader: [240, 6, 200, 0],
+      reader: [196, 4, 228, 0],
       tolerance: [478, 48, 140, 0],
       inRange: [478, 82, 120, 0],
       valve: [548, 292, 180, 0],
