@@ -2,7 +2,9 @@
  * S-05 THE CREW, TRAINED on --p (pages-drawings §6.5). Paper only; no loop.
  * Windows come from S05 (src/motion/timing/s05.ts) through cssVars as
  * --s05-*-p; --i is the crew member (0 estimator, 1 project manager, 2 field
- * lead) or the record row. --p is 1 in the still tier, in print and without JS.
+ * lead), the checklist row on the monitor, or the record row. --p is 1 in the
+ * still tier, in print and without JS. Draw-on windows ease in and out (cubic);
+ * the progress bar fills at a constant speed.
  */
 
 .fig {
@@ -20,7 +22,7 @@
 
 @container fig (width < 440px) {
   .fig :global(.box) {
-    --s05-walk-from: 260px;
+    --s05-walk-from: 120px;
   }
 }
 
@@ -78,8 +80,25 @@
 }
 
 .fig :global(path.sc) {
-  --a: var(--s05-walk-from-p);
-  --b: var(--s05-screen-from-p);
+  --a: var(--s05-desk-from-p);
+  --b: var(--s05-desk-to-p);
+}
+
+/* Tall: the desk scene has its own lower half, so it is set with the sketch (after the crew)
+   rather than leaving that half empty until the new hire comes. */
+@container fig (width < 440px) {
+  .fig :global(path.sc) {
+    --a: calc(var(--s05-sketch-from-p) + 4 * var(--s05-sketch-step-p));
+    --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+  }
+}
+
+/* the walkthrough's checklist rows draw one after another while it plays */
+.fig :global(path.sl) {
+  --a: calc(
+    var(--s05-screen-from-p) + var(--i) * (var(--s05-screen-to-p) - var(--s05-screen-from-p)) / 3
+  );
+  --b: calc(var(--a) + (var(--s05-screen-to-p) - var(--s05-screen-from-p)) / 3);
 }
 
 .fig :global(path.pg) {
@@ -87,17 +106,47 @@
   --b: var(--s05-screen-to-p);
 }
 
-.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .pg)) {
-  --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
+.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .sl, .pg)) {
+  --t: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
+  /* ease-in-out cubic (smoothstep) on the window's progress */
+  --lp: calc(var(--t) * var(--t) * (3 - 2 * var(--t)));
 }
 
-.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .pg).draw) {
+/* the progress bar fills at a constant speed */
+.fig :global(path.pg) {
+  --lp: var(--t);
+}
+
+.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .sl, .pg).draw) {
   stroke-dashoffset: calc(1 - var(--lp));
   opacity: clamp(0, var(--lp) * 50, 1);
 }
 
 .fig :global(path:is(.gr, .pp, .qc, .tl, .sc):not(.draw)) {
   opacity: var(--lp);
+}
+
+/* Each tool is handed down into the hand while it draws (ease-out, user units). */
+.fig :global(g[data-part='tool.playbook']) {
+  --i: 0;
+}
+
+.fig :global(g[data-part='tool.guideline']) {
+  --i: 1;
+}
+
+.fig :global(g[data-part='tool.walkthrough']) {
+  --i: 2;
+}
+
+.fig :global(g[data-part^='tool.']) {
+  --h: clamp(
+    0,
+    (var(--p) - var(--s05-hand-from-p) - var(--i) * var(--s05-hand-step-p)) / var(--s05-tool-p),
+    1
+  );
+  translate: calc((1 - var(--h)) * (1 - var(--h)) * -12px)
+    calc((1 - var(--h)) * (1 - var(--h)) * -28px);
 }
 
 /* The new hire walks in from the right (no walk cycle), visible from the walk's start. */
@@ -108,12 +157,12 @@
 
 /* ── Labels ──────────────────────────────────────────────────────────────── */
 .fig.fig :global(.labels) > * {
-  font-size: clamp(8px, 1.9cqi, 12px);
+  font-size: clamp(8px, 1.6cqi, 12px);
 }
 
 @container fig (width < 440px) {
   .fig.fig :global(.labels) > * {
-    font-size: clamp(9px, 2.5cqi, 11px);
+    font-size: clamp(9px, 2.6cqi, 11px);
   }
 }
 
@@ -122,81 +171,94 @@
   overflow-wrap: normal;
 }
 
-.person {
-  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
-  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
-  max-inline-size: 18%;
-  white-space: normal !important;
-  text-align: center;
+.person,
+.hire {
+  translate: -50% 0;
   color: var(--c-graphite);
   opacity: var(--lp);
 }
 
-.q {
+.person {
   --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
   --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+}
+
+.hire {
+  --a: calc(var(--s05-walk-to-p) - 0.02);
+  --b: var(--s05-walk-to-p);
+}
+
+.q {
+  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p) + 0.04);
+  --b: calc(var(--a) + 0.03);
   --gone: clamp(
     0,
     (var(--p) - var(--s05-hand-from-p) - var(--i) * var(--s05-hand-step-p) - var(--s05-tool-p)) /
       var(--s05-callout-p),
     1
   );
+  translate: -50% -50%;
   color: var(--c-graphite);
   font-weight: 600;
-  font-size: clamp(12px, 3cqi, 18px) !important;
+  font-size: clamp(12px, 2.4cqi, 20px) !important;
+  line-height: 1;
   opacity: calc(var(--lp) * (1 - var(--gone)));
 }
 
+/* Callouts: the tool's name, then what it is for, set on two deliberate lines. */
 .callout {
   --a: calc(
     var(--s05-hand-from-p) + var(--i) * var(--s05-hand-step-p) + var(--s05-tool-p) +
       var(--s05-callout-p) * 0.5
   );
   --b: calc(var(--a) + var(--s05-callout-p));
-  max-inline-size: 19%;
-  white-space: normal !important;
-  color: var(--c-asphalt);
-  font-size: clamp(8px, 1.7cqi, 12px) !important;
-  font-weight: 600;
+  display: grid;
+  translate: 0 -100%;
   opacity: var(--lp);
 }
 
-.hire {
-  --a: calc(var(--s05-walk-to-p) - 0.02);
-  --b: var(--s05-walk-to-p);
+.callout[data-align='end'] {
+  translate: -100% -100%;
+  text-align: end;
+}
+
+.name {
+  color: var(--c-asphalt);
+  font-weight: 600;
+}
+
+.sub {
   color: var(--c-graphite);
-  opacity: var(--lp);
 }
 
 @container fig (width < 440px) {
-  .callout {
-    max-inline-size: 90%;
+  .callout[data-align] {
+    translate: none;
+    text-align: start;
+  }
+
+  .sub {
+    display: none;
   }
 }
 
-/* The training record: an HTML mini table that ticks row by row. */
+/* The training record: an HTML card that ticks row by row. */
 .record {
   --a: var(--s05-screen-from-p);
   --b: calc(var(--s05-screen-from-p) + 0.02);
-  inline-size: 31%;
-  padding: 0.5em 0.6em;
+  /* at least its share of the box; wider when the text needs it, so nothing wraps or clips */
+  inline-size: max-content;
+  min-inline-size: calc(var(--rw) * 1%);
+  padding: 0.5em 0.6em 0.6em;
   border: 1.5px solid var(--c-asphalt);
   background: var(--c-paper);
-  white-space: normal !important;
+  white-space: nowrap;
   opacity: var(--lp);
 }
 
 @container fig (width < 440px) {
   .record {
-    inline-size: 56%;
-  }
-
-  .person {
-    max-inline-size: 30%;
-  }
-
-  .callout {
-    font-size: clamp(9px, 2.4cqi, 11px) !important;
+    min-inline-size: calc(var(--rwt) * 1%);
   }
 }
 
@@ -217,9 +279,9 @@
 
 .rows li {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 0 0.5em;
+  gap: 0 0.6em;
+  white-space: nowrap;
 }
 
 .done {

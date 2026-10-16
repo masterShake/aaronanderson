@@ -9,7 +9,9 @@ import { cssVars } from '@/motion/timing-css'
 import { S05 } from '@/motion/timing/s05'
 import {
   S05_CREW,
+  S05_GEO,
   S05_VB,
+  calloutAlign,
   calloutAt,
   hireLabelAt,
   personLabelAt,
@@ -38,6 +40,11 @@ const file = (f: string) => drawingSrc('s05', f)
 
 const PEOPLE = ['person.estimator', 'person.pm', 'person.field'] as const
 const ROWS = ['row.office', 'row.field', 'row.playbook', 'row.walkthrough'] as const
+const SUB = {
+  'callout.playbook': 'callout.playbook.sub',
+  'callout.guideline': 'callout.guideline.sub',
+  'callout.walkthrough': 'callout.walkthrough.sub',
+} as const
 
 function Labels() {
   const ui = copy.ui
@@ -61,15 +68,24 @@ function Labels() {
         <span
           key={`c.${c.person}`}
           className={s.callout}
+          data-align={calloutAlign(i)}
           style={css({ ...pos(calloutAt(i)), '--i': i })}
         >
-          {copy.labels[c.callout]}
+          <span className={s.name}>{copy.labels[c.callout]}</span>
+          <span className={s.sub}>{copy.labels[SUB[c.callout]]}</span>
         </span>
       ))}
       <span className={s.hire} style={css(pos(hireLabelAt))}>
         {copy.labels['person.newHire']}
       </span>
-      <div className={s.record} style={css(pos(recordAt))}>
+      <div
+        className={s.record}
+        style={css({
+          ...pos(recordAt),
+          '--rw': S05_GEO.wide.recordW,
+          '--rwt': S05_GEO.tall.recordW,
+        })}
+      >
         <p className={s.recordTitle}>{str(ui.recordTitle)}</p>
         <ol className={s.rows}>
           {ROWS.map((r, i) => (

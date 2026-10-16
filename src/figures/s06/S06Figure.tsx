@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { s06Figure as copy } from '@/content/figures/s06'
 import type { LayoutId, Pt } from '@/drawings/types'
-import { buildS06Model, S06_ADDS, S06_VIEWBOX } from '@/drawings/views/s06'
+import { buildS06Model, partTop, S06_ADDS, S06_NAMES, S06_VIEWBOX } from '@/drawings/views/s06'
 import { fitIso, isoToViewBox, planToWorld } from '@/drawings/lib/iso'
 import { modelBounds } from '@/drawings/render'
 import { drawingSrc } from '@/drawings/files'
@@ -17,9 +17,11 @@ import s from './s06.module.css'
 /**
  * DETAIL 6 / S-06, Run & Improve (pages-drawings §6.6, stage-hero §4.4): the hero's rewired
  * machine under a monthly inspection. Scroll (or, below 1024 px, play on entry) draws the
- * CAD plan to p .15 (the WebGL hand-off), then the iso print; from p .40 an inspection light
- * sweeps three times (the flange is FIXED on the last) and each further .15 bolts on a month's
- * instrument. The health card shows labels only. Labels sit on the print (iso positions).
+ * CAD plan to p .15 (the WebGL hand-off), then the iso print with its tool names; from p .40 an
+ * inspection light sweeps three times (a fault shows at the flange on the last, then FIXED) and
+ * each further .15 bolts on a month's instrument. The health card ticks as each thing happens
+ * and shows labels only. Labels sit on the print (iso positions) or, in WebGL, on the Stage's
+ * projected anchors (the hero's label keys).
  */
 
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
@@ -28,28 +30,32 @@ function isoLabels(family: LayoutId) {
   const m = buildS06Model(family)
   const vb = S06_VIEWBOX[family]
   const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec))
-  const at = (key: string): Pt => {
-    const part = m.spec.parts.find((p) => p.anchor === key)!
-    const prim = part.prims[0]!
-    const c: Pt = prim.t === 'circle' ? prim.c : [0, 0]
-    const q = isoToViewBox(planToWorld(c, (part.z ?? 0) + part.depth), vb, fit)
+  /** The anchor's print position; undefined where the family has no such part (tall: no CRM). */
+  const at = (key: string): Pt | undefined => {
+    const part = m.spec.parts.find((p) => p.anchor === key)
+    if (!part) return undefined
+    const { c, z } = partTop(part)
+    const q = isoToViewBox(planToWorld(c, z), vb, fit)
     return [pct(q[0], vb[2]), pct(q[1], vb[3])]
   }
-  return { at }
+  /** The part's centre on the CAD plan (before the print), or undefined. */
+  const plan = (key: string): Pt | undefined => {
+    const part = m.spec.parts.find((p) => p.anchor === key)
+    if (!part) return undefined
+    const { c } = partTop(part)
+    return [pct(c[0], vb[2]), pct(c[1], vb[3])]
+  }
+  return { at, plan }
 }
 
 export function S06Figure() {
   const w = isoLabels('wide')
   const t = isoLabels('tall')
-  const place = (key: string, dy = -5, dyt = -5) => {
-    const a = w.at(key)
-    const b = t.at(key)
-    return {
-      '--lx': a[0],
-      '--ly': a[1] + dy,
-      '--lxt': b[0],
-      '--lyt': b[1] + dyt,
-    } as CSSProperties
+  /** Label position (percent of the box) at its anchor; CSS sets each kind's offset. */
+  const place = (key: string) => {
+    const a = w.at(key)!
+    const b = t.at(key) ?? a
+    return { '--lx': a[0], '--ly': a[1], '--lxt': b[0], '--lyt': b[1] } as CSSProperties
   }
   const month = (n: number) => S06.monthFromP + n * S06.monthStepP
   const vars = cssVars(S06, 's06')
@@ -82,29 +88,45 @@ export function S06Figure() {
       }
       labels={
         <>
-          <span className={s.band}>
-            <span className={s.bandTag}>{copy.labels.inspection}</span>
-          </span>
-          <span
-            className={`${s.lab} ${s.gauge}`}
-            data-anchor="gauge"
-            style={place('gauge', -7, -7)}
-          >
-            {copy.labels.gauge}
-          </span>
-          <span
-            className={`${s.lab} ${s.fixed}`}
-            data-anchor="fixed"
-            style={place('fixed', -6, -6)}
-          >
-            {copy.labels.fixed}
+          <span className={s.band} />
+          <span className={s.inspectTag}>{copy.labels.inspection}</span>
+          {S06_NAMES.map((key) => {
+            // the same names on the CAD plan, until the hand-off tilts it (no data-anchor)
+            const a = w.plan(key)!
+            const b = t.plan(key)
+            const style = {
+              '--lx': a[0],
+              '--ly': a[1],
+              '--lxt': (b ?? a)[0],
+              '--lyt': (b ?? a)[1],
+            } as CSSProperties
+            return (
+              <span
+                key={`plan.${key}`}
+                className={`${s.lab} ${s.planName}`}
+                data-key={key}
+                {...(b ? {} : { 'data-wide-only': '' })}
+                style={style}
+              >
+                {copy.labels[key]}
+              </span>
+            )
+          })}
+          {S06_NAMES.map((key) => (
+            <span key={key} className={`${s.lab} ${s.name}`} data-anchor={key} style={place(key)}>
+              {copy.labels[key]}
+            </span>
+          ))}
+          <span className={`${s.lab} ${s.fixWrap}`} data-anchor="fixed" style={place('fixed')}>
+            <span className={s.fault} />
+            <span className={s.fixed}>{copy.labels.fixed}</span>
           </span>
           {S06_ADDS.map((key, i) => (
             <span
               key={key}
               data-anchor={key}
               className={`${s.lab} ${s.add}`}
-              style={{ ...place(key, -6, -5), '--a': month(i + 1) } as CSSProperties}
+              style={{ ...place(key), '--a': month(i + 1) } as CSSProperties}
             >
               {copy.labels[key]}
             </span>
@@ -115,9 +137,21 @@ export function S06Figure() {
         <>
           <div className={s.health} aria-hidden="true">
             <p className={s.healthTitle}>{copy.ui.healthTitle}</p>
-            <p>{copy.ui.synced}</p>
-            <p>{copy.ui.fixes}</p>
-            <p>{copy.ui.shipped}</p>
+            <p>
+              {copy.ui.synced} <span className={`${s.ok} ${s.okSync}`}>{copy.ui.tick}</span>
+            </p>
+            <p>
+              {copy.ui.gauges} <span className={`${s.ok} ${s.okSync}`}>{copy.ui.tick}</span>
+            </p>
+            <p>
+              {copy.ui.fixes} <span className={`${s.ok} ${s.okFix}`}>{copy.ui.tick}</span>
+            </p>
+            <p>
+              {copy.ui.shipped}{' '}
+              <span className={`${s.ok} ${s.okShip}`} style={{ '--a': month(1) } as CSSProperties}>
+                {copy.ui.tick}
+              </span>
+            </p>
           </div>
           <div className={s.months} aria-hidden="true">
             <span className={s.monthsTag}>{copy.labels.months}</span>

@@ -1,5 +1,6 @@
 import {
   CanvasTexture,
+  CircleGeometry,
   Mesh,
   MeshBasicMaterial,
   NearestFilter,
@@ -21,7 +22,7 @@ import type { ModelPart, Pen, Pt } from '@/drawings/types'
 import { S06 } from '@/motion/timing/s06'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
-import { S06_EXTRA } from './model/s06-data'
+import { S06_EXTRA, s06Glyphs } from './model/s06-data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
@@ -114,6 +115,7 @@ const mod: SceneModule = {
     const months = new Map<string, number>()
     const bounds: Vector3[] = []
     const frame = parts.filter((p) => !monthOf(p)).flatMap((p) => partLines(p))
+    const glyphs = s06Glyphs(parts)
     const labels: LabelMap = new Map()
     let w = 1
     let h = 1
@@ -122,6 +124,7 @@ const mod: SceneModule = {
     let beat: Beat | undefined
     let spot: SpotLight | null = null
     let ring: Mesh | null = null
+    const dialGroup = new Object3D()
 
     const cv = document.createElement('canvas')
     const tex = new CanvasTexture(cv)
@@ -163,6 +166,14 @@ const mod: SceneModule = {
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
         g.stroke()
       }
+      // the tool glyphs, as the CAD plan draws them
+      g.lineWidth = ctx.strokePx('025') / rig.scale
+      for (const gl of glyphs) {
+        g.beginPath()
+        gl.pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])))
+        g.strokeStyle = gl.id === 'glyph.report' ? COLOR.asphalt : COLOR.cyan
+        g.stroke()
+      }
       tex.needsUpdate = true
       quarter()
       quarter = quarterLater(g, () => (tex.needsUpdate = true))
@@ -181,6 +192,40 @@ const mod: SceneModule = {
       lines.push({ m, pen: l.pen, o })
       parent.add(o)
       return { m, o }
+    }
+
+    /**
+     * The monitor's dial on the gauge's top face: a paper face, nine ticks and a needle (asphalt)
+     * and the IN RANGE arc (blueprint), riding the gauge's extrusion as its children.
+     */
+    function dial(mesh: Mesh, [cx, cz]: Pt, rim: readonly Pt[], top: number, order: number) {
+      const r = Math.hypot(rim[0]![0] - cx, rim[0]![1] - cz) * 0.82
+      const geo = new CircleGeometry(r, 32).rotateX(-Math.PI / 2).translate(cx, top + 0.3, cz)
+      const mat = new MeshBasicMaterial({ color: COLOR.paper, toneMapped: false })
+      // the dial waits for the extrusion (never on the plan frame the seam compares)
+      mesh.add(dialGroup)
+      dialGroup.add(new Mesh(geo, mat))
+      own.push({ geometry: geo, material: mat })
+      const y = top + 0.6
+      const at = (deg: number, k: number) => {
+        const a = (deg * Math.PI) / 180
+        return [cx + Math.sin(a) * r * k, y, cz - Math.cos(a) * r * k]
+      }
+      const ink: number[] = [cx, y, cz, ...at(14, 0.72)]
+      const arc: number[] = []
+      for (let d = -120; d <= 120; d += 30) ink.push(...at(d, 0.8), ...at(d, 0.98))
+      for (let d = -40; d < 40; d += 10) arc.push(...at(d, 0.6), ...at(d + 10, 0.6))
+      for (const [pos, color, pen] of [
+        [ink, COLOR.asphalt, '035'],
+        [arc, COLOR.blueprint, '100'],
+      ] as const) {
+        const m = lineMat({ color, width: 1, a2c: true })
+        const o = segments(pos, m)
+        o.renderOrder = 10 + order
+        own.push({ geometry: o.geometry })
+        lines.push({ m, pen, o })
+        dialGroup.add(o)
+      }
     }
 
     function* build() {
@@ -222,11 +267,39 @@ const mod: SceneModule = {
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order, month })
           three.add(mesh)
+          if (p.id === 'gauge') dial(mesh, centre(p), outline(c).pts, top, order)
+          // the tool's glyph on its top face (blueprint; dark on the orange report)
+          const pos: number[] = []
+          for (const gl of glyphs)
+            if (gl.id === `glyph.${p.id}`)
+              for (let j = 1; j < gl.pts.length; j++)
+                pos.push(
+                  gl.pts[j - 1]![0],
+                  top + 0.4,
+                  gl.pts[j - 1]![1],
+                  gl.pts[j]![0],
+                  top + 0.4,
+                  gl.pts[j]![1],
+                )
+          if (pos.length) {
+            const m = lineMat({
+              color: orange ? COLOR.asphalt : COLOR.blueprint,
+              width: 1,
+              a2c: true,
+            })
+            const o = segments(pos, m)
+            o.renderOrder = 10 + order
+            own.push({ geometry: o.geometry })
+            lines.push({ m, pen: '025', o })
+            mesh.add(o)
+          }
         })
-        if (p.anchor && (month || p.id === 'flange' || p.id === 'gauge')) {
+        if (p.anchor) {
+          // every labelled part (the hero's tools and store, the flange, the gauge and the month
+          // instruments) at its top face's centre, as on the print; CSS sets each label's offset
           const a = new Object3D()
           const [cx, cz] = centre(p)
-          a.position.set(cx, z0 + top + 14, cz)
+          a.position.set(cx, z0 + top, cz)
           anchors.set(p.anchor, a)
           if (month) months.set(p.anchor, month)
           three.add(a)
@@ -272,6 +345,7 @@ const mod: SceneModule = {
         sd.face.uFlat.value = flat
       }
       decal.visible = p < PH + 0.07
+      dialGroup.visible = p > PH + 0.12
       decalMat.opacity = 1 - span(p, PH + 0.04, PH + 0.07)
       for (const l of lines) l.o.visible = p > PH + 0.04
       const fade = span(p, PH + 0.08, PH + 0.2) * 0.45
