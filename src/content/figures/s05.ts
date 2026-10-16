@@ -43,7 +43,7 @@ export const s05Figure = {
     'row.office': 'OFFICE SESSION',
     'row.field': 'FIELD SESSION',
     'row.playbook': 'PROMPT PLAYBOOK',
-    'row.walkthrough': 'NEW-HIRE WALKTHROUGH',
+    'row.walkthrough': 'WALKTHROUGH',
     done: 'DONE ✓',
   },
 } satisfies FigureCopy

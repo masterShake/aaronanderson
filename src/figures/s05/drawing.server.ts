@@ -252,7 +252,8 @@ function make(family: Fam): SvgDoc {
     group('ground', [
       ...rough([line(g.ground[0], g.ground[1])], seed('ground'), 'ground', 0, pencilCls('gr')),
       ...(g.ground2
-        ? rough([line(g.ground2[0], g.ground2[1])], seed('ground2'), 'ground2', 0, pencilCls('gr'))
+        ? // the new hire's floor draws with the desk, so the lower half never waits empty
+          rough([line(g.ground2[0], g.ground2[1])], seed('ground2'), 'ground2', 0, pencilCls('sc'))
         : []),
     ]),
   )

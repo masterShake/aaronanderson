@@ -92,8 +92,8 @@ export const S05_GEO: Readonly<Record<LayoutId, Fam>> = {
     hire: { feet: [868, 524], from: 220, k: 4.6 },
     desk: { x: 650, y: 394, w: 140, h: 130 },
     monitor: { w: 112, h: 72, neck: 14 },
-    record: [660, 20],
-    recordW: 28,
+    record: [628, 20],
+    recordW: 32,
   },
   tall: {
     ground: [

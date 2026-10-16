@@ -123,6 +123,7 @@ const mod: SceneModule = {
     let beat: Beat | undefined
     let spot: SpotLight | null = null
     let ring: Mesh | null = null
+    const dialGroup = new Object3D()
 
     const cv = document.createElement('canvas')
     const tex = new CanvasTexture(cv)
@@ -192,7 +193,9 @@ const mod: SceneModule = {
       const r = Math.hypot(rim[0]![0] - cx, rim[0]![1] - cz) * 0.82
       const geo = new CircleGeometry(r, 32).rotateX(-Math.PI / 2).translate(cx, top + 0.3, cz)
       const mat = new MeshBasicMaterial({ color: COLOR.paper, toneMapped: false })
-      mesh.add(new Mesh(geo, mat))
+      // the dial waits for the extrusion (never on the plan frame the seam compares)
+      mesh.add(dialGroup)
+      dialGroup.add(new Mesh(geo, mat))
       own.push({ geometry: geo, material: mat })
       const y = top + 0.6
       const at = (deg: number, k: number) => {
@@ -212,7 +215,7 @@ const mod: SceneModule = {
         o.renderOrder = 10 + order
         own.push({ geometry: o.geometry })
         lines.push({ m, pen, o })
-        mesh.add(o)
+        dialGroup.add(o)
       }
     }
 
@@ -308,6 +311,7 @@ const mod: SceneModule = {
         sd.face.uFlat.value = flat
       }
       decal.visible = p < PH + 0.07
+      dialGroup.visible = p > PH + 0.12
       decalMat.opacity = 1 - span(p, PH + 0.04, PH + 0.07)
       for (const l of lines) l.o.visible = p > PH + 0.04
       const fade = span(p, PH + 0.08, PH + 0.2) * 0.45

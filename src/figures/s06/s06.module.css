@@ -129,7 +129,7 @@
 }
 
 .s06.s06 .add[data-anchor='add.report'] {
-  translate: -92% -165%;
+  translate: -100% -190%;
 }
 
 .s06.s06 .add[data-anchor='add.alert'] {
@@ -215,8 +215,8 @@
 
 /* The inspection's name: a chip in the corner while the light sweeps (both media). */
 .s06.s06 .inspectTag {
-  inset-inline-start: 3%;
-  inset-block-start: 3%;
+  inset-inline-start: max(10px, 3%);
+  inset-block-start: max(10px, 3%);
   padding: 1px 6px;
   border: 1px solid var(--c-cyan-dim);
   background: var(--c-blueprint-deep);
