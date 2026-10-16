@@ -91,13 +91,13 @@ export function partsNodes(
       const f = cad(p.prims)
       out.push(pathNode(f.d, f.len, p.id, o.i, strokeCls({ fill: p.fill, draw: false })))
     }
-    if (o.variant === 'clean') {
+    if (o.variant === 'clean' || p.clean) {
       const c = cad(p.prims)
       out.push(pathNode(c.d, c.len, p.id, o.i, strokeCls({ pen: p.pen, ink, dash: p.dash })))
     } else {
       for (const s of pencil(p.prims, {
         seed: seedFrom(`${o.seed}:${p.id}`),
-        preset: o.preset ?? 'person',
+        preset: o.preset ?? 'detail',
       }))
         out.push(pathNode(s.d, s.len, p.id, o.i, strokeCls({ pen: p.pen, ink, dash: p.dash })))
     }

@@ -5,17 +5,29 @@ import { inRev } from '../lib/route'
 
 /**
  * The isometric print: the ModelSpec projected at build time at az 45° and
- * el 35.26° (SCENE), framed exactly like the rig's end pose (fitIso), drawn as
- * flat three-tone faces sorted back to front (top alu-100, south alu-300,
- * east alu-500; orange parts orange and orange-dark) with 55% cyan edges. No
- * packets, no occlusion masks, no keyframes (cut 1).
+ * el 35.26° (SCENE), framed exactly like the rig's end pose (fitIso).
+ *
+ * W4 (M3): two-tone faces, the top lighter (alu-100 over alu-300 sides;
+ * orange over orange-dark), with clean thin edges. Ordering is per part, not
+ * per face: parts (and each straight run of a pipe) sort back to front by the
+ * plan depth of their footprint, and inside a part its sides draw back to
+ * front and its top last. So a face of a far part never lands over a near
+ * part, and pipes pass behind or in front of boxes where they really are.
+ * No packets, no occlusion masks, no keyframes (cut 1).
  */
 
 interface Face {
   pts: Pt[]
-  depth: number
   fill: string
+}
+
+interface Item {
+  /** Plan depth toward the camera of the footprint (larger is nearer). */
+  depth: number
   part: string
+  faces: Face[]
+  /** Pipe and open-run polylines (drawn as a thick line). */
+  runs: Pt[][]
 }
 
 function footprint(p: ModelPart): { pts: Pt[]; closed: boolean }[] {
@@ -52,6 +64,12 @@ const centroid3 = (ws: readonly V3[]): V3 => {
   ]
 }
 
+/** Depth on the ground plane only (height never reorders parts). */
+const planDepth = (pts: readonly Pt[]): number => {
+  const c = centroid3(pts.map((q) => planToWorld(q, 0)))
+  return c[0] * ISO.b[0] + c[2] * ISO.b[2]
+}
+
 /** All model corners in world space, for framing. */
 export function modelBounds(spec: ModelSpec, rev?: string): V3[] {
   const out: V3[] = []
@@ -69,8 +87,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
   const vb = o.viewBox ?? spec.viewBox
   const fit = fitIso(vb, vb[2], vb[3], modelBounds(spec, o.rev))
   const P = (w: V3) => isoToViewBox(w, vb, fit)
-  const faces: Face[] = []
-  const lines: { pts: Pt[]; depth: number; part: string }[] = []
+  const items: Item[] = []
   for (const p of spec.parts) {
     if (o.rev && !inRev(p, o.rev)) continue
     const z0 = p.z ?? 0
@@ -78,14 +95,22 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
     const orange = p.material === 'orange'
     for (const f of footprint(p)) {
       if (!f.closed || p.kind === 'pipe') {
-        // pipes and open runs: a line at mid height
-        const ws = f.pts.map((q) => planToWorld(q, (z0 + z1) / 2))
-        lines.push({ pts: ws.map(P), depth: isoDepth(centroid3(ws)), part: p.id })
+        // pipes and open runs: one item per straight run, a line at mid height
+        for (let i = 1; i < f.pts.length; i++) {
+          const seg = [f.pts[i - 1]!, f.pts[i]!]
+          items.push({
+            depth: planDepth(seg),
+            part: p.id,
+            faces: [],
+            runs: [seg.map((q) => P(planToWorld(q, (z0 + z1) / 2)))],
+          })
+        }
         continue
       }
       // positive area = clockwise on screen (y down), where (dy, -dx) already points outward
       const ccw = signedArea(f.pts) <= 0
       const n = f.pts.length
+      const sides: { face: Face; d: number }[] = []
       for (let i = 0; i < n; i++) {
         const a = f.pts[i]!
         const b = f.pts[(i + 1) % n]!
@@ -95,52 +120,60 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
           nx = -nx
           ny = -ny
         }
-        const nw: V3 = [nx, 0, ny]
-        if (nw[0] * ISO.b[0] + nw[2] * ISO.b[2] <= 1e-9) continue
+        if (nx * ISO.b[0] + ny * ISO.b[2] <= 1e-9) continue
         const ws: V3[] = [
           planToWorld(a, z0),
           planToWorld(b, z0),
           planToWorld(b, z1),
           planToWorld(a, z1),
         ]
-        const south = Math.abs(ny) >= Math.abs(nx)
-        faces.push({
-          pts: ws.map(P),
-          depth: isoDepth(centroid3(ws)),
-          fill: orange ? 'orange-dark' : south ? 'alu-300' : 'alu-500',
-          part: p.id,
+        sides.push({
+          face: { pts: ws.map(P), fill: orange ? 'orange-dark' : 'alu-300' },
+          d: isoDepth(centroid3(ws)),
         })
       }
-      const top = f.pts.map((q) => planToWorld(q, z1))
-      faces.push({
-        pts: top.map(P),
-        depth: isoDepth(centroid3(top)) + 1e-3,
-        fill: orange ? 'orange' : 'alu-100',
+      sides.sort((x, y) => x.d - y.d)
+      items.push({
+        depth: planDepth(f.pts),
         part: p.id,
+        faces: [
+          ...sides.map((s) => s.face),
+          { pts: f.pts.map((q) => P(planToWorld(q, z1))), fill: orange ? 'orange' : 'alu-100' },
+        ],
+        runs: [],
       })
     }
   }
-  faces.sort((a, b) => a.depth - b.depth || (a.part < b.part ? -1 : 1))
-  lines.sort((a, b) => a.depth - b.depth)
+  // stable back-to-front: plan depth, then part id, then authoring order
+  const order = items.map((it, k) => ({ it, k }))
+  order.sort(
+    (a, b) =>
+      a.it.depth - b.it.depth ||
+      (a.it.part < b.it.part ? -1 : a.it.part > b.it.part ? 1 : a.k - b.k),
+  )
   const d = (pts: readonly Pt[], closed: boolean) =>
     `M${pts.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}${closed ? 'Z' : ''}`
-  const children: SvgNode[] = [
-    ...faces.map((f, i) => ({
-      el: 'path' as const,
-      d: d(f.pts, true),
-      len: 0,
-      part: f.part,
-      i,
-      cls: `f-${f.fill} p-018 i-cyan-dim`,
-    })),
-    ...lines.map((l, i) => ({
-      el: 'path' as const,
-      d: d(l.pts, false),
-      len: 0,
-      part: l.part,
-      i: faces.length + i,
-      cls: 'p-070 i-cyan',
-    })),
-  ]
+  const children: SvgNode[] = []
+  let i = 0
+  for (const { it } of order) {
+    for (const f of it.faces)
+      children.push({
+        el: 'path',
+        d: d(f.pts, true),
+        len: 0,
+        part: it.part,
+        i: i++,
+        cls: `f-${f.fill} p-018 i-cyan-dim`,
+      })
+    for (const r of it.runs)
+      children.push({
+        el: 'path',
+        d: d(r, false),
+        len: 0,
+        part: it.part,
+        i: i++,
+        cls: 'p-070 i-cyan',
+      })
+  }
   return { viewBox: vb, groups: [{ layer: 'iso', children }] }
 }

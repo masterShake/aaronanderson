@@ -69,6 +69,8 @@ const INK: Readonly<Record<Ink, string>> = {
   asphalt: COLOR.asphalt,
   paper: COLOR.paper,
   hold: COLOR.graphite,
+  // pencil at 14% over paper (the live CSS mixes it over the panel)
+  tint: '#E1E0DB',
 }
 
 /** Extra inks for faces and panels (iso print, deep panels). */
@@ -81,6 +83,8 @@ const EXTRA: Readonly<Record<string, string>> = {
   'alu-700': COLOR.alu700,
   'orange-dark': '#D9551A',
   label: COLOR.labelOnDeep,
+  // cyan at 16% over blueprint-deep: the figure tint on deep stills
+  'tint-deep': '#2F5681',
 }
 
 export const inkColor = (ink: string): string =>

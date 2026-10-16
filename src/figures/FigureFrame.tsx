@@ -92,9 +92,20 @@ export function FigureFrame({
       aria-describedby={`${dom}-desc`}
     >
       <div className={`strip ${s.strip}`}>
+        {/* one line at any width: the detail number yields first (still read out), then the
+            name truncates; the EXAMPLE or SAMPLE tag is a small stamp that never wraps */}
         <p id={`${dom}-title`} className={s.title}>
-          {copy.detail} · {copy.title}
-          {copy.tag ? <> · {copy.tag}</> : null}
+          <span className={s.detail}>
+            {copy.detail}
+            <span aria-hidden="true"> · </span>
+          </span>
+          <span className={s.name}>{copy.title}</span>
+          {copy.tag ? (
+            <span className={s.stamp} data-stamp="">
+              <span className="sr-only"> · </span>
+              {copy.tag}
+            </span>
+          ) : null}
         </p>
         {initialRev && (revs?.[initialRev] || !IS_PRODUCTION) ? (
           // a missing chip string shows its rev key in preview, so the gap is visible
