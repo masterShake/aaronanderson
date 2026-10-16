@@ -30,6 +30,40 @@ test('the plan draws to the hand-off; the print and three months by p = 1', asyn
   expect(guard.errors).toEqual([])
 })
 
+test('at p = 0 the plan is complete, with its names', async ({ page, guard }) => {
+  await gotoTier(page, '/kit/fig/s06?p=0', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const lines = await fig
+    .locator('.drawing svg.l-cad:visible path:not([data-part^="m"])')
+    .evaluateAll((ps) =>
+      ps.map((p) => {
+        const cs = getComputedStyle(p)
+        return { off: parseFloat(cs.strokeDashoffset) || 0, op: Number(cs.opacity) }
+      }),
+    )
+  expect(lines.length).toBeGreaterThan(20)
+  for (const l of lines) expect(l).toEqual({ off: 0, op: 1 })
+  const names = fig.locator('.labels [data-key]').filter({ visible: true })
+  expect(await names.count()).toBeGreaterThan(3)
+  for (const o of await names.evaluateAll((ns) => ns.map((n) => getComputedStyle(n).opacity)))
+    expect(o).toBe('1')
+  expect(guard.errors).toEqual([])
+})
+
+test('before the layers load, the plan still stands in', async ({ page }) => {
+  await page.route(/\/drawings\/s06\..+\.json$/, () => {})
+  await gotoTier(page, '/kit/fig/s06?p=0', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  const img = fig.locator('.drawing img').filter({ visible: true })
+  await expect(img).toHaveCount(1)
+  await expect
+    .poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0))
+    .toBe(true)
+})
+
 test('months are reversible: at p = 0.6 only the first is bolted on', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s06?p=0.6', 'svg')
   const fig = page.locator(FIG)

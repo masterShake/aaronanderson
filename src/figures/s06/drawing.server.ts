@@ -1,5 +1,5 @@
 import 'server-only'
-import type { LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
 import { cad, docsBuilder, frameNodes, isoPrintDoc, modelBounds } from '@/drawings/render'
 import { s06Glyphs } from '@/scenes/model/s06-data'
 import { planFrame } from '@/drawings/lib/frame'
@@ -53,6 +53,42 @@ function dialNodes(m: S06Model, family: LayoutId, first: number): SvgNode[] {
     node(d(ring, true), 0, 'f-paper p-018 i-asphalt'),
     node(d(arc), 1, 'p-070 i-cad'),
     node(ticks.join('') + seg(P(0, 0), P(14, 0.72)), 2, 'p-025 i-asphalt'),
+  ]
+}
+
+/**
+ * The gauge's dial on the CAD plan (seen from above): an inner bezel ring, nine ticks and the
+ * needle in range. It shows while the plan holds and fades out just before the hand-off
+ * (s06.module.css), so the plan at p .15 still matches the WebGL decal line for line.
+ */
+function planDial(m: S06Model): SvgNode[] {
+  const gauge = m.spec.parts.find((p) => p.id === 'gauge')
+  const prim = gauge?.prims[0]
+  if (prim?.t !== 'circle') return []
+  const [cx, cy] = prim.c
+  const P = (deg: number, k: number): Pt => {
+    const a = (deg * Math.PI) / 180
+    return [cx + Math.sin(a) * prim.r * k, cy - Math.cos(a) * prim.r * k]
+  }
+  const seg = (a: Pt, b: Pt) => `M${num(a[0])} ${num(a[1])}L${num(b[0])} ${num(b[1])}`
+  const ring = Array.from({ length: 33 }, (_, i) => P(i * 11.25, 0.8))
+  const node = (d: string, i: number, cls: string): SvgNode => ({
+    el: 'path',
+    d,
+    len: 0,
+    part: 'gauge.plan-dial',
+    i,
+    cls: `${cls} s06-pdial`,
+  })
+  return [
+    node(`M${ring.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}`, 0, 'p-018 i-cyan'),
+    node(
+      Array.from({ length: 9 }, (_, i) => seg(P(-120 + i * 30, 0.56), P(-120 + i * 30, 0.72))).join(
+        '',
+      ) + seg(P(0, 0), P(14, 0.6)),
+      1,
+      'p-025 i-cyan',
+    ),
   ]
 }
 
@@ -127,12 +163,41 @@ function make(family: LayoutId, rev: string): SvgDoc {
           },
         ],
       },
-      { layer: 'cad', rev, children: [...frameNodes(planFrame(m.spec)), ...planGlyphs(m)] },
+      {
+        layer: 'cad',
+        rev,
+        children: [...frameNodes(planFrame(m.spec)), ...planGlyphs(m), ...planDial(m)],
+      },
     ],
   }
 }
 
-export const drawing = docsBuilder(make, [
+const MONTH = /^m[1-3](\.|$)/
+
+/** The plan without the month instruments: the drawing at p = 0. */
+function startOnly(nodes: readonly SvgNode[]): SvgNode[] {
+  return nodes.flatMap((n): SvgNode[] => {
+    if (n.part && MONTH.test(n.part)) return []
+    if (n.el === 'path') return [n]
+    const children = startOnly(n.children)
+    return children.length ? [{ ...n, children }] : []
+  })
+}
+
+const layers = docsBuilder(make, [
   { rev: 'plan', ground: 'deep' },
   { rev: 'print', ground: 'deep' },
 ])
+const start = docsBuilder(
+  (family) => {
+    const d = make(family, 'plan')
+    return { ...d, groups: d.groups.map((g) => ({ ...g, children: startOnly(g.children) })) }
+  },
+  [{ rev: 'start', ground: 'deep' }],
+)
+
+/** Plus s06.{family}.start.still.svg: the plan at p = 0, shown until the layers load. */
+export const drawing: DrawingBuilder = {
+  files: [...layers.files, 'wide.start.still.svg', 'tall.start.still.svg'],
+  build: (file) => (file.includes('.start.') ? start.build(file) : layers.build(file)),
+}

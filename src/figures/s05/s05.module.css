@@ -26,6 +26,15 @@
   }
 }
 
+/* Until the layers load, the starting drawing stands in and nothing else moves (on screen; the
+   still tier, print and no-JS rules below set the finished frame instead). */
+@media screen {
+  :global(html:is([data-tier='svg'], [data-tier='webgl']))
+    .fig:not(:global([data-layers='ready'])):not(:global([data-phase='still'])) {
+    --p: 0 !important;
+  }
+}
+
 :global(html[data-tier='still']) .fig:not(:global([data-user-play])),
 :global(html:not([data-js])) .fig,
 .fig:global([data-phase='still']) {
@@ -48,15 +57,8 @@
 }
 
 /* ── Windows per class ──────────────────────────────────────────────────── */
-.fig :global(path.gr) {
-  --a: var(--s05-sketch-from-p);
-  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
-}
-
-.fig :global(path:is(.pp, .qc)) {
-  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
-  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
-}
+/* The starting drawing (gr ground, pp people, qc question bubbles, sc desk and monitor) has no
+   window: it is complete at p = 0, so the figure never enters as an empty panel. */
 
 /* Declared on each path, where its own --i is known (a custom property resolves var() where it
    is declared, so this cannot live on .fig). */
@@ -79,20 +81,6 @@
   --b: calc(var(--a) + var(--s05-callout-p));
 }
 
-.fig :global(path.sc) {
-  --a: var(--s05-desk-from-p);
-  --b: var(--s05-desk-to-p);
-}
-
-/* Tall: the desk scene has its own lower half, so it is set with the sketch (after the crew)
-   rather than leaving that half empty until the new hire comes. */
-@container fig (width < 440px) {
-  .fig :global(path.sc) {
-    --a: calc(var(--s05-sketch-from-p) + 4 * var(--s05-sketch-step-p));
-    --b: calc(var(--a) + var(--s05-sketch-stroke-p));
-  }
-}
-
 /* the walkthrough's checklist rows draw one after another while it plays */
 .fig :global(path.sl) {
   --a: calc(
@@ -106,7 +94,7 @@
   --b: var(--s05-screen-to-p);
 }
 
-.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .sl, .pg)) {
+.fig :global(path:is(.tl, .ld, .tk, .sl, .pg)) {
   --t: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
   /* ease-in-out cubic (smoothstep) on the window's progress */
   --lp: calc(var(--t) * var(--t) * (3 - 2 * var(--t)));
@@ -117,13 +105,37 @@
   --lp: var(--t);
 }
 
-.fig :global(path:is(.gr, .pp, .qc, .tl, .ld, .tk, .sc, .sl, .pg).draw) {
+.fig :global(path:is(.tl, .ld, .tk, .sl, .pg).draw) {
   stroke-dashoffset: calc(1 - var(--lp));
   opacity: clamp(0, var(--lp) * 50, 1);
 }
 
-.fig :global(path:is(.gr, .pp, .qc, .tl, .sc):not(.draw)) {
+.fig :global(path.tl:not(.draw)) {
   opacity: var(--lp);
+}
+
+/* The starting drawing as an image, until the layers load (then the layers carry it). */
+.start {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.start[data-family='tall'],
+.fig:global([data-layers='ready']) .start {
+  display: none;
+}
+
+@container fig (width < 440px) {
+  .start[data-family='wide'] {
+    display: none;
+  }
+
+  .fig:not(:global([data-layers='ready'])) .start[data-family='tall'] {
+    display: block;
+  }
 }
 
 /* Each tool is handed down into the hand while it draws (ease-out, user units). */
@@ -175,22 +187,16 @@
 .hire {
   translate: -50% 0;
   color: var(--c-graphite);
-  opacity: var(--lp);
 }
 
-.person {
-  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p));
-  --b: calc(var(--a) + var(--s05-sketch-stroke-p));
-}
-
+/* the crew's names are part of the starting drawing */
 .hire {
   --a: calc(var(--s05-walk-to-p) - 0.02);
   --b: var(--s05-walk-to-p);
+  opacity: var(--lp);
 }
 
 .q {
-  --a: calc(var(--s05-sketch-from-p) + (var(--i) + 1) * var(--s05-sketch-step-p) + 0.04);
-  --b: calc(var(--a) + 0.03);
   --gone: clamp(
     0,
     (var(--p) - var(--s05-hand-from-p) - var(--i) * var(--s05-hand-step-p) - var(--s05-tool-p)) /
@@ -202,7 +208,7 @@
   font-weight: 600;
   font-size: clamp(12px, 2.4cqi, 20px) !important;
   line-height: 1;
-  opacity: calc(var(--lp) * (1 - var(--gone)));
+  opacity: calc(1 - var(--gone));
 }
 
 /* Callouts: the tool's name, then what it is for, set on two deliberate lines. */
@@ -242,10 +248,9 @@
   }
 }
 
-/* The training record: an HTML card that ticks row by row. */
+/* The training record: an HTML card, part of the starting drawing (its sessions listed, none done
+   yet), that ticks row by row once the walkthrough has played. */
 .record {
-  --a: var(--s05-screen-from-p);
-  --b: calc(var(--s05-screen-from-p) + 0.02);
   /* at least its share of the box; wider when the text needs it, so nothing wraps or clips */
   inline-size: max-content;
   min-inline-size: calc(var(--rw) * 1%);
@@ -253,7 +258,6 @@
   border: 1.5px solid var(--c-asphalt);
   background: var(--c-paper);
   white-space: nowrap;
-  opacity: var(--lp);
 }
 
 @container fig (width < 440px) {
