@@ -309,7 +309,8 @@
   font-size: clamp(9px, 1.15cqi, 12px);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  opacity: clamp(0, (var(--p, 1) - var(--s06-motion-from-p)) * 20, 1);
+  /* with the print, its rows not yet ticked (on phones it fills the band above the print) */
+  opacity: var(--print);
   pointer-events: none;
 }
 
