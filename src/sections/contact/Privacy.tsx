@@ -8,10 +8,10 @@ import s from './contact-sections.module.css'
  * the promise (a CONFIRM) and the retention HOLD through {retention}; the
  * processors are listed by name.
  */
-export function Privacy() {
+export function Privacy({ className = `wrap ${s.privacy}` }: { className?: string }) {
   const c = contact.privacy
   return (
-    <section id={c.id} aria-labelledby={`${c.id}-title`} className={`wrap ${s.privacy}`}>
+    <section id={c.id} aria-labelledby={`${c.id}-title`} className={className}>
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
       <ul className={s.processors}>
         {c.processors

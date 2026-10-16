@@ -56,6 +56,78 @@
   margin-inline: 0;
 }
 
+/*
+ * The form and its side notes (WriteBlock). Stacked below 1024 px, in reading
+ * order. From 1024 px the form takes the left column (7 parts) for three rows;
+ * the notes (email, next steps, privacy), ruled off like a sheet's general
+ * notes, stack in the right column (5 parts); the third row takes any slack, so
+ * the notes never spread apart. The steps' schematic runs full width below.
+ */
+.writeMain {
+  min-width: 0;
+}
+
+.note > :global(*) {
+  max-width: var(--measure);
+}
+
+/* the four steps as a column (beside the form), at every width */
+.flowColumn {
+  grid-template-columns: minmax(0, 1fr);
+  margin-block-end: 0;
+}
+
+.afterFigure {
+  min-width: 0;
+}
+
+@media (width >= 768px) {
+  .flowColumn {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+  }
+
+  .flowColumn > li + li::after {
+    inset-inline-start: var(--s-6);
+    inset-block-start: calc(-1 * var(--s-4) - 2px);
+    inline-size: 2px;
+    block-size: var(--s-4);
+  }
+}
+
+@media (width >= 1024px) {
+  .writeBlock {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-rows: auto auto 1fr auto;
+    gap: var(--s-7) clamp(var(--s-7), 5vw, var(--s-9));
+    align-items: start;
+    padding-block: var(--section-pad);
+  }
+
+  .writeMain {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    padding-block: 0;
+  }
+
+  .note {
+    grid-column: 2;
+    padding-block: var(--s-4) 0;
+    border-block-start: 2px solid var(--c-asphalt);
+  }
+
+  .note h2 {
+    font-size: var(--fs-h3);
+  }
+
+  .afterFigure {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+}
+
 .processors {
   margin: 0;
+  text-wrap: pretty;
 }

@@ -15,7 +15,7 @@ import { plain, splitRich } from './rich'
  * src/app/contact/actions.ts. Without a scheduler in production this section
  * takes id="book" and the no-scheduler heading.
  */
-export function WriteSection() {
+export function WriteSection({ className = 'wrap' }: { className?: string }) {
   const f = contact.form
   const isBook = noScheduler
   const id = isBook ? 'book' : f.id
@@ -24,7 +24,7 @@ export function WriteSection() {
   const [before, after] = splitRich(f.success.body, 'name')
   const ui = afterContactFigure.ui
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="wrap">
+    <section id={id} aria-labelledby={`${id}-title`} className={className}>
       <h2 id={`${id}-title`}>{isBook ? f.headingNoScheduler : f.h2}</h2>
       <RichText value={f.intro} />
       <noscript>
