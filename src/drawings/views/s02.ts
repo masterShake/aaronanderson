@@ -56,18 +56,26 @@ export interface S02Layout {
   carrierK: number
   /** How far before the flange the stalled copy waits (loop 3). */
   stallBack: number
+  /**
+   * How far below the middle of a box's top half its plan label's foot sits (half a label's
+   * height, in units): the HTML label is centered in that half, the 3D one hangs above it.
+   */
+  labelDrop: number
+  /** The most of a box's height its label band takes (see s02LabelBand). */
+  labelBand: number
 }
 
 /*
  * Wide: the CRM on the left, the three places stacked on the right, the junction between.
  * The boxes fill the frame (40 to 50 units of margin); each box's top half carries its
- * label and its bottom half the tool's glyph. The carrier walks the line the estimating
- * conduit later takes.
+ * label and its bottom half the tool's glyph. The CRM, the source, stands tall (W4c: the
+ * left column was half empty): its top meets the hand-carry line, its foot leaves room for
+ * the legend. The carrier walks the line the estimating conduit later takes.
  */
 const WIDE: S02Layout = {
   viewBox: [0, 0, 960, 720],
   boxes: {
-    crm: [40, 256, 290, 208],
+    crm: [40, 168, 296, 384],
     est: [616, 44, 304, 168],
     pm: [616, 276, 304, 168],
     acct: [616, 508, 304, 168],
@@ -78,7 +86,7 @@ const WIDE: S02Layout = {
   tee: [432, 360],
   routes: {
     lead: [
-      [330, 360],
+      [336, 360],
       [432, 360],
     ],
     est: [
@@ -103,21 +111,23 @@ const WIDE: S02Layout = {
   flangeR: 12,
   flangeIn: 50,
   carry: [
-    [185, 256],
-    [185, 128],
+    [188, 168],
+    [188, 128],
     [616, 128],
   ],
   walkFrom: [214, 128],
   walkTo: [560, 128],
   carrierK: 1.1,
   stallBack: 64,
+  labelDrop: 11.5,
+  labelBand: 96,
 }
 
 /* Tall: the same plan, narrower; the places fill the right-hand column top to bottom. */
 const TALL: S02Layout = {
   viewBox: [0, 0, 400, 500],
   boxes: {
-    crm: [12, 186, 134, 128],
+    crm: [12, 150, 134, 200],
     est: [232, 24, 156, 120],
     pm: [232, 190, 156, 120],
     acct: [232, 356, 156, 120],
@@ -151,7 +161,7 @@ const TALL: S02Layout = {
   flangeR: 7,
   flangeIn: 22,
   carry: [
-    [79, 186],
+    [79, 150],
     [79, 84],
     [232, 84],
   ],
@@ -159,6 +169,8 @@ const TALL: S02Layout = {
   walkTo: [206, 84],
   carrierK: 0.62,
   stallBack: 30,
+  labelDrop: 7.2,
+  labelBand: 64,
 }
 
 /** Which glyph names each tool (S-01 uses the same set). */
@@ -339,10 +351,22 @@ export function glyphLines(kind: GlyphKind, c: Pt, s: number): Pt[][] {
   }
 }
 
-/** Where a box's glyph sits (its bottom half) and how big: the label owns the top half. */
-export function glyphPlace([x, y, w, h]: Rect): { c: Pt; s: number } {
-  const s = Math.min(h * 0.42, (w * 0.8) / 1.5)
-  return { c: [g2(x + w / 2), g2(y + h * 0.69)], s: g2(s) }
+/**
+ * The band across a box's top that its label owns: the top half, up to labelBand (so the
+ * tall CRM's name sits near its top, not floating mid-box).
+ */
+export const s02LabelBand = (l: S02Layout, t: S02Tool): number =>
+  Math.min(l.boxes[t][3] / 2, l.labelBand)
+
+/** Where a box's glyph sits (under its label band) and how big. */
+export function glyphPlace([x, y, w, h]: Rect, band = h / 2): { c: Pt; s: number } {
+  if (band >= h / 2) {
+    const s = Math.min(h * 0.42, (w * 0.8) / 1.5)
+    return { c: [g2(x + w / 2), g2(y + h * 0.69)], s: g2(s) }
+  }
+  // a tall box: the glyph centred in the room under the band
+  const s = Math.min((h - band) * 0.42, (w * 0.8) / 1.5)
+  return { c: [g2(x + w / 2), g2(y + band + (h - band) / 2)], s: g2(s) }
 }
 
 /** Each place's arrival lamp (plan units): its enclosure's top right corner. */
@@ -359,13 +383,15 @@ export function s02Lamp(l: S02Layout, d: S02Dest): Pt {
  * the glyph, so the label stays on its own top and clear of the enclosure behind.
  */
 export function s02LabelAt(l: S02Layout, t: S02Tool, pose: 'plan' | 'iso' = 'iso'): Pt {
-  const [x, y, w, h] = l.boxes[t]
-  return pose === 'plan' ? [x + w * 0.5, y + h * 0.31] : [x + w * 0.44, y + h * 0.46]
+  const [x, y, w] = l.boxes[t]
+  return pose === 'plan'
+    ? [x + w * 0.5, y + s02LabelBand(l, t) / 2 + l.labelDrop]
+    : [x + w * 0.44, y + s02LabelBand(l, t) * 0.92]
 }
 
 /** The glyph of one S-02 tool, in plan units. */
 export const s02Glyph = (l: S02Layout, t: S02Tool): Pt[][] => {
-  const { c, s } = glyphPlace(l.boxes[t])
+  const { c, s } = glyphPlace(l.boxes[t], s02LabelBand(l, t))
   return glyphLines(S02_GLYPH[t], c, s)
 }
 

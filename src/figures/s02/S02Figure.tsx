@@ -12,6 +12,7 @@ import {
   S02_LAYOUT,
   S02_TOOLS,
   s02Flanges,
+  s02LabelBand,
   type S02Tool,
 } from '@/drawings/views/s02'
 import { s02Lens, s02PrintAnchors } from './drawing.server'
@@ -50,11 +51,14 @@ function at(wide: Pt, tall: Pt, size?: { wide: Pt; tall: Pt }): CSSProperties {
   } as CSSProperties
 }
 
-/** A tool's label: the top half of its box (the glyph has the bottom half). */
+/** A tool's label: the band across its box's top (the glyph has the room below). */
 const box = (t: S02Tool) => {
-  const [wx, wy, ww, wh] = fam('wide').boxes[t]
-  const [tx, ty, tw, th] = fam('tall').boxes[t]
-  return at([wx, wy], [tx, ty], { wide: [ww, wh * 0.5], tall: [tw, th * 0.5] })
+  const [wx, wy, ww] = fam('wide').boxes[t]
+  const [tx, ty, tw] = fam('tall').boxes[t]
+  return at([wx, wy], [tx, ty], {
+    wide: [ww, s02LabelBand(fam('wide'), t)],
+    tall: [tw, s02LabelBand(fam('tall'), t)],
+  })
 }
 
 const flangeAt = (f: LayoutId, k: 'pm' | 'acct'): Pt => {
