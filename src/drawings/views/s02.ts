@@ -73,24 +73,26 @@ const WIDE: S02Layout = {
     acct: [616, 508, 304, 168],
   },
   heights: { crm: 84, est: 64, pm: 64, acct: 64 },
-  tee: [470, 360],
+  // the junction sits nearer the CRM, so the shortest branch (pm) is long enough for all
+  // three copies to be on screen together for more than half a second
+  tee: [432, 360],
   routes: {
     lead: [
       [330, 360],
-      [470, 360],
+      [432, 360],
     ],
     est: [
-      [470, 360],
-      [470, 128],
+      [432, 360],
+      [432, 128],
       [616, 128],
     ],
     pm: [
-      [470, 360],
+      [432, 360],
       [616, 360],
     ],
     acct: [
-      [470, 360],
-      [470, 592],
+      [432, 360],
+      [432, 592],
       [616, 592],
     ],
   },

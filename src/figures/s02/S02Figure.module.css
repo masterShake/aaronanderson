@@ -177,6 +177,12 @@
 }
 
 /* ── Labels ─────────────────────────────────────────────────────────────── */
+/* Labels scale with the figure (a services sheet shows it at about 470 px), so the iso
+   labels stay on their enclosures instead of crowding the ones behind. */
+.s02.s02 :global(.labels) > * {
+  font-size: clamp(9px, 1.9cqi, 12px);
+}
+
 .lbl {
   display: grid;
   place-items: center;
@@ -229,7 +235,7 @@
 
 /* Iso: below and left of the flange, clear of the pipe that comes in from the upper left. */
 .s02[data-labels='iso'] .fail {
-  translate: calc(-100% - 22px) 12px;
+  translate: calc(-100% - 32px) 26px;
 }
 
 /* The legend, bottom left in clear panel: the key to the orange flanges (an API) from the

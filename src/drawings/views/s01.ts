@@ -11,10 +11,11 @@ import { S01 } from '@/motion/timing/s01'
  * top left, its glyph (envelope, spreadsheet grid, Gantt bars, …) on the right, and, once
  * the survey has crossed it, how many hand-offs it takes by hand, bottom left.
  *
- * Wide (960 × 720): the map fills the left 640 units (the deep panel covers it at the
- * redraw) and the surveyor stands under it at the total station; the ranked list and the
- * roadmap are an HTML panel on the right. Tall (400 × 500): the map fills the top, the
- * surveyor stands under it, and the list sits below.
+ * Wide (960 × 720): the map fills the left 600 units, top to bottom (the deep panel covers
+ * it at the redraw); the surveyor stands at the total station at the top of the right-hand
+ * column, and the ranked list and the roadmap (an HTML panel) fill the column under him.
+ * Tall (400 × 500): the map fills the top, the surveyor stands under it, and the list sits
+ * below.
  *
  * A surveyor at a total station sweeps a 12° fan across the boxes; the three boxes with the
  * most by-hand hand-offs get revision clouds Δ1–Δ3. Geometry only (no strings, no roughjs):
@@ -41,13 +42,17 @@ export const S01_VB: { wide: ViewBox; tall: ViewBox } = {
 }
 /** The map's area: the deep panel and the scan cover it; the surveyor and the list sit outside. */
 export const S01_ART: Readonly<Record<LayoutId, Rect>> = {
-  wide: { x: 0, y: 0, w: 640, h: 720 },
+  wide: { x: 0, y: 0, w: 600, h: 720 },
   tall: { x: 0, y: 0, w: 400, h: 236 },
 }
 
-const BOX_W: readonly [number, number] = [280, 144]
+/* Wide: the left column is wider, for the longest name (a file name never wraps). */
+const BOX_W: readonly (readonly [number, number])[] = [
+  [306, 144],
+  [238, 144],
+]
 const BOX_T: readonly [number, number] = [184, 48]
-const COL_W = [24, 336]
+const COL_W = [20, 346]
 const ROW_W = [36, 204, 372, 540]
 const COL_T = [8, 208]
 const ROW_T = [6, 64, 122, 180]
@@ -99,7 +104,11 @@ const viewed = applyView(firmGraph, S01_VIEW)
  */
 export const s01Graph: Graph<FirmLabel, FirmRev> = {
   ...viewed,
-  nodes: viewed.nodes.map((n) => ({ ...n, size: BOX_W, sizeTall: BOX_T })),
+  nodes: viewed.nodes.map((n) => ({
+    ...n,
+    size: BOX_W[CELL[n.id as S01Tool][0]]!,
+    sizeTall: BOX_T,
+  })),
   people: [],
   notes: [],
   clouds: [],
@@ -157,7 +166,7 @@ export function crossAt(tool: S01Tool, family: LayoutId): { c: Pt; r: number; ar
 export const S01_STATION: Readonly<
   Record<LayoutId, { feet: Pt; head: Pt; person: Pt; k: number; mirror: boolean }>
 > = {
-  wide: { feet: [790, 176], head: [790, 104], person: [850, 176], k: 1.35, mirror: true },
+  wide: { feet: [752, 152], head: [752, 90], person: [812, 152], k: 1.2, mirror: true },
   tall: { feet: [22, 274], head: [22, 254], person: [46, 276], k: 0.52, mirror: false },
 }
 
@@ -219,7 +228,7 @@ export const cloudTagAt = (tool: S01Tool): S01Pos =>
   })
 
 /** The ranked list panel: under the surveyor, right of the map (wide); below them (tall). */
-export const S01_LIST: S01Pos = { wide: pctOf([668, 212], 'wide'), tall: pctOf([10, 284], 'tall') }
+export const S01_LIST: S01Pos = { wide: pctOf([626, 176], 'wide'), tall: pctOf([10, 284], 'tall') }
 
 /** The ranked list: item keys with effort and payoff on a three-step scale. */
 export const S01_ITEMS = [

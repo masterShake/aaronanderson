@@ -11,7 +11,7 @@
 
 /* The map's share of the box (set on .box: a container query cannot style its own container). */
 .fig :global(.box) {
-  --s01-art-w: 0.6667;
+  --s01-art-w: 0.625;
   --s01-art-h: 1;
   --s01-fan: var(--s01-fan-deg);
 }
@@ -201,7 +201,7 @@
 
 /* ── Labels ──────────────────────────────────────────────────────────────── */
 .fig.fig :global(.labels) > * {
-  font-size: clamp(8.5px, 2cqi, 12px);
+  font-size: clamp(8px, 1.9cqi, 12px);
 }
 
 @container fig (width < 440px) {
@@ -267,8 +267,8 @@
   --b: var(--s01-list-to-p);
   display: flex;
   flex-direction: column;
-  inline-size: 29.5%;
-  block-size: 65.5%;
+  inline-size: 33.75%;
+  block-size: 70.5%;
   white-space: normal !important;
   letter-spacing: 0.01em !important;
   text-transform: uppercase;
@@ -276,7 +276,7 @@
 }
 
 .fig.fig :global(.labels) > .list {
-  font-size: clamp(8.5px, 2.15cqi, 14px);
+  font-size: clamp(8px, 1.9cqi, 14px);
 }
 
 @container fig (width < 440px) {
@@ -373,13 +373,21 @@
   color: var(--c-graphite);
 }
 
+/* A narrow wide figure (a services sheet at 1024–1440 px): the bars carry the level, so the
+   level word goes and each meter stays on one line. */
+@container fig (440px <= width < 720px) {
+  .meter > span:last-child {
+    display: none;
+  }
+}
+
 .bars {
   display: inline-flex;
   gap: 2px;
 }
 
 .bars i {
-  inline-size: 0.9em;
+  inline-size: 0.8em;
   block-size: 0.5em;
   border: 1px solid var(--c-blueprint);
 }
