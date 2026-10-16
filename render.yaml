@@ -1,0 +1,52 @@
+# Render Blueprint for actualengineer.com: one Node web service running `next start`.
+# The contact form is a server action, so this is a web service, not a static site.
+# Secrets marked `sync: false` are entered in the Render dashboard on first deploy.
+services:
+  - type: web
+    name: actualengineer
+    runtime: node
+    plan: starter
+    branch: main
+    autoDeployTrigger: commit
+    # `npm run build` also runs the prebuild content and punchlist checks.
+    buildCommand: npm ci && npm run build
+    # Not `npm run start`: that wrapper binds 127.0.0.1 and reads ports from .lane.env.
+    startCommand: node node_modules/next/dist/bin/next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NEXT_TELEMETRY_DISABLED
+        value: '1'
+
+      # Deployment. next.config.ts keys the production look (HOLD fallbacks, no
+      # X-Robots-Tag noindex, SITE_ENV=production) off VERCEL_ENV, so set it here.
+      # Do not set VERCEL: that would claim the Vercel platform in the CSP.
+      - key: VERCEL_ENV
+        value: production
+      # - key: STRICT_HOLDS     # at launch: fail the build while essential HOLDs or CONFIRMs remain
+      #   value: '1'
+      # - key: CSP_MODE         # report = Content-Security-Policy-Report-Only
+      #   value: report
+
+      # Contact form (server only)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: CONTACT_TO_EMAIL
+        sync: false
+      - key: CONTACT_FROM_EMAIL
+        sync: false
+      - key: FORM_TOKEN_SECRET
+        generateValue: true
+
+      # Cloudflare Turnstile (optional; set both or neither). NEXT_PUBLIC_ is inlined at build time.
+      - key: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+
+      # Rate limiting (optional; without it the limit is in memory per instance)
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
