@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { ROUTES } from './routes'
 import { gotoTier } from './helpers/tier'
-import { isReviewBuild } from './helpers/budgets'
+import { isProductionBuild, isReviewBuild } from './helpers/budgets'
 import { site } from '../src/content/site'
 import { notFound } from '../src/content/pages/not-found'
 
@@ -425,7 +425,7 @@ test('margins, section padding and max width follow the tokens', async ({ page }
 test('/kit renders every group and is noindex in preview', async ({ page, guard }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   const res = await page.goto('/kit')
-  const prod = process.env.SITE_PROD === '1'
+  const prod = process.env.SITE_PROD === '1' || (await isProductionBuild(page))
   if (prod) {
     expect(res?.status()).toBe(404)
     return
@@ -541,7 +541,8 @@ test('term toggletip is hoverable, persistent and dismissible', async ({ page })
 test('axe: no serious or critical issues on /kit and the five sheets', async ({ page }) => {
   test.setTimeout(240_000)
   const results: Record<string, { serious: number; critical: number; ids: string[] }> = {}
-  const paths = [...ROUTES.map((r) => r.path), ...(process.env.SITE_PROD === '1' ? [] : ['/kit'])]
+  const prod = process.env.SITE_PROD === '1' || (await isProductionBuild(page))
+  const paths = [...ROUTES.map((r) => r.path), ...(prod ? [] : ['/kit'])]
   for (const path of paths)
     for (const w of [390, 1280])
       for (const tier of ['still', 'svg'] as const) {

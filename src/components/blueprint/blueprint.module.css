@@ -20,6 +20,11 @@
   white-space: nowrap;
 }
 
+/* The page head's strip runs the full column (one line from 640 px), not the text measure. */
+.pageHead .strip {
+  max-width: none;
+}
+
 /* ── HOLD and CONFIRM (preview only) ─────────────────────────────────────── */
 .holdChip {
   --hc: var(--hold-c, var(--c-graphite));

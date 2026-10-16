@@ -9,9 +9,10 @@ import { artifactsDir, mergeParts, writePart } from './helpers/budgets'
 /**
  * Review screenshots (shots project): every route × width (360, 390, 768,
  * 1280, 1440) × tier (still, svg), full page; the header alone at 375; the
- * first viewport at 1280×800 and 390×844. Each full-page shot is cut into
- * viewport-high slices and the share of orange pixels in each is measured in
- * the page (D7: orange covers at most 5% of any viewport) → orange.json.
+ * first viewport at 1280×800 and 390×844. Each full-page shot is read as
+ * whole viewports (one every half viewport, plus the last screen) and the
+ * share of orange pixels in each is measured in the page (D7: orange covers at
+ * most 5% of any viewport) → orange.json.
  * Narrow it with ROUTES, WIDTHS and TIERS. Output: $ARTIFACTS_DIR/shots/.
  */
 
@@ -60,8 +61,14 @@ async function orangeSlices(page: Page, png: Buffer, sliceH: number) {
       const ctx = c.getContext('2d', { willReadFrequently: true })!
       ctx.drawImage(img, 0, 0)
       const out: number[] = []
-      for (let y = 0; y < c.height; y += sliceH) {
-        const h = Math.min(sliceH, c.height - y)
+      // Every window is a whole viewport, as a visitor sees it: one every half viewport, plus
+      // the last screen of the page. (A short strip left at the bottom is not a viewport; it
+      // would overstate the share of a button there.)
+      const h = Math.min(sliceH, c.height)
+      const tops: number[] = []
+      for (let y = 0; y + h < c.height; y += Math.ceil(sliceH / 2)) tops.push(y)
+      tops.push(c.height - h)
+      for (const y of tops) {
         const d = ctx.getImageData(0, y, c.width, h).data
         let n = 0
         for (let i = 0; i < d.length; i += 4)

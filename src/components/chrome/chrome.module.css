@@ -457,6 +457,16 @@
   gap: var(--s-3);
 }
 
+/* Phones: the footer's Book a call is the compact size, as in the header, so it and the CTA
+   band's button stay under D7's 5% orange share when one screen shows both. */
+@media (max-width: 639px) {
+  .actions .footBook {
+    min-height: 44px;
+    padding-inline: var(--s-4);
+    font-size: 0.8125rem;
+  }
+}
+
 /* Marks the contact cell (email, phone, location), which appears once one of them is real. */
 .contactCell {
   min-width: 0;

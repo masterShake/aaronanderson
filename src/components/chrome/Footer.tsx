@@ -94,7 +94,7 @@ export function Footer() {
             </dl>
           ) : null}
           <div className={`${s.cell} ${s.actions}`}>
-            <BookCallButton />
+            <BookCallButton className={s.footBook} />
             <div>
               <p className={s.label}>{tb.labels.motion}</p>
               <MotionSwitch variant="footer" label={site.motion.label} />
