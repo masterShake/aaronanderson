@@ -1009,14 +1009,17 @@ class Runtime implements RuntimeApi {
       f.rec.p = p
       f.pSmooth = p
       f.scene.reset(f.loop)
+      let u: SceneUpdate | undefined
       if ('ms' in at) {
         f.scene.start('decision', f.loop)
         for (let ms = 0; ms < at.ms; ms += 1000 / 60)
-          f.scene.update(Math.min(1000 / 60, at.ms - ms), p)
+          u = f.scene.update(Math.min(1000 / 60, at.ms - ms), p)
         f.t = at.ms
-      } else f.scene.update(0, p)
+      } else u = f.scene.update(0, p)
       f.arm = 'live'
       this.setStage(f, 'webgl')
+      f.labelPos.clear()
+      if (u?.labels) this.writeLabels(f, u.labels)
       this.setLoop(false)
       this.draw(f)
     },
