@@ -2,7 +2,7 @@
  * S-06 on --p (pages-drawings §6.6): the CAD plan draws on to p .15 (the hand-off frame), the
  * iso print (and the tool names) fades in to p .22, then from p .40 every .15 bolts on a month
  * (its instrument on the plan and the print, its tick and its label). The inspection sweeps are
- * time loops under [data-mech] (set by the controller from S06.motionFromP): three, then idle; a
+ * time loops under [data-mech] (set by the controller from S06.motionFromP), in both media: three, then idle; a
  * fault shows at the flange through the last sweep, then FIXED. The health card ticks as each
  * of those happens.
  */
@@ -31,11 +31,6 @@
   .s06 :global(.box) {
     inline-size: round(down, 100%, 4px);
   }
-}
-
-/* WebGL carries the inspection light itself */
-.s06[data-medium='webgl'] .band {
-  display: none;
 }
 
 /* Fills: figures.css's `:not([fill]) { fill: none }` outranks the f-* classes. */
@@ -104,13 +99,35 @@
 }
 
 /* While the model is still extruding in WebGL, the anchors are not projected yet. */
-.s06.s06[data-medium='webgl']:not([data-labels='iso']) .lab {
+.s06.s06[data-medium='webgl']:not([data-labels='iso']) .lab:not(.planName) {
   visibility: hidden;
 }
 
 /* tall: the print is small; the month strip and the card carry the story */
 @container fig (width < 440px) {
   .s06.s06 :is(.add, .name, .fixWrap) {
+    display: none;
+  }
+}
+
+/* On the CAD plan the names sit in their boxes: they arrive once the boxes are drawn and leave
+   as the hand-off starts to tilt the plan. */
+.s06.s06 .planName {
+  background: none;
+  opacity: calc(
+    clamp(0, (var(--p, 1) - 0.05) / 0.03, 1) *
+      clamp(0, (var(--s06-handoff-p) + 0.04 - var(--p, 1)) / 0.04, 1)
+  );
+}
+
+/* the owner's report box is orange on the plan: its name stays dark there */
+.s06.s06 .planName[data-key='tool.report'] {
+  color: var(--c-asphalt);
+}
+
+@container fig (width < 440px) {
+  /* the tall store circle is narrower than its name */
+  .s06.s06 .planName:is([data-wide-only], [data-key='sym.store']) {
     display: none;
   }
 }
@@ -195,7 +212,8 @@
   }
 }
 
-/* the inspection light: a soft pool of light sweeping the print, three times */
+/* the inspection light: a soft pool of light sweeping the print (or the model, over the canvas,
+   where the scene's spot adds its highlight), three times */
 .s06.s06 .band {
   inset-block: 6% 12%;
   inline-size: 28%;

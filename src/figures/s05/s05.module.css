@@ -214,17 +214,19 @@
 .record {
   --a: var(--s05-screen-from-p);
   --b: calc(var(--s05-screen-from-p) + 0.02);
-  inline-size: calc(var(--rw) * 1%);
-  padding: 0.5em 0.7em 0.6em;
+  /* at least its share of the box; wider when the text needs it, so nothing wraps or clips */
+  inline-size: max-content;
+  min-inline-size: calc(var(--rw) * 1%);
+  padding: 0.5em 0.6em 0.6em;
   border: 1.5px solid var(--c-asphalt);
   background: var(--c-paper);
-  white-space: normal !important;
+  white-space: nowrap;
   opacity: var(--lp);
 }
 
 @container fig (width < 440px) {
   .record {
-    inline-size: calc(var(--rwt) * 1%);
+    min-inline-size: calc(var(--rwt) * 1%);
   }
 }
 

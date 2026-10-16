@@ -38,7 +38,14 @@ function isoLabels(family: LayoutId) {
     const q = isoToViewBox(planToWorld(c, z), vb, fit)
     return [pct(q[0], vb[2]), pct(q[1], vb[3])]
   }
-  return { at }
+  /** The part's centre on the CAD plan (before the print), or undefined. */
+  const plan = (key: string): Pt | undefined => {
+    const part = m.spec.parts.find((p) => p.anchor === key)
+    if (!part) return undefined
+    const { c } = partTop(part)
+    return [pct(c[0], vb[2]), pct(c[1], vb[3])]
+  }
+  return { at, plan }
 }
 
 export function S06Figure() {
@@ -83,6 +90,28 @@ export function S06Figure() {
         <>
           <span className={s.band} />
           <span className={s.inspectTag}>{copy.labels.inspection}</span>
+          {S06_NAMES.map((key) => {
+            // the same names on the CAD plan, until the hand-off tilts it (no data-anchor)
+            const a = w.plan(key)!
+            const b = t.plan(key)
+            const style = {
+              '--lx': a[0],
+              '--ly': a[1],
+              '--lxt': (b ?? a)[0],
+              '--lyt': (b ?? a)[1],
+            } as CSSProperties
+            return (
+              <span
+                key={`plan.${key}`}
+                className={`${s.lab} ${s.planName}`}
+                data-key={key}
+                {...(b ? {} : { 'data-wide-only': '' })}
+                style={style}
+              >
+                {copy.labels[key]}
+              </span>
+            )
+          })}
           {S06_NAMES.map((key) => (
             <span key={key} className={`${s.lab} ${s.name}`} data-anchor={key} style={place(key)}>
               {copy.labels[key]}

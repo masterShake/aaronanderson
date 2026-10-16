@@ -169,7 +169,14 @@ export const toolAt = (family: LayoutId, i: number): Pt => {
 
 /** The x of crew member i's callout leader (the tool's centre line). */
 export const leaderX = (family: LayoutId, i: number): number =>
-  toolAt(family, i)[0] + S05_GEO[family].tool.w / 2
+  toolAt(family, i)[0] + S05_GEO[family].tool.w * (family === 'wide' ? LEAD_AT[i]! : 0.5)
+
+/**
+ * Where each wide leader leaves its tool's top edge (fraction of the width): the middle
+ * leader starts left of centre and the last right of it, so the middle callout has room
+ * to finish before the last leader at the narrowest wide width.
+ */
+const LEAD_AT = [0.5, 0.25, 0.75] as const
 
 /** The leader's top end (just under its label) and its foot (the tool's top edge). */
 export const leaderEnds = (family: LayoutId, i: number): { top: Pt; foot: Pt; elbowX?: number } => {
