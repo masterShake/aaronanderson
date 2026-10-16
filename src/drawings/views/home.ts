@@ -1,6 +1,7 @@
 import type { Graph, LayoutId, Pt, ScaleFigure } from '../types'
 import { firmGraph, type FirmLabel, type FirmRev } from '../graphs/firm'
 import { instrumentsOn, nodeRect, pointAlong, routeGraph, type Rect } from '../lib/route'
+import { PERSON_HEIGHT } from '../symbols/people'
 
 /**
  * Home B's view of the example firm (owner: home-about). The tools and routes
@@ -18,12 +19,22 @@ import { instrumentsOn, nodeRect, pointAlong, routeGraph, type Rect } from '../l
  */
 export const FIRM_CELL: Readonly<Record<LayoutId, number>> = { wide: 50, tall: 36 }
 
+/**
+ * Home draws its people a quarter larger than the kit's firm scale (40 units
+ * tall, PERSON_HEIGHT), so the paper they carry reads at phone size: 50 units.
+ * placeSymbol's k (the kit's figures are 64 artboard units tall).
+ */
+export const HOME_PERSON_K = (PERSON_HEIGHT / 64) * 1.25
+
 /** Where along its hand-off line each person stands as found (0 to 1), per family. */
 export const HOME_PEOPLE_AT: Readonly<Record<string, Readonly<Record<LayoutId, number>>>> = {
-  p1: { wide: 0.3, tall: 0.5 },
+  // tall: every hand-off runs straight down between two rows; standing low on it keeps the
+  // person's head clear of the box above
+  p1: { wide: 0.3, tall: 0.84 },
+  // except Estimate → Project management, which crosses the middle channel: stand there
   p2: { wide: 0.5, tall: 0.5 },
-  p3: { wide: 0.62, tall: 0.5 },
-  p4: { wide: 0.5, tall: 0.5 },
+  p3: { wide: 0.62, tall: 0.84 },
+  p4: { wide: 0.5, tall: 0.84 },
 }
 
 /** The person, and the hand-off they stand on as found (src/drawings/graphs/firm.ts). */
@@ -73,24 +84,25 @@ const TALL_TOOL: readonly [number, number] = [148, 52]
 const TALL_COLS = [94, 306] as const
 
 /**
- * The tall family's cells (column, row). The office tools run down the left
- * and the field side down the right, so every line that carries an AI reader
+ * The tall family's cells (column, row). The office tools run down the right
+ * and the field side down the left, so every line that carries an AI reader
  * or a sign-off valve gets a straight run of its own instead of meeting the
  * others at one junction.
  */
 const TALL_CELL: Readonly<Record<string, readonly [0 | 1, number]>> = {
+  // the first row keeps reading order (the first tool, CRM, top left)
   crm: [0, 0],
   estimate: [1, 0],
-  inbox: [0, 1],
-  pm: [1, 1],
-  accounting: [0, 2],
-  field: [1, 2],
-  drive: [0, 3],
-  timesheets: [1, 3],
-  report: [0, 4],
-  payroll: [1, 4],
-  store: [0, 5],
-  monitor: [1, 5],
+  inbox: [1, 1],
+  pm: [0, 1],
+  accounting: [1, 2],
+  field: [0, 2],
+  drive: [1, 3],
+  timesheets: [0, 3],
+  report: [1, 4],
+  payroll: [0, 4],
+  store: [1, 5],
+  monitor: [0, 5],
 }
 
 function tallRows(nodes: Graph<FirmLabel, FirmRev>['nodes']): Graph<FirmLabel, FirmRev>['nodes'] {
@@ -117,7 +129,7 @@ const REWIRED_AT: Readonly<Record<string, Readonly<Record<LayoutId, (r: Rect) =>
     wide: (r) => [r.x + r.w + 30, r.y + r.h - 2],
     tall: (r) => [r.x + r.w - 16, r.y + r.h + 2],
   },
-  p3: { wide: (r) => [r.x + 40, r.y + r.h + 54], tall: (r) => [r.x + r.w - 16, r.y + r.h + 2] },
+  p3: { wide: (r) => [r.x + 40, r.y + r.h + 60], tall: (r) => [r.x + r.w - 16, r.y + r.h + 2] },
 }
 
 /** People (and their place labels) the tall family leaves out once rewired. */
@@ -125,7 +137,7 @@ export const HOME_TALL_HIDDEN: readonly string[] = ['p2', 'p3']
 const BESIDE: Readonly<Record<string, string>> = { p2: 'estimate', p3: 'field' }
 
 /** The hand note by Timesheets: in the clear margin under it, per family. */
-const NOTE_AT: Readonly<Record<LayoutId, Pt>> = { wide: [370, 548], tall: [210, 604] }
+const NOTE_AT: Readonly<Record<LayoutId, Pt>> = { wide: [370, 548], tall: [22, 598] }
 
 /**
  * Home leaves out the monitor's signal lines (branch routes m06, m08, m10):
@@ -174,7 +186,7 @@ function valveStations(
       // open side instead, clear of the line and its branch
       const v = ins.valve
       if (Math.abs(v.dir[0]) < 0.01 && ins.branch)
-        return [Math.round(v.at[0] - 16), Math.round(v.at[1] + 22)]
+        return [Math.round(v.at[0] - 24), Math.round(v.at[1] + 26)]
       return [Math.round(s[0]), Math.round(s[1])]
     }
     return { ...p, poses: { ...p.poses, rewired: { ...rw, at: at('wide'), atTall: at('tall') } } }

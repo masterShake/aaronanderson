@@ -66,6 +66,8 @@ export interface SchematicProps {
   plate?: Readonly<Record<LayoutId, number>>
   /** People the tall family's drawing leaves out once rewired (their place labels go too). */
   omitTall?: readonly string[]
+  /** The people's scale in the drawing (placeSymbol k), when it is not the kit's default. */
+  personK?: number
 }
 
 export interface DetailBubble {
@@ -127,6 +129,7 @@ function obstaclesOf(
   family: LayoutId,
   st: string,
   omit: readonly string[] = [],
+  personK?: number,
 ): Box[] {
   const out: Box[] = g.nodes.filter((n) => inRev(n, st)).map((n) => nodeRect(n, family))
   for (const r of routeGraph(g, st, family).values()) {
@@ -148,7 +151,11 @@ function obstaclesOf(
   for (const p of g.people ?? []) {
     const pose = poseOf(p, st)
     if (pose && !omit.includes(p.id))
-      out.push(primsBox(placeSymbol(pose.symbol, poseAt(pose, family)).flatMap((q) => q.prims)))
+      out.push(
+        primsBox(
+          placeSymbol(pose.symbol, poseAt(pose, family), { k: personK }).flatMap((q) => q.prims),
+        ),
+      )
   }
   return out
 }
@@ -186,7 +193,10 @@ export function Schematic({
   initial = 'asFound',
   plate,
   omitTall = [],
+  personK,
 }: SchematicProps) {
+  // half a person's height above their feet: where a bubble or place label points
+  const midPerson = personK === undefined ? 20 : (64 * personK) / 2
   const dom = figureDomId(id)
   const p = `${id}-sch`
   const [found, wired] = [g.revs[0]!, g.revs[1] ?? g.revs[0]!] as [State, State]
@@ -248,7 +258,7 @@ export function Schematic({
       const pose = poseOf(person, wired)
       if (pose) {
         const at = poseAt(pose, family)
-        return [at[0], at[1] - 20]
+        return [at[0], at[1] - midPerson]
       }
     }
     return [vx, vy]
@@ -338,9 +348,9 @@ export function Schematic({
       show: wired,
       a: both((f) => {
         const at = poseAt(pose, f)
-        return [at[0], at[1] - 20]
+        return [at[0], at[1] - midPerson]
       }),
-      gap: { wide: 14, tall: 14 },
+      gap: { wide: 6 + midPerson / 2, tall: 6 + midPerson / 2 },
       px: textPx(c.label(key)),
     })
   }
@@ -371,7 +381,13 @@ export function Schematic({
     obstacles[family] = {}
     lines[family] = {}
     for (const st of [found, wired]) {
-      const obs = obstaclesOf(g, family, st, family === 'tall' && st === wired ? omitTall : [])
+      const obs = obstaclesOf(
+        g,
+        family,
+        st,
+        family === 'tall' && st === wired ? omitTall : [],
+        personK,
+      )
       obstacles[family][st] = flat(obs)
       lines[family][st] = linesOf(g, family, st)
       const items = placed.filter((x) => x.show === st)

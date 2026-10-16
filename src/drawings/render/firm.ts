@@ -1,4 +1,15 @@
-import type { DrawingBuilder, Graph, Layer, LayoutId, Prim, Pt, SvgDoc, SvgNode } from '../types'
+import type {
+  DrawingBuilder,
+  Graph,
+  Layer,
+  LayoutId,
+  Prim,
+  Pt,
+  SvgDoc,
+  SvgNode,
+  SymbolId,
+} from '../types'
+import { placeSymbol } from '../symbols'
 import { firmGraph } from '../graphs/firm'
 import { FIRM_CELL } from '../views/home'
 import { primD } from '../lib/geometry'
@@ -6,7 +17,7 @@ import { primLength } from '../lib/length'
 import { directionAt, inRev, nodeRect, routeGraph, type Routed } from '../lib/route'
 import { isConnection } from '../lib/counts'
 import { toStillSvg } from '../lib/svg-string'
-import { strokeCls } from './cad'
+import { partsNodes, strokeCls } from './cad'
 import { graphDoc, type Medium } from './graph'
 import {
   bundle as bundleOf,
@@ -336,8 +347,26 @@ export function firmDoc(
   medium: Medium,
   /** Element ids (people) left out of this family and state. */
   omit: readonly string[] = [],
+  /** Scale of the people (placeSymbol k); the kit's default when left out. */
+  personK?: number,
 ): SvgDoc {
   const base = graphDoc(g, rev, family, { medium })
+  // people at Home's scale: the same pencil cut-outs graphDoc draws, larger
+  const person = (child: SvgNode & { el: 'g' }): SvgNode => {
+    const p = (g.people ?? []).find((x) => x.id === child.part)
+    const pose = p
+      ? (p.poses as Record<string, { symbol: SymbolId; at: Pt; atTall?: Pt } | undefined>)[rev]
+      : undefined
+    if (!p || !pose || personK === undefined) return child
+    const at = family === 'tall' && pose.atTall ? pose.atTall : pose.at
+    const i = (child.children[0] as { i?: number } | undefined)?.i ?? 0
+    const parts = placeSymbol(pose.symbol, at, { prefix: p.id, k: personK })
+    const seed = `${g.id}:${g.seed}:${family}:${rev}:${p.id}`
+    return {
+      ...child,
+      children: partsNodes(parts, { variant: 'pencil', seed, i, ink: 'pencil' }),
+    }
+  }
   const cad = medium === 'cad'
   const routed = routeGraph(g, rev, family, { bend: cad ? 12 : 0 })
   const nodes = new Map(g.nodes.filter((n) => inRev(n, rev)).map((n) => [n.id, n]))
@@ -347,6 +376,7 @@ export function firmDoc(
     (child) => !(child.el === 'g' && child.part && omit.includes(child.part)),
   )
   const children = kept.map((child): SvgNode => {
+    if (child.el === 'g' && child.cls === 'person') return person(child)
     if (child.el !== 'g' || !child.part || child.cls) return child
     const id = child.part
     const n = nodes.get(id)
@@ -411,12 +441,17 @@ export function firmBuilder(
   g: AnyGraph,
   states: readonly StateSpec[] = FIRM_STATES,
   families: readonly LayoutId[] = ['wide', 'tall'],
-  omit: (family: LayoutId, rev: string) => readonly string[] = () => [],
+  o: {
+    /** People left out of a family and state. */
+    omit?: (family: LayoutId, rev: string) => readonly string[]
+    /** The people's scale (placeSymbol k). */
+    personK?: number
+  } = {},
 ): DocsBuilder {
   return flowBuilder(
     (family, rev) => {
       const s = states.find((x) => x.rev === rev)!
-      return firmDoc(g, rev, family, s.medium, omit(family, rev))
+      return firmDoc(g, rev, family, s.medium, o.omit?.(family, rev) ?? [], o.personK)
     },
     states,
     families,

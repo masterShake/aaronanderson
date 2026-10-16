@@ -37,8 +37,12 @@ export interface PlaceOptions {
 }
 
 const HARD = 100
-/** A label across a line reads badly (W4 finish B5): worth a few rings of distance to avoid. */
-const SOFT = 5
+/**
+ * A label across a line reads badly (W4 finish B5): worth a ring or two of distance to avoid.
+ * Not more: a label far from its object needs a long leader, which reads worse, and the
+ * schematic's labels mask the lines under them (a drafting wipeout).
+ */
+const SOFT = 2
 const EDGE = 400
 
 /** Directions tried at each distance, as unit vectors. */
