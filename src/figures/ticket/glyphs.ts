@@ -302,6 +302,8 @@ export function nodeGlyph(id: string, r: Box, family: 'wide' | 'tall'): Glyph | 
 /** The ticket figure: the width a node's label may use (its box less padding and glyph). */
 export function labelRoom(id: string, r: Box, family: 'wide' | 'tall'): number {
   const pad = family === 'wide' ? 10 : 7
+  // the truck's name stays on its body, clear of the cab
+  if (id === 'truck') return r.w * 0.6 - pad * 2
   return nodeGlyph(id, r, family) ? r.w - pad * 2 - (family === 'wide' ? 40 : 28) : r.w - pad * 2
 }
 

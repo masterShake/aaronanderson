@@ -134,7 +134,7 @@ function tags(): Tag[] {
       text: copy.ui[`stamp.${rev}`],
       tone: 'stamp',
       revs: [rev],
-      at: { wide: [tr.x + 12, tr.y + 126, tr.w * 0.48] },
+      at: { wide: [tr.x + 12, tr.y + 124, tr.w * 0.56] },
     })
   // the hand-over documents carry their names
   for (const fam of FAMILIES)

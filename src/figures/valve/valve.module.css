@@ -320,7 +320,7 @@
   100% {
     opacity: 1;
     scale: 1;
-    rotate: -4deg;
+    rotate: -2deg;
   }
 }
 
@@ -377,12 +377,12 @@
 
 .approved {
   justify-self: start;
-  padding: 2px 8px;
-  border: 2px solid var(--c-orange);
+  padding: 1px 8px;
+  border: 1.5px solid var(--c-orange);
   background: var(--c-blueprint-deep);
   color: var(--c-label-on-deep);
   font-weight: 600;
-  rotate: -4deg;
+  rotate: -2deg;
 }
 
 /* the log prints small inside the drawn card, clear of its spine */

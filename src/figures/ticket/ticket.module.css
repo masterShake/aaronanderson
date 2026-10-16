@@ -187,7 +187,7 @@
   border: 3px double var(--c-asphalt);
   background: var(--c-paper);
   color: var(--c-asphalt);
-  font-size: 10px;
+  font-size: clamp(7px, 1.2cqi, 11px);
   font-weight: 600;
   line-height: 1.25;
   overflow-wrap: normal;

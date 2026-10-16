@@ -205,7 +205,7 @@ export const TICKET_EXTRAS: Readonly<Record<LayoutId, TicketExtras>> = {
     monitor: [[690, 286], 'n2', 0.58],
     flange: 0.88,
     tags: {
-      tape: [24, 640, 216, 40],
+      tape: [24, 640, 256, 40],
       ai: [290, 402, 120, 20],
       tolerance: [566, 318, 150, 20],
       signOff: [420, 452, 180, 60],

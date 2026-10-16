@@ -195,7 +195,7 @@ export function ticketDocument(t: R, family: LayoutId): Glyph {
     detail.push(line([x0 + iw * a, hy + hh * 0.6], [x0 + iw * b, hy + hh * 0.6]))
   // the signature line, its X and the signature
   const sy = t.y + t.h - (wide ? 16 : 10)
-  const sx = x0 + iw * (wide ? 0.6 : 0.36)
+  const sx = x0 + iw * (wide ? 0.66 : 0.36)
   detail.push(line([sx, sy], [x1, sy]))
   const xs = wide ? 4 : 3
   detail.push(line([sx - xs * 2.5, sy - xs * 2.5], [sx - xs * 0.5, sy - xs * 0.5]))
@@ -204,8 +204,8 @@ export function ticketDocument(t: R, family: LayoutId): Glyph {
     t: 'cubic',
     a: [sx + 4, sy - 3],
     c1: [sx + iw * 0.12, sy - (wide ? 20 : 12)],
-    c2: [sx + iw * 0.16, sy + 2],
-    b: [sx + iw * 0.32, sy - (wide ? 10 : 6)],
+    c2: [sx + iw * 0.14, sy + 2],
+    b: [sx + iw * 0.28, sy - (wide ? 10 : 6)],
   })
   return { outline, detail }
 }
