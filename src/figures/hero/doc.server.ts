@@ -117,18 +117,33 @@ const clean = (prims: readonly Prim[], part: string, i: number, cls: string): Sv
     cls,
   )
 
-/** Decor lines as one path: exact (the 3D decal paints the same points). */
-const decorD = (ls: readonly DecorLine[], at: (p: Pt) => Pt = (p) => p) =>
-  ls
-    .map(
-      (l) =>
-        `M${l.pts
-          .map(at)
-          .map(([x, y]) => `${+x.toFixed(1)} ${+y.toFixed(1)}`)
-          .join('L')}${l.closed ? 'Z' : ''}`,
-    )
+/**
+ * Decor lines as one path in relative commands (the inline budget): exact at the default 0.1
+ * unit precision (decor points sit on half units, so the 3D decal paints the same points);
+ * `step` 1 rounds to whole units first (the pencil glyphs and the iso print).
+ */
+function decorD(ls: readonly DecorLine[], at: (p: Pt) => Pt = (p) => p, step = 0.1): string {
+  const q = (n: number) => Math.round(n / step) * step
+  const f = (n: number) => String(+n.toFixed(1))
+  return ls
+    .map((l) => {
+      const P = l.pts.map(at).map(([x, y]): Pt => [q(x), q(y)])
+      let s = `M${f(P[0]![0])} ${f(P[0]![1])}`
+      for (let i = 1; i < P.length; i++) {
+        const dx = P[i]![0] - P[i - 1]![0]
+        const dy = P[i]![1] - P[i - 1]![1]
+        s +=
+          Math.abs(dy) < 1e-9
+            ? `h${f(dx)}`
+            : Math.abs(dx) < 1e-9
+              ? `v${f(dy)}`
+              : `l${f(dx)} ${f(dy)}`
+      }
+      return `${s}${l.closed ? 'z' : ''}`
+    })
     .join('')
     .replace(/ -/g, '-')
+}
 
 /** cubic-bezier(x1,y1,x2,y2) solved for t at progress y (bisection), as CSS eases it. */
 function invEase(css: string, y: number): number {
@@ -247,7 +262,7 @@ const LEADERS: Readonly<Record<Fam, readonly (readonly Pt[])[]>> = {
 const TALL_ISO_NUDGE: Readonly<Record<string, Pt>> = {
   ai: [-44, 0],
   store: [0, 73],
-  valve: [7, 21],
+  valve: [-14, 0],
   pm: [8, -12],
 }
 
@@ -292,7 +307,7 @@ function build(family: Fam): HeroBuild {
         [
           clean([box], n.id, i, 'f-paper'),
           ...rough([box], seed(n.id), n.id, i, 'draw p-035 i-pencil', 'cloud'),
-          path(decorD(glyph), 0, `${n.id}.glyph`, i, 'p-025 i-pencil glyph'),
+          path(decorD(glyph, undefined, 1), 0, `${n.id}.glyph`, i, 'p-025 i-pencil glyph'),
         ],
         'k-box',
       ),
@@ -358,7 +373,8 @@ function build(family: Fam): HeroBuild {
   )
   const decoKids: SvgNode[] = [
     ...Object.entries(deco.tools).map(([id, ls]) =>
-      path(decorD(ls), 0, `${id}.decor`, 0, 'p-035 i-cyan'),
+      // glyph and plate divider; the screws are the 3D model's (too fine for the plan frame)
+      path(decorD(ls.slice(0, -4)), 0, `${id}.decor`, 0, 'p-035 i-cyan'),
     ),
     path(decorD(deco.instruments), 0, 'instruments', 0, 'p-035 i-cyan'),
   ]
@@ -465,7 +481,8 @@ function build(family: Fam): HeroBuild {
     if (deco.tools[part.id])
       add(
         path(
-          decorD(deco.tools[part.id]!, (q) => isoAt(q, part.depth)),
+          // glyph and plate divider; the screws are below the print's resolution
+          decorD(deco.tools[part.id]!.slice(0, -4), (q) => isoAt(q, part.depth), 1),
           0,
           `${part.id}.decor`,
           n.i,

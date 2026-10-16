@@ -21,7 +21,7 @@ import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
-import { modelDecor, plate, type DecorLine } from './model/decor'
+import { modelDecor, plate, segs, trace, wheel } from '@/stage/runtime/kit/decor'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -55,37 +55,6 @@ import { ease, span } from '@/stage/runtime/kit/ease'
 type Solid = FlatMixed<ReturnType<typeof aluminum>>
 const SEQ = ['r01', 'r05', 'r02', 'r09', 'r11', 'r08', 'r03', 'r10'] as const
 const HOLD = 600
-
-/**
- * A plan polyline as Line2 segment positions at height y. Corners stay sharp: the decal draws
- * the plan frame, and pipe lines only show while they fade into the grown pipes.
- */
-function linePositions(pts: readonly Pt[], closed: boolean, y: number) {
-  const P = closed ? [...pts, pts[0]!] : pts
-  const out: number[] = []
-  for (let i = 1; i < P.length; i++) out.push(P[i - 1]![0], y, P[i - 1]![1], P[i]![0], y, P[i]![1])
-  return out
-}
-
-/** A frame line on a 2D context, as lib/geometry's polyD draws it (fillets clamped to half a leg). */
-function trace(g: CanvasRenderingContext2D, l: LiteLine) {
-  const P = l.pts
-  g.moveTo(P[0]![0], P[0]![1])
-  for (let i = 1; i < P.length; i++) {
-    const b = P[i]!
-    const c = P[i + 1]
-    if (l.r && c) {
-      const a = P[i - 1]!
-      const rr = Math.min(
-        l.r,
-        Math.hypot(b[0] - a[0], b[1] - a[1]) / 2,
-        Math.hypot(c[0] - b[0], c[1] - b[1]) / 2,
-      )
-      g.arcTo(b[0], b[1], c[0], c[1], rr)
-    } else g.lineTo(b[0], b[1])
-  }
-  if (l.closed) g.closePath()
-}
 
 /** A part's plan centre: a rect's, a circle's, or (the valve) its bow-tie's shared tip. */
 const centre = (p: ModelPart): Pt => {
@@ -126,11 +95,13 @@ const mod: SceneModule = {
     const anchors = new Map<string, Object3D>()
     const bounds: Vector3[] = []
     const frame = spec.parts.flatMap((p) => partLines(p))
-    // the tool glyphs, plates, screws and the instruments' detail: drawn by the CAD SVG too
+    // the tool glyphs, plate dividers and the instruments' detail, as the CAD SVG draws them;
+    // the screws (each tool's last four) show only on the 3D top faces
     const deco = modelDecor(spec)
-    const decoAll: LiteLine[] = [...Object.values(deco.tools).flat(), ...deco.instruments].map(
-      (l) => ({ id: '', pts: l.pts, closed: l.closed, pen: '035', ink: 'cyan' }),
-    )
+    const decoAll: LiteLine[] = [
+      ...Object.values(deco.tools).flatMap((ls) => ls.slice(0, -4)),
+      ...deco.instruments,
+    ].map((l) => ({ id: '', pts: l.pts, closed: l.closed, pen: '035', ink: 'cyan' }))
     let packets: PacketField | null = null
     let plans: PacketPlan[] = []
     let level: Mesh | null = null
@@ -200,7 +171,9 @@ const mod: SceneModule = {
         width: 1,
         a2c: true,
       })
-      const o = segments(linePositions(l.pts, l.closed, y), m)
+      // corners stay sharp: the decal draws the plan frame, and pipe lines only show while
+      // they fade into the grown pipes
+      const o = segments(segs([l], y), m)
       o.renderOrder = 10 + order
       own.push({ geometry: o.geometry })
       lines.push({ m, pen: l.pen, o })
@@ -217,19 +190,6 @@ const mod: SceneModule = {
       lines.push({ m, pen: '035', o })
       parent.add(o)
     }
-    const addDecor = (
-      ls: readonly DecorLine[],
-      y: number,
-      color: string,
-      order: number,
-      parent: Object3D,
-    ) =>
-      addSegs(
-        ls.flatMap((l) => linePositions(l.pts, l.closed, y)),
-        color,
-        order,
-        parent,
-      )
 
     function addPart(p: ModelPart, order: number) {
       {
@@ -272,29 +232,19 @@ const mod: SceneModule = {
           for (const y of [0, top]) mkLine(l, y, order, mesh)
           // the decor sits on the top face, engraved in a darker tone than the edges
           const d = deco.tools[p.id]
-          if (d) addDecor(d, top + 0.2, orange ? COLOR.asphalt : COLOR.graphite, order, mesh)
+          const t = top + 0.2
+          if (d) addSegs(segs(d, t), orange ? COLOR.asphalt : COLOR.graphite, order, mesh)
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order })
           three.add(mesh)
           if (i) return
           const [cx, cz] = centre(p)
-          const t = top + 0.2
-          if (p.kind === 'valve') {
-            // bonnet stem and a handwheel above the body: it reads as a valve from any side
-            const h = top * 1.3
-            const R = top * 0.8
-            const pos = [cx, t, cz, cx, t + h, cz]
-            for (let j = 0; j < 16; j++) {
-              const a = (j * Math.PI) / 8
-              const b = ((j + 1) * Math.PI) / 8
-              pos.push(cx + R * Math.cos(a), t + h, cz + R * Math.sin(a))
-              pos.push(cx + R * Math.cos(b), t + h, cz + R * Math.sin(b))
-            }
-            pos.push(cx - R, t + h, cz, cx + R, t + h, cz, cx, t + h, cz - R, cx, t + h, cz + R)
-            addSegs(pos, COLOR.asphalt, order, mesh)
-          } else if (p.id === 'ai' && c.t === 'circle')
-            // the reading lens on the AI reader's top
-            addDecor(deco.instruments.slice(0, 2), t, COLOR.cyan, order, mesh)
+          // the valve's bonnet stem and handwheel (it reads as a valve from any side); the AI
+          // reader's lens on its top
+          if (p.kind === 'valve')
+            addSegs(wheel(cx, cz, t, top * 1.3, top * 0.8), COLOR.asphalt, order, mesh)
+          else if (p.id === 'ai')
+            addSegs(segs(deco.instruments.slice(0, 2), t), COLOR.cyan, order, mesh)
         })
         if (p.anchor) {
           const a = new Object3D()

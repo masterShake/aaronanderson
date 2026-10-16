@@ -333,8 +333,17 @@ for (const width of [1280, 1440])
           ),
         )
         .map((p) => ({ orange: p.classList.contains('f-orange'), at: rect(p) }))
+      // a label shows when it is visible and opaque, and so is its own text or a child's
+      const opaque = (el: Element) => {
+        const cs = getComputedStyle(el)
+        return cs.visibility === 'visible' && cs.opacity !== '0' && !/opacity\(0\)/.test(cs.filter)
+      }
       const shown = [...fig.querySelectorAll<HTMLElement>('.labels > span')].filter(
-        (el) => getComputedStyle(el).visibility === 'visible' && el.textContent?.trim(),
+        (el) =>
+          opaque(el) &&
+          el.textContent?.trim() &&
+          ([...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim()) ||
+            [...el.children].some(opaque)),
       )
       const tools = [...fig.querySelectorAll<HTMLElement>('.labels [data-anchor^="tool."]')].map(
         (el) => ({ key: el.dataset.anchor!, ...text(el) }),
