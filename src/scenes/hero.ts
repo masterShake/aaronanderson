@@ -21,7 +21,7 @@ import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
-import { modelDecor, plate, segs, trace, wheel } from '@/stage/runtime/kit/decor'
+import { centre, modelDecor, plate, segs, trace, wheel } from '@/stage/runtime/kit/decor'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -55,18 +55,6 @@ import { ease, span } from '@/stage/runtime/kit/ease'
 type Solid = FlatMixed<ReturnType<typeof aluminum>>
 const SEQ = ['r01', 'r05', 'r02', 'r09', 'r11', 'r08', 'r03', 'r10'] as const
 const HOLD = 600
-
-/** A part's plan centre: a rect's, a circle's, or (the valve) its bow-tie's shared tip. */
-const centre = (p: ModelPart): Pt => {
-  const q = p.prims[0]!
-  return q.t === 'rect'
-    ? [q.at[0] + q.size[0] / 2, q.at[1] + q.size[1] / 2]
-    : q.t === 'circle'
-      ? q.c
-      : q.t === 'poly'
-        ? q.pts[1]!
-        : [0, 0]
-}
 
 const mod: SceneModule = {
   id: 'hero',
@@ -105,6 +93,7 @@ const mod: SceneModule = {
     let packets: PacketField | null = null
     let plans: PacketPlan[] = []
     let level: Mesh | null = null
+    let glassM: Mesh | null = null
     let card: Mesh | null = null
     let cardOut = new Vector3()
     let cardIn = new Vector3()
@@ -316,17 +305,27 @@ const mod: SceneModule = {
       yield
       // the DATA tank's sight glass, on its camera-facing side
       if (tank && tc?.t === 'circle') {
-        const g = new BoxGeometry(wide ? 8 : 6, 1, 2).translate(0, 0.5, 0)
-        level = new Mesh(g, emissive())
-        own.push({ geometry: g })
-        level.position.set(
-          tc.c[0] + tc.r * Math.SQRT1_2 + 1,
-          tank.depth * 0.12,
-          tc.c[1] + tc.r * Math.SQRT1_2 + 1,
-        )
-        level.rotation.y = Math.PI / 4
-        level.userData.h = tank.depth * 0.76
-        three.add(level)
+        // a dark glass the cyan level rises in (orange stays for the packets and the valve)
+        const w0 = wide ? 8 : 6
+        const H = tank.depth * 0.76
+        const g = new BoxGeometry(w0, 1, 2).translate(0, 0.5, 0)
+        const gg = new BoxGeometry(w0 + 4, H + 4, 1.5).translate(0, H / 2, 0)
+        level = new Mesh(g, emissive(COLOR.cyan))
+        const glass = (glassM = new Mesh(gg, emissive(COLOR.asphalt)))
+        own.push({ geometry: g }, { geometry: gg })
+        for (const [m, o] of [
+          [level, 1],
+          [glass, 0],
+        ] as const) {
+          m.position.set(
+            tc.c[0] + tc.r * Math.SQRT1_2 + o,
+            tank.depth * 0.12 - 2 + 2 * o,
+            tc.c[1] + tc.r * Math.SQRT1_2 + o,
+          )
+          m.rotation.y = Math.PI / 4
+          three.add(m)
+        }
+        level.userData.h = H
       }
       // the owner's report card slides out of the report box's south face
       const rep = part('report')
@@ -397,6 +396,8 @@ const mod: SceneModule = {
       }
       // the decal holds the plan frame; the Line2 edges take over as it tilts
       decal.visible = at < TILT * 0.15
+      // the sight glass stands up with the model (none at the plan frame: the seam)
+      if (glassM) glassM.visible = at > TILT * 0.3
       decalMat.opacity = 1 - span(at, 0, TILT * 0.15)
       // the Line2 edges (depth-tested) show only once the model leaves the plan frame
       for (const l of lines) l.o.visible = at > 0

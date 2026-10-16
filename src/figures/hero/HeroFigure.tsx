@@ -94,7 +94,7 @@ export function HeroFigure() {
           </span>
           <span
             className={s.report}
-            style={box(r.at[0] - r.w / 4, r.at[1] + 6, rt.at[0] - rt.w / 4, rt.at[1] + 4)}
+            style={box(r.at[0] - r.w / 4, r.at[1] + 6, rt.at[0] + rt.w * 0.37, rt.at[1] + 4)}
           />
           <span className={s.idle}>{copy.ui.idle}</span>
           <span className={s.clock} data-clock="" />

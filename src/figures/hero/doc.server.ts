@@ -354,8 +354,10 @@ function build(family: Fam): HeroBuild {
   people.forEach((p, c) => {
     const [x, y] = p.found.at
     const h = HERO_PERSON[family]
-    const rect = { x: x - h * 0.42, y: y - h - 8, w: h * 0.84, h: h + 14 }
-    const cp = cloudPrim(rect, { seed: seedFrom(seed(`cloud${c}`)) })
+    // tall: a tighter cloud with smaller scallops, so the top row's stays inside the frame
+    const pad = family === 'wide' ? 8 : 3
+    const rect = { x: x - h * 0.42, y: y - h - pad, w: h * 0.84, h: h + pad + 6 }
+    const cp = cloudPrim(rect, { seed: seedFrom(seed(`cloud${c}`)), r: family === 'wide' ? 7 : 5 })
     pencilKids.push(
       group(
         `cloud.${p.id}`,

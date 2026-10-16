@@ -1,4 +1,16 @@
-import type { ModelSpec, Pt } from '@/drawings/types'
+import type { ModelPart, ModelSpec, Pt } from '@/drawings/types'
+
+/** A part's plan centre: a rect's, a circle's, or (the valve) its bow-tie's shared tip. */
+export function centre(p: ModelPart): Pt {
+  const q = p.prims[0]!
+  return q.t === 'rect'
+    ? [q.at[0] + q.size[0] / 2, q.at[1] + q.size[1] / 2]
+    : q.t === 'circle'
+      ? q.c
+      : q.t === 'poly'
+        ? q.pts[1]!
+        : [0, 0]
+}
 
 /**
  * Hero-only detail on each tool enclosure (W4 finish standard B1): an identifying glyph at the
@@ -155,7 +167,7 @@ const ring = (c: Pt, rr: number, n: number): Pt[] =>
 
 /** Sight glass beside the tank: [x, y, w, h] in plan units, per family (clear of every route). */
 export function sightGlass(c: Pt, rr: number, wide: boolean): [number, number, number, number] {
-  return wide ? [r(c[0] - rr - 14), r(c[1] - 28), 8, 56] : [r(c[0] + rr + 7), r(c[1] + 8), 6, 32]
+  return wide ? [r(c[0] - rr - 18), r(c[1] - 32), 12, 64] : [r(c[0] + rr + 6), r(c[1] + 6), 9, 36]
 }
 
 /**
