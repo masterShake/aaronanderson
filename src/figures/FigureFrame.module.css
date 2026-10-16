@@ -16,8 +16,13 @@
   background: var(--c-paper);
 }
 
-/* The title is one line at every width (_finish A3, M5); on narrow figures the controls take
-   a second row rather than squeeze it. */
+/*
+ * One row (W4b, _finish A3): the title and its stamp on the left, the REV chip and the
+ * controls on the right. The title takes only its own width, so the rest joins its row
+ * whenever it fits. When it does not, the chip and the controls wrap together into one compact
+ * second row (chip left, controls right) with no empty band. The title never trims: it wraps
+ * between words only as a last resort, when it alone is wider than the strip.
+ */
 .strip {
   display: flex;
   flex-wrap: wrap;
@@ -30,13 +35,12 @@
 
 .title {
   display: flex;
-  flex: 1 1 24ch;
+  flex: 0 1 auto;
   align-items: center;
   gap: var(--s-2);
-  /* never narrower than its parts' minimums: the controls wrap to a second row instead */
   min-width: auto;
   max-width: 100%;
-  margin: 0;
+  margin: 0 auto 0 0;
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
@@ -45,19 +49,12 @@
   white-space: nowrap;
 }
 
-/* when the strip is tight the stamp trims first (its first word stays), then the detail
-   number, and the name last */
-.detail,
-.name,
-.stamp {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* the name wraps between words only when it alone is wider than the strip; never an ellipsis */
 .name {
   flex: 0 1 auto;
-  min-width: min(10ch, 100%);
+  min-width: auto;
+  white-space: normal;
+  overflow-wrap: normal;
 }
 
 .detail {
@@ -101,10 +98,43 @@
   display: flex;
   flex: 0 1 auto;
   flex-wrap: wrap;
+  justify-content: flex-end;
   max-width: 100%;
   margin-inline-start: auto;
   align-items: center;
   gap: var(--s-2);
+}
+
+/* narrow figures: the second row is compact (smaller chip, tighter gaps), so the chip and the
+   controls share it instead of taking a row each */
+@container fig (width < 560px) {
+  .strip {
+    gap: var(--s-1) var(--s-2);
+    padding-block: 6px;
+  }
+  .chip {
+    padding: 0 4px;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+  }
+  .controls {
+    gap: 6px;
+  }
+}
+
+/* The hero's Run again shows only once the play ends, and hidden it would still hold a third
+   strip row open on phones (an empty band). In the tall family it sits in the drawing's top
+   right corner instead, over the print's empty sky, and takes no strip space. */
+@container fig (width < 520px) {
+  .fig:global([data-figure='hero']) .strip {
+    position: relative;
+  }
+  .fig:global([data-figure='hero']) .controls > :global([data-action='again']) {
+    position: absolute;
+    inset-block-start: calc(100% + var(--s-3));
+    inset-inline-end: var(--s-3);
+    z-index: 2;
+  }
 }
 
 .controls > * {

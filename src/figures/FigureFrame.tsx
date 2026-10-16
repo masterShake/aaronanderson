@@ -6,6 +6,7 @@ import { site } from '@/content/site'
 import { IS_PRODUCTION } from '@/lib/env'
 import type { FigureFrameProps } from './types'
 import { figureDomId } from './types'
+import { LabelReveal } from './LazyDrawing.client'
 import s from './FigureFrame.module.css'
 
 /**
@@ -101,8 +102,10 @@ export function FigureFrame({
       aria-describedby={`${dom}-desc`}
     >
       <div className={`strip ${s.strip}`}>
-        {/* one line at any width: the detail number yields first (still read out), then the
-            name truncates; the EXAMPLE or SAMPLE tag is a small stamp that never wraps */}
+        {/* one row: the title and its stamp, then the chip and the controls on the right (a
+            compact second row when they do not fit). The detail number yields first (still
+            read out); the name never trims and wraps only as a last resort; the EXAMPLE or
+            SAMPLE stamp never wraps */}
         <p id={`${dom}-title`} className={s.title}>
           <span className={s.detail}>
             {copy.detail}
@@ -169,6 +172,9 @@ export function FigureFrame({
         ))}
       </div>
       <p data-live="" aria-live="polite" className="sr-only" />
+      {/* the default label reveal; the hero times its own labels to its scan and its loop
+          (a scan reveals by clip, which the watcher cannot see) */}
+      {id === 'hero' ? null : <LabelReveal />}
       {children}
     </figure>
   )
