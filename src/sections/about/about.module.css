@@ -48,8 +48,43 @@
   .layers {
     grid-column: 8 / span 5;
   }
+
+  /* no band notes: the heading and its line sit beside the figure */
+  .headBeside {
+    row-gap: 0;
+  }
+
+  .headBeside > .head {
+    grid-column: 1 / span 5;
+  }
+
+  .headBeside > .figure {
+    grid-column: 6 / span 7;
+  }
 }
 
 .beliefs :global(h2) {
   max-width: 18ch;
+}
+
+/* Beliefs from 1024 px: the heading on the left, its short lines beside it (no empty half). */
+@media (width >= 1024px) {
+  .beliefs > div {
+    display: flow-root;
+    margin-block-end: 0;
+  }
+
+  .beliefs > div > :global(h2) {
+    float: inline-start;
+    inline-size: 50%;
+    margin: 0;
+  }
+
+  .beliefs > div > p {
+    margin-inline-start: 58%;
+  }
+
+  .beliefs > div > p:first-of-type {
+    margin-block-start: var(--s-2);
+  }
 }

@@ -56,6 +56,45 @@
   margin-inline: 0;
 }
 
+/*
+ * The form and its side notes (WriteBlock). Stacked below 1024 px; from 1024 px
+ * the form column (7 parts) and the notes column (5 parts) sit side by side, the
+ * notes ruled off like a sheet's general notes and kept in view beside the form.
+ */
+.writeMain {
+  min-width: 0;
+}
+
+.note > :global(*) {
+  max-width: var(--measure);
+}
+
+@media (width >= 1024px) {
+  .writeBlock {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: clamp(var(--s-7), 5vw, var(--s-9));
+    align-items: start;
+  }
+
+  .writeNotes {
+    position: sticky;
+    top: var(--sticky-top);
+    display: grid;
+    gap: var(--s-7);
+    padding-block: var(--section-pad);
+  }
+
+  .note {
+    padding-block: var(--s-4) 0;
+    border-block-start: 2px solid var(--c-asphalt);
+  }
+
+  .note h2 {
+    font-size: var(--fs-h3);
+  }
+}
+
 .processors {
   margin: 0;
 }

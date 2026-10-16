@@ -1,15 +1,59 @@
-/* Home B: the head, the figure at full width, then the margin note, kicker and Legend link. Never sticky. */
+/*
+ * Home B: the head (point and kicker side by side from 1024 px), the figure at
+ * full width, then the Legend link and the margin note. Never sticky.
+ */
 
 .wiring {
   position: relative;
 }
 
 .head {
+  display: grid;
+  gap: 0 var(--s-8);
   margin-block-end: var(--s-5);
 }
 
 .head > p {
   max-width: var(--measure);
+}
+
+/* The kicker: the punchline to the point, set in display type, never a heading. */
+.kicker {
+  margin-block: var(--s-2) var(--s-4);
+  font-family: var(--ff-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+@media (width >= 1024px) {
+  .head {
+    grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .head > h2 {
+    grid-column: 1 / -1;
+  }
+
+  .point,
+  .hint {
+    grid-column: 1;
+  }
+
+  /* beside the point and the hint, ruled off like a drawing's key note */
+  .kicker {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: center;
+    max-width: none;
+    margin: 0;
+    padding-inline-start: var(--s-6);
+    border-inline-start: 2px solid var(--c-asphalt);
+    font-size: clamp(2rem, 1rem + 1.6vw, 2.75rem);
+  }
 }
 
 /* the pointer hint that matches the device */
@@ -27,17 +71,23 @@
   }
 }
 
+/* The Legend link, then the (E)/(N) note on the same line once the drawing is rewired. */
 .after {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s-3) var(--s-6);
+  gap: var(--s-2) var(--s-6);
   margin-block-start: var(--s-4);
 }
 
-/* the (E)/(N) margin note: only once the drawing is rewired (space is kept, so nothing shifts) */
+.legend {
+  margin: 0;
+  font-family: var(--ff-ui);
+  font-weight: 700;
+}
+
+/* only once the drawing is rewired (space is kept, so nothing shifts) */
 .newNote {
-  flex: 1 1 100%;
   margin: 0;
   color: var(--c-graphite);
   visibility: hidden;
@@ -48,17 +98,17 @@
   visibility: visible;
 }
 
-.kicker {
-  margin: 0;
-  font-family: var(--ff-display);
-  font-size: var(--fs-h3);
-  font-weight: 800;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
+/* Below 1024 px the note would wrap to its own lines and leave an empty band while hidden,
+   so it hangs in the section's bottom margin instead (still no shift when it appears). */
+@media (width < 1024px) {
+  .after {
+    position: relative;
+  }
 
-.legend {
-  margin: 0;
-  font-family: var(--ff-ui);
-  font-weight: 700;
+  .newNote {
+    position: absolute;
+    inset-block-start: 100%;
+    inset-inline: 0;
+    margin-block-start: var(--s-1);
+  }
 }

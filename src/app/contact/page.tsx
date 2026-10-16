@@ -3,24 +3,23 @@ import { pageMetadata } from '@/lib/metadata'
 import { SheetTransition } from '@/components/chrome/SheetTransition'
 import { ContactHead } from '@/sections/contact/ContactHead'
 import { BookSection } from '@/sections/contact/BookSection'
-import { WriteSection } from '@/sections/contact/WriteSection'
-import { EmailSection } from '@/sections/contact/EmailSection'
+import { WriteBlock } from '@/sections/contact/WriteBlock'
 import { NextSteps } from '@/sections/contact/NextSteps'
-import { Privacy } from '@/sections/contact/Privacy'
 import { ContactClosing } from '@/sections/contact/ContactClosing'
 
 export const metadata: Metadata = pageMetadata('contact')
 
-/** Page shell (frozen after W0): one H1, the sections in order, the CTA band last. */
+/**
+ * Page shell: one H1, the sections in order, the CTA band last. The form, the
+ * email address and the privacy note share one block (side by side from 1024 px).
+ */
 export default function ContactPage() {
   return (
     <SheetTransition>
       <ContactHead />
       <BookSection />
-      <WriteSection />
-      <EmailSection />
+      <WriteBlock />
       <NextSteps />
-      <Privacy />
       <ContactClosing />
     </SheetTransition>
   )

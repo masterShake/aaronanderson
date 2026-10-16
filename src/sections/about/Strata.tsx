@@ -7,16 +7,20 @@ import s from './about.module.css'
 
 /**
  * About: "Field, office and code: where we come from." The static strata
- * figure, and beside it (from 1024 px) one note per band; a band whose note
- * has nothing to show in production is left out.
+ * figure and, from 1024 px, one note per band beside it. A band whose note has
+ * nothing to show in production is left out; with no notes at all the heading
+ * and its line take the column beside the figure instead, so the section has
+ * no empty half.
  */
 export function Strata() {
   const c = about.strata
   const layers = c.layers.filter((l) => resolveHeld(l.text).show !== 'omit')
+  const head = <SectionHead id={c.id} h2={c.h2} body={c.body} />
   return (
     <section id={c.id} aria-labelledby={`${c.id}-title`} className="wrap">
-      <SectionHead id={c.id} h2={c.h2} body={c.body} />
-      <div className={s.split}>
+      {layers.length ? head : null}
+      <div className={`${s.split} ${layers.length ? '' : s.headBeside}`}>
+        {layers.length ? null : <div className={s.head}>{head}</div>}
         <div className={s.figure}>
           <StrataFigure />
         </div>

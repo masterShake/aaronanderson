@@ -607,9 +607,24 @@
 /* ── Spec grid: We do / You do / How long / You get ──────────────────────── */
 .spec {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   border: 1.5px solid var(--c-asphalt);
+}
+
+/* Three cells a row; a last cell alone on its row takes the whole row (no empty cells). */
+@media (width >= 600px) {
+  .spec {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .spec > div:last-child:nth-child(3n + 1) {
+    grid-column: 1 / -1;
+  }
+
+  .spec > div:last-child:nth-child(3n + 2) {
+    grid-column: span 2;
+  }
 }
 
 .spec > div {
@@ -777,8 +792,25 @@
     inline-size: 100%;
   }
 
+  /* the caption sits above the rows at full width, as it does on wider screens */
+  .table[data-stack] {
+    border: 0;
+  }
+
+  .table[data-stack] caption {
+    display: block;
+  }
+
+  .table[data-stack] tbody {
+    border: 1.5px solid var(--c-asphalt);
+  }
+
   .table[data-stack] tr {
     border-block-end: 1.5px solid var(--c-asphalt);
+  }
+
+  .table[data-stack] tr:last-child {
+    border-block-end: 0;
   }
 
   .table[data-stack] tbody th {
@@ -861,6 +893,47 @@
    its .scroll region instead of widening the page. */
 .legend {
   min-inline-size: 0;
+}
+
+/* Below 640 px the symbols table never scrolls sideways: each row is the glyph, then the
+   name over its plain words. The column heads stay for screen readers. */
+@media (max-width: 639px) {
+  .table[data-legend] thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table[data-legend],
+  .table[data-legend] tbody {
+    display: block;
+    inline-size: 100%;
+  }
+
+  .table[data-legend] tr {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    border-block-end: 1px solid var(--tbl-line);
+  }
+
+  .table[data-legend] tr > * {
+    border: 0;
+  }
+
+  .table[data-legend] td[data-symbol] {
+    grid-row: span 2;
+  }
+
+  .table[data-legend] tbody th {
+    padding-block-end: 0;
+    white-space: normal;
+  }
+
+  .table[data-legend] td:not([data-symbol]) {
+    padding-block-start: var(--s-1);
+  }
 }
 
 .glossary {
