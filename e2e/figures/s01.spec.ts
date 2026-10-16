@@ -50,8 +50,24 @@ test('layers load and --p drives the beats', async ({ page, guard }) => {
 test('tool labels and survey tags cover every tool', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
   const n = await page.locator('#fig-s01 .labels > span').count()
-  // a name and a tag per tool, three Δ tags, two notes, two specs
-  expect(n).toBe(S01_TOOLS.length * 2 + 3 + 2 + 2)
+  // a name and a tag per tool, and three Δ tags; no hand notes (W4 finish standard A4)
+  expect(n).toBe(S01_TOOLS.length * 2 + 3)
+  await expect(page.locator('#fig-s01 .labels .note')).toHaveCount(0)
+})
+
+test('at p = 1 the survey marks are gone and the list is whole', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
+  const fig = page.locator('#fig-s01')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const opacities = (sel: string) =>
+    fig.locator(sel).evaluateAll((els) => els.map((e) => Number(getComputedStyle(e).opacity)))
+  // no crosshairs, survey tags, Δ tags or fan left over the finished map
+  for (const o of await opacities('svg.l-pkt path.xh')) expect(o).toBe(0)
+  for (const o of await opacities('svg.l-pkt .s01-fan')) expect(o).toBe(0)
+  for (const o of await opacities('.labels > span:not(:first-child)')) expect([0, 1]).toContain(o)
+  const items = fig.locator('.labels > div li')
+  await expect(items).toHaveCount(3)
+  for (const o of await opacities('.labels > div li')) expect(o).toBe(1)
 })
 
 test('still tier shows the final still and the finished labels', async ({ page }) => {

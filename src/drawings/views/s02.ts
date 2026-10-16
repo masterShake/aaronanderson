@@ -52,112 +52,317 @@ export interface S02Layout {
   carry: readonly Pt[]
   walkFrom: Pt
   walkTo: Pt
-  /** Pencil scribble rows per box, as fractions of the box. */
-  rows: readonly (readonly [y: number, x0: number, x1: number])[]
+  /** The carrier's scale (the scale figure is 64 units tall at 1). */
+  carrierK: number
   /** How far before the flange the stalled copy waits (loop 3). */
   stallBack: number
 }
 
-const rows = [
-  [0.18, 0.08, 0.62],
-  [0.8, 0.08, 0.78],
-  [0.9, 0.08, 0.46],
-] as const
-
+/*
+ * Wide: the CRM on the left, the three places stacked on the right, the junction between.
+ * The boxes fill the frame (40 to 50 units of margin); each box's top half carries its
+ * label and its bottom half the tool's glyph. The carrier walks the line the estimating
+ * conduit later takes.
+ */
 const WIDE: S02Layout = {
   viewBox: [0, 0, 960, 720],
   boxes: {
-    crm: [48, 300, 240, 120],
-    est: [624, 108, 240, 120],
-    pm: [624, 300, 240, 120],
-    acct: [624, 492, 240, 120],
+    crm: [40, 256, 290, 208],
+    est: [616, 44, 304, 168],
+    pm: [616, 276, 304, 168],
+    acct: [616, 508, 304, 168],
   },
-  heights: { crm: 72, est: 58, pm: 58, acct: 58 },
-  tee: [408, 360],
+  heights: { crm: 84, est: 64, pm: 64, acct: 64 },
+  tee: [470, 360],
   routes: {
     lead: [
-      [288, 360],
-      [408, 360],
+      [330, 360],
+      [470, 360],
     ],
     est: [
-      [408, 360],
-      [408, 168],
-      [624, 168],
+      [470, 360],
+      [470, 128],
+      [616, 128],
     ],
     pm: [
-      [408, 360],
-      [624, 360],
+      [470, 360],
+      [616, 360],
     ],
     acct: [
-      [408, 360],
-      [408, 552],
-      [624, 552],
+      [470, 360],
+      [470, 592],
+      [616, 592],
     ],
   },
-  fillet: 12,
-  pipeR: 5.4,
-  pipeY: 21.6,
-  flangeHalf: 11,
-  flangeR: 10,
-  flangeIn: 52,
+  fillet: 14,
+  pipeR: 6.4,
+  pipeY: 24,
+  flangeHalf: 13,
+  flangeR: 12,
+  flangeIn: 50,
   carry: [
-    [168, 300],
-    [168, 264],
-    [744, 264],
-    [744, 228],
+    [185, 256],
+    [185, 128],
+    [616, 128],
   ],
-  walkFrom: [196, 264],
-  walkTo: [716, 264],
-  rows,
-  stallBack: 66,
+  walkFrom: [214, 128],
+  walkTo: [560, 128],
+  carrierK: 1.1,
+  stallBack: 64,
 }
 
+/* Tall: the same plan, narrower; the places fill the right-hand column top to bottom. */
 const TALL: S02Layout = {
   viewBox: [0, 0, 400, 500],
   boxes: {
-    crm: [16, 214, 136, 72],
-    est: [236, 60, 148, 72],
-    pm: [236, 214, 148, 72],
-    acct: [236, 368, 148, 72],
+    crm: [12, 186, 134, 128],
+    est: [232, 24, 156, 120],
+    pm: [232, 190, 156, 120],
+    acct: [232, 356, 156, 120],
   },
-  heights: { crm: 40, est: 32, pm: 32, acct: 32 },
-  tee: [194, 250],
+  heights: { crm: 46, est: 36, pm: 36, acct: 36 },
+  tee: [184, 250],
   routes: {
     lead: [
-      [152, 250],
-      [194, 250],
+      [146, 250],
+      [184, 250],
     ],
     est: [
-      [194, 250],
-      [194, 96],
-      [236, 96],
+      [184, 250],
+      [184, 84],
+      [232, 84],
     ],
     pm: [
-      [194, 250],
-      [236, 250],
+      [184, 250],
+      [232, 250],
     ],
     acct: [
-      [194, 250],
-      [194, 404],
-      [236, 404],
+      [184, 250],
+      [184, 416],
+      [232, 416],
     ],
   },
   fillet: 10,
-  pipeR: 3,
-  pipeY: 12,
-  flangeHalf: 7,
-  flangeR: 6,
-  flangeIn: 26,
+  pipeR: 3.4,
+  pipeY: 13,
+  flangeHalf: 8,
+  flangeR: 7,
+  flangeIn: 22,
   carry: [
-    [84, 214],
-    [84, 176],
-    [310, 176],
-    [310, 132],
+    [79, 186],
+    [79, 84],
+    [232, 84],
   ],
-  walkFrom: [100, 176],
-  walkTo: [290, 176],
-  rows,
-  stallBack: 34,
+  walkFrom: [96, 84],
+  walkTo: [206, 84],
+  carrierK: 0.62,
+  stallBack: 30,
+}
+
+/** Which glyph names each tool (S-01 uses the same set). */
+export type GlyphKind =
+  'cards' | 'grid' | 'gantt' | 'ledger' | 'envelope' | 'folder' | 'phone' | 'timecard' | 'paycheck'
+export const S02_GLYPH: Readonly<Record<S02Tool, GlyphKind>> = {
+  crm: 'cards',
+  est: 'grid',
+  pm: 'gantt',
+  acct: 'ledger',
+}
+
+const g2 = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * A tool's identifying glyph as open polylines (closed shapes repeat their first point, so
+ * planFrame gives them no fill): a card file, a spreadsheet grid, Gantt bars, a ledger, an
+ * envelope, a folder, a phone, a time card or a paycheck. Centred on c, s units tall and
+ * about 1.5 s wide.
+ */
+export function glyphLines(kind: GlyphKind, c: Pt, s: number): Pt[][] {
+  const w = s * 1.5
+  const h = s
+  const x0 = c[0] - w / 2
+  const y0 = c[1] - h / 2
+  const X = (f: number) => x0 + w * f
+  const Y = (f: number) => y0 + h * f
+  const P = (pts: [number, number][]): Pt[] => pts.map(([x, y]) => [g2(X(x)), g2(Y(y))] as Pt)
+  const box = (a: number, b: number, c2: number, d: number) =>
+    P([
+      [a, b],
+      [c2, b],
+      [c2, d],
+      [a, d],
+      [a, b],
+    ])
+  const ln = (a: number, b: number, c2: number, d: number) =>
+    P([
+      [a, b],
+      [c2, d],
+    ])
+  switch (kind) {
+    case 'grid':
+      return [
+        box(0, 0, 1, 1),
+        ln(0, 0.25, 1, 0.25),
+        ln(0, 0.5, 1, 0.5),
+        ln(0, 0.75, 1, 0.75),
+        ln(0.34, 0, 0.34, 1),
+        ln(0.56, 0, 0.56, 1),
+        ln(0.78, 0, 0.78, 1),
+      ]
+    case 'gantt':
+      return [
+        P([
+          [0, 0],
+          [0, 1],
+          [1, 1],
+        ]),
+        box(0.08, 0.1, 0.46, 0.3),
+        box(0.32, 0.4, 0.72, 0.6),
+        box(0.6, 0.7, 0.96, 0.9),
+        P([
+          [0.46, 0.2],
+          [0.52, 0.2],
+          [0.52, 0.4],
+        ]),
+        P([
+          [0.72, 0.5],
+          [0.78, 0.5],
+          [0.78, 0.7],
+        ]),
+      ]
+    case 'ledger':
+      return [
+        P([
+          [0.5, 0.1],
+          [0.04, 0],
+          [0.04, 0.9],
+          [0.5, 1],
+          [0.96, 0.9],
+          [0.96, 0],
+          [0.5, 0.1],
+          [0.5, 1],
+        ]),
+        ln(0.12, 0.3, 0.42, 0.36),
+        ln(0.12, 0.5, 0.42, 0.56),
+        ln(0.12, 0.7, 0.42, 0.76),
+        ln(0.58, 0.36, 0.88, 0.3),
+        ln(0.58, 0.56, 0.88, 0.5),
+        ln(0.58, 0.76, 0.88, 0.7),
+      ]
+    case 'cards': {
+      const out: Pt[][] = [
+        P([
+          [0, 0.46],
+          [0, 1],
+          [1, 1],
+          [1, 0.46],
+        ]),
+        box(0.4, 0.66, 0.6, 0.8),
+      ]
+      for (let i = 0; i < 3; i++) {
+        const t = 0.08 + i * 0.13
+        const a = 0.12 + i * 0.26
+        out.push(
+          P([
+            [0.08, 0.46],
+            [0.08, t],
+            [a, t],
+            [a, t - 0.08],
+            [a + 0.2, t - 0.08],
+            [a + 0.2, t],
+            [0.92, t],
+            [0.92, 0.46],
+          ]),
+        )
+      }
+      return out
+    }
+    case 'envelope':
+      return [
+        box(0.08, 0.05, 0.92, 0.95),
+        P([
+          [0.08, 0.05],
+          [0.5, 0.55],
+          [0.92, 0.05],
+        ]),
+      ]
+    case 'folder':
+      return [
+        P([
+          [0.06, 1],
+          [0.06, 0],
+          [0.38, 0],
+          [0.46, 0.14],
+          [0.94, 0.14],
+          [0.94, 1],
+          [0.06, 1],
+        ]),
+        ln(0.06, 0.3, 0.94, 0.3),
+      ]
+    case 'phone':
+      return [box(0.34, 0, 0.66, 1), box(0.38, 0.1, 0.62, 0.78), box(0.47, 0.85, 0.53, 0.92)]
+    case 'timecard': {
+      const r = 0.17
+      const ring: Pt[] = Array.from({ length: 13 }, (_, i) => {
+        const a = (2 * Math.PI * i) / 12
+        return [g2(c[0] + Math.cos(a) * r * h), g2(Y(0.3) + Math.sin(a) * r * h)] as Pt
+      })
+      return [
+        box(0.22, 0, 0.78, 1),
+        ring,
+        P([
+          [0.5, 0.18],
+          [0.5, 0.3],
+          [0.58, 0.3],
+        ]),
+        ln(0.3, 0.62, 0.7, 0.62),
+        ln(0.3, 0.74, 0.7, 0.74),
+        ln(0.3, 0.86, 0.7, 0.86),
+      ]
+    }
+    case 'paycheck':
+      return [
+        box(0, 0.16, 1, 0.84),
+        box(0.66, 0.28, 0.92, 0.44),
+        ln(0.08, 0.36, 0.56, 0.36),
+        ln(0.08, 0.54, 0.92, 0.54),
+        P([
+          [0.56, 0.74],
+          [0.64, 0.66],
+          [0.7, 0.74],
+          [0.78, 0.66],
+          [0.86, 0.72],
+        ]),
+      ]
+  }
+}
+
+/** Where a box's glyph sits (its bottom half) and how big: the label owns the top half. */
+export function glyphPlace([x, y, w, h]: Rect): { c: Pt; s: number } {
+  const s = Math.min(h * 0.42, (w * 0.8) / 1.5)
+  return { c: [g2(x + w / 2), g2(y + h * 0.69)], s: g2(s) }
+}
+
+/** Each place's arrival lamp (plan units): its enclosure's top right corner. */
+export function s02Lamp(l: S02Layout, d: S02Dest): Pt {
+  const [x, y, w] = l.boxes[d]
+  const inset = l.flangeR * 1.8
+  return [x + w - inset, y + inset]
+}
+
+/**
+ * Where a tool's label sits on its enclosure's top in the iso views (plan units): left of
+ * centre in the back half, so the label clears the glyph and the enclosure behind it.
+ */
+export function s02LabelAt(l: S02Layout, t: S02Tool): Pt {
+  const [x, y, w, h] = l.boxes[t]
+  return [x + w * 0.45, y + h * 0.4]
+}
+
+/** The glyph of one S-02 tool, in plan units. */
+export const s02Glyph = (l: S02Layout, t: S02Tool): Pt[][] => {
+  const { c, s } = glyphPlace(l.boxes[t])
+  return glyphLines(S02_GLYPH[t], c, s)
 }
 
 export const S02_LAYOUT: Readonly<Record<LayoutId, S02Layout>> = { wide: WIDE, tall: TALL }
@@ -201,6 +406,15 @@ export function s02Model(family: LayoutId): ModelSpec {
       depth: l.heights[t],
       material: 'aluminum',
       anchor: S02_LABEL[t],
+    })
+    // The tool's glyph: detail lines on the enclosure's top (open polylines, so no fill).
+    parts.push({
+      id: `glyph.${t}`,
+      kind: 'card',
+      prims: s02Glyph(l, t).map((pts) => ({ t: 'poly' as const, pts })),
+      depth: 0,
+      z: l.heights[t],
+      material: 'aluminum',
     })
   }
   parts.push({

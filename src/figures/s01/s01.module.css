@@ -1,23 +1,26 @@
 /*
- * S-01 THE SURVEY on --p (pages-drawings §6.1). Windows come from S01
- * (src/motion/timing/s01.ts) through cssVars as --s01-*-p; per-element windows
- * are inline (labels) or carried by --i (paths: the sketch stagger, the
- * crosshair's crossing progress × 1000, the cloud's order).
+ * S-01 THE SURVEY on --p (owner: svc-a). Windows come from S01 (src/motion/timing/s01.ts)
+ * through cssVars as --s01-*-p; per-element windows are inline (labels) or carried by --i
+ * (paths: the sketch stagger, the glyph order, the crosshair's crossing progress × 1000,
+ * the cloud's order).
  *
  * --p is 1 (the finished drawing) in the still tier, in print and without JS.
- * The art covers the left 640 of 960 units (wide) or the top 330 of 500 (tall).
+ * The map covers the left 640 × 624 of 960 × 720 (wide) or the top 262 of 400 × 500 (tall);
+ * the surveyor stands under it on paper, and the ranked list sits beside (wide) or below it.
  */
 
-/* The art's share of the box (set on .box: a container query cannot style its own container). */
+/* The map's share of the box (set on .box: a container query cannot style its own container). */
 .fig :global(.box) {
   --s01-art-w: 0.6667;
   --s01-art-h: 1;
+  --s01-fan: var(--s01-fan-deg);
 }
 
 @container fig (width < 440px) {
   .fig :global(.box) {
     --s01-art-w: 1;
-    --s01-art-h: 0.6;
+    --s01-art-h: 0.472;
+    --s01-fan: var(--s01-fan-deg-t);
   }
 }
 
@@ -58,8 +61,24 @@
   clip-path: inset(0 calc(100% - var(--s01-scan) * var(--s01-art-w) * 100%) 0 0);
 }
 
+/* ERASE: the scan wipes the pencil sketch; a short ghost trails the bar, and once the scan
+   is through nothing of the sketch is left under the map. */
 .fig :global(svg.l-pencil) {
-  opacity: calc(1 - var(--s01-scan) * (1 - var(--pencil-ghost, 0.22)));
+  --at: calc(var(--s01-scan) * var(--s01-art-w) * 100%);
+  --t0: calc(var(--at) - 14% * (1 - var(--s01-scan)));
+  --t1: calc(var(--at) - 5% * (1 - var(--s01-scan)));
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent var(--t0),
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) var(--t1),
+    #000 var(--at)
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent var(--t0),
+    rgb(0 0 0 / var(--pencil-ghost, 0.22)) var(--t1),
+    #000 var(--at)
+  );
 }
 
 .fig.fig :global(.box) > :global(.scan-bar) {
@@ -73,7 +92,7 @@
    frame's .f-* fills (0,2,0), so this figure restates the ones it uses (request filed). */
 .fig.fig :global(.box) :global(path.f-cad) {
   fill: var(--c-blueprint);
-  fill-opacity: 0.18;
+  fill-opacity: 0.16;
 }
 
 .fig.fig :global(.box) :global(path.f-deep) {
@@ -84,10 +103,16 @@
   fill: var(--c-paper);
 }
 
-/* ── Sketch: boxes and lines draw on, staggered ─────────────────────────── */
+/* ── Sketch: boxes, then lines, then each box's glyph ───────────────────── */
 .fig :global(path.sk) {
   --a: calc(var(--s01-sketch-from-p) + var(--i) * var(--s01-sketch-stagger-p));
   --b: calc(var(--a) + var(--s01-sketch-stroke-p));
+  --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
+}
+
+.fig :global(path.gl) {
+  --a: calc(var(--s01-glyph-from-p) + var(--i) * var(--s01-glyph-step-p));
+  --b: calc(var(--a) + var(--s01-glyph-p));
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
 }
 
@@ -111,26 +136,60 @@
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
 }
 
-.fig :global(path:is(.sk, .sv, .xh, .cl).draw) {
-  stroke-dashoffset: calc(1 - var(--lp));
+/* Draw-on eases in and out (cubic). */
+.fig :global(path:is(.sk, .gl, .sv, .xh, .cl)) {
+  --e: calc(var(--lp) * var(--lp) * (3 - 2 * var(--lp)));
+}
+
+.fig :global(path:is(.sk, .gl, .sv, .xh, .cl).draw) {
+  stroke-dashoffset: calc(1 - var(--e));
   opacity: clamp(0, var(--lp) * 50, 1);
 }
 
-.fig :global(path:is(.sk, .sv):not(.draw)) {
+.fig :global(path:is(.sk, .gl, .sv):not(.draw)) {
   opacity: var(--lp);
 }
 
-/* Crosshairs go once the scan passes. */
+/* Crosshairs go once the scan passes; a clouded box's crosshair gives way to its Δ tag. */
 .fig :global(path.xh.draw) {
-  opacity: calc(clamp(0, var(--lp) * 50, 1) * (1 - var(--s01-scan)));
+  --gone: 0;
+  opacity: calc(clamp(0, var(--lp) * 50, 1) * (1 - var(--s01-scan)) * (1 - var(--gone)));
+}
+
+.fig :global(path.xc1) {
+  --gone: clamp(0, (var(--p) - var(--s01-clouds-from-p)) * 40, 1);
+}
+
+.fig :global(path.xc2) {
+  --gone: clamp(
+    0,
+    (
+        var(--p) - var(--s01-clouds-from-p) - (var(--s01-clouds-to-p) - var(--s01-clouds-from-p)) /
+          3
+      ) *
+      40,
+    1
+  );
+}
+
+.fig :global(path.xc3) {
+  --gone: clamp(
+    0,
+    (
+        var(--p) - var(--s01-clouds-from-p) - 2 *
+          (var(--s01-clouds-to-p) - var(--s01-clouds-from-p)) / 3
+      ) *
+      40,
+    1
+  );
 }
 
 /* ── Survey: the fan sweeps up from the instrument ──────────────────────── */
 .fig :global(.s01-fan) {
-  rotate: calc(var(--s01-sweep) * -80deg);
+  rotate: calc(var(--s01-sweep) * var(--s01-fan, 86deg) * -1);
   opacity: calc(
-    clamp(0, (var(--p) - var(--s01-survey-from-p)) * 25, 1) *
-      clamp(0, (var(--s01-scan-from-p) - var(--p)) * 50, 1)
+    clamp(0, (var(--p) - var(--s01-sweep-from-p)) * 25, 1) *
+      clamp(0, (var(--s01-sweep-to-p) + 0.02 - var(--p)) * 40, 1)
   );
 }
 
@@ -142,7 +201,7 @@
 
 /* ── Labels ──────────────────────────────────────────────────────────────── */
 .fig.fig :global(.labels) > * {
-  font-size: clamp(8px, 2cqi, 12px);
+  font-size: clamp(8.5px, 2cqi, 12px);
 }
 
 @container fig (width < 440px) {
@@ -161,46 +220,32 @@
 }
 
 .tool {
-  max-inline-size: 26%;
-  white-space: normal !important;
-  overflow-wrap: anywhere;
   color: color-mix(in srgb, var(--c-label-on-deep) calc(var(--ink) * 100%), var(--c-asphalt));
   opacity: var(--lp);
 }
 
+/* "3 BY HAND": bottom left inside the box, from the moment the fan crosses it. */
 .tag {
   --b: calc(var(--a) + var(--s01-pop-p));
-  padding-inline: 2px;
-  background: var(--c-paper);
+  translate: 0 -100%;
   color: var(--c-blueprint);
+  font-weight: 600;
   opacity: calc(var(--lp) * (1 - var(--ink)));
 }
 
+/* Δ1–Δ3: top right inside the clouded box, where its crosshair was. */
 .delta {
   --a: calc(
     var(--s01-clouds-from-p) + var(--i) * (var(--s01-clouds-to-p) - var(--s01-clouds-from-p)) / 3
   );
   --b: calc(var(--a) + var(--s01-pop-p));
+  translate: -100% calc(var(--s01-rise) * -12px);
+  padding-inline: 3px;
+  border: 1px solid var(--c-redline);
+  background: var(--c-paper);
   color: var(--c-redline);
   font-weight: 600;
   opacity: calc(var(--lp) * (1 - var(--s01-rise)));
-  translate: 0 calc(var(--s01-rise) * -12px);
-}
-
-.note {
-  --a: var(--s01-notes-from-p);
-  --b: var(--s01-notes-to-p);
-  max-inline-size: 22%;
-  font-size: clamp(10px, 2.4cqi, 15px) !important;
-  color: var(--c-graphite);
-  opacity: calc(var(--lp) * (1 - var(--s01-scan)));
-}
-
-.spec {
-  --a: 0;
-  --b: 1;
-  color: var(--c-label-on-deep);
-  opacity: clamp(0, (var(--s01-scan) - 0.85) * 8, 1);
 }
 
 @container fig (width < 440px) {
@@ -209,68 +254,90 @@
     --sx: var(--sxt) !important;
   }
 
-  .tool {
-    max-inline-size: 42%;
-  }
-
   .tag {
     --a: var(--at) !important;
   }
-
-  .note {
-    max-inline-size: 40%;
-    font-size: clamp(10px, 3cqi, 13px) !important;
-  }
 }
 
-/* ── The ranked list (EXAMPLE) and the 90-day roadmap ───────────────────── */
+/* ── The ranked list and the 90-day roadmap ─────────────────────────────── */
+/* Wide: the column under the surveyor, down to the map's bottom edge; the roadmap sits at
+   its foot. Tall: the strip under the map. */
 .list {
-  --a: var(--s01-rise-from-p);
-  --b: var(--s01-rise-to-p);
-  inline-size: 31%;
+  --a: var(--s01-list-from-p);
+  --b: var(--s01-list-to-p);
+  display: flex;
+  flex-direction: column;
+  inline-size: 29.5%;
+  block-size: 65.5%;
   white-space: normal !important;
   letter-spacing: 0.01em !important;
   text-transform: uppercase;
   opacity: var(--lp);
 }
 
+.fig.fig :global(.labels) > .list {
+  font-size: clamp(8.5px, 2.15cqi, 14px);
+}
+
 @container fig (width < 440px) {
   .list {
     inline-size: 95%;
+    block-size: auto;
+  }
+
+  .fig.fig :global(.labels) > .list {
+    font-size: clamp(9px, 2.6cqi, 11px);
   }
 }
 
 .listHead {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 2px 8px;
-  margin: 0 0 0.6em;
-  padding-block-end: 0.4em;
+  margin: 0 0 0.7em;
+  padding-block-end: 0.45em;
   border-block-end: 1.5px solid var(--c-asphalt);
   font-weight: 600;
 }
 
-.example {
-  padding-inline: 4px;
-  border: 1px solid var(--c-redline);
-  color: var(--c-redline);
-}
-
+/* Wide: the items are the rows of a schedule that fills the column; tall: they stack tight. */
 .items {
-  display: grid;
-  gap: 0.45em;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.items > .item {
+  flex: 1;
+  align-content: center;
+  padding-block: 0.6em;
+  border-block-end: 1px solid var(--c-pencil-faint);
+}
+
+@container fig (width < 440px) {
+  .items {
+    flex: none;
+    gap: 0.45em;
+  }
+
+  .items > .item {
+    flex: none;
+    padding-block: 0;
+    border: 0;
+  }
+
+  .list .roadmap {
+    padding-block-start: 0.8em;
+  }
+}
+
 .item {
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
   display: grid;
-  grid-template-columns: 1.6em minmax(0, 1fr);
-  gap: 0.2em 0.4em;
+  grid-template-columns: 1.7em minmax(0, 1fr);
+  gap: 0.25em 0.4em;
   opacity: var(--lp);
+  translate: 0 calc((1 - var(--lp)) * 6px);
 }
 
 .item > :not(.bubble) {
@@ -278,10 +345,9 @@
 }
 
 .item > .meters {
-  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
-  gap: 0 0.8em;
+  gap: 0.1em 0.9em;
 }
 
 .itemText {
@@ -328,7 +394,8 @@
   --a: var(--s01-roadmap-from-p);
   --b: var(--s01-roadmap-to-p);
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
-  margin-block-start: 1em;
+  margin-block-start: auto;
+  padding-block-start: 1.4em;
 }
 
 .roadmapTitle {
@@ -337,6 +404,7 @@
   opacity: clamp(0, var(--lp) * 4, 1);
 }
 
+/* The dimension string: a run with slash ticks at 0, 30, 60 and 90 days. */
 .dimString {
   position: relative;
   display: grid;
@@ -347,7 +415,7 @@
 .dimRun {
   position: absolute;
   inset-inline: 0;
-  inset-block-end: 0.3em;
+  inset-block-end: 0.35em;
   border-block-start: 1.5px solid var(--c-asphalt);
   transform-origin: left;
   scale: var(--lp) 1;
@@ -361,6 +429,16 @@
   opacity: clamp(0, (var(--lp) * 3 - var(--n)) * 3, 1);
 }
 
+.span::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -0.4em;
+  inset-block-end: 0.05em;
+  inline-size: 0.8em;
+  border-block-start: 1.5px solid var(--c-asphalt);
+  rotate: -45deg;
+}
+
 .span:last-of-type {
   border-inline-end: 1.5px solid var(--c-asphalt);
 }
@@ -368,6 +446,6 @@
 .ticks {
   display: flex;
   justify-content: space-between;
-  margin: 0.2em 0 0;
+  margin: 0.25em 0 0;
   opacity: var(--lp);
 }

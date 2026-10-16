@@ -40,6 +40,7 @@ const legs: Pt[] = [
   mid(L.routes.est[1]!, L.routes.est[2]!),
   mid(L.routes.acct[1]!, L.routes.acct[2]!),
 ]
+/* Inside each enclosure, clear of its glyph (the glyph fills the middle of the bottom half). */
 const inside: Pt[] = S02_TOOLS.flatMap((t) => {
   const [x, y, w, h] = L.boxes[t]
   return [
@@ -48,19 +49,21 @@ const inside: Pt[] = S02_TOOLS.flatMap((t) => {
     [x + w * 0.75, y + h * 0.65],
   ] as Pt[]
 })
+/* Open panel, clear of every enclosure, conduit and glyph at the hand-off frame (the pencil
+   ghost and the carrier are gone by then). */
 const open: Pt[] = [
   [120, 100],
-  [300, 100],
-  [500, 80],
-  [880, 60],
+  [300, 60],
+  [520, 80],
+  [560, 24],
   [60, 650],
   [300, 650],
-  [600, 680],
-  [900, 680],
-  [940, 420],
+  [580, 700],
+  [940, 700],
+  [944, 420],
   [60, 200],
-  [220, 620],
-  [800, 450],
+  [220, 560],
+  [800, 476],
 ]
 
 export const SEAM: SeamScene | null = {

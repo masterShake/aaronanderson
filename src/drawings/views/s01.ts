@@ -2,18 +2,24 @@ import type { Graph, GraphView, LayoutId, Pt, ViewBox } from '../types'
 import { firmGraph, type FirmLabel, type FirmRev } from '../graphs/firm'
 import { applyView, center, nodeRect, type Rect } from '../lib/route'
 import { counts, touches } from '../lib/counts'
+import { glyphLines, type GlyphKind } from './s02'
 import { S01 } from '@/motion/timing/s01'
 
 /**
- * S-01 Systems Survey (pages-drawings §6.1): the example firm's eight office
- * tools and nine hand-offs, as found, in a cramped two-column layout. The art
- * sits left of x = 640 in the wide family (the ranked list is an HTML panel at
- * the right) and above y = 330 in the tall family (the list sits below it).
- * A surveyor at a total station sweeps a 12° fan across the boxes; the three
- * boxes with the most by-hand hand-offs get revision clouds Δ1–Δ3.
+ * S-01 Systems Survey (owner: svc-a): the example firm's eight office tools and nine
+ * hand-offs, as found, two columns by four rows. Each box is a piece of equipment: its name
+ * top left, its glyph (envelope, spreadsheet grid, Gantt bars, …) on the right, and, once
+ * the survey has crossed it, how many hand-offs it takes by hand, bottom left.
  *
- * Geometry only (no strings, no roughjs): drawing.server.ts renders it, and
- * the figure reads the label positions and progress windows from here.
+ * Wide (960 × 720): the map fills the left 640 units (the deep panel covers it at the
+ * redraw) and the surveyor stands under it at the total station; the ranked list and the
+ * roadmap are an HTML panel on the right. Tall (400 × 500): the map fills the top, the
+ * surveyor stands under it, and the list sits below.
+ *
+ * A surveyor at a total station sweeps a 12° fan across the boxes; the three boxes with the
+ * most by-hand hand-offs get revision clouds Δ1–Δ3. Geometry only (no strings, no roughjs):
+ * drawing.server.ts renders it, and the figure reads the label positions and progress
+ * windows from here.
  */
 
 export const S01_TOOLS = [
@@ -30,21 +36,21 @@ export type S01Tool = (typeof S01_TOOLS)[number]
 export const S01_ROUTES = ['h01', 'h02', 'h03', 'h04', 'h05', 'h06', 'h07', 'h11', 'h12'] as const
 
 export const S01_VB: { wide: ViewBox; tall: ViewBox } = {
-  wide: [0, 0, 960, 640],
+  wide: [0, 0, 960, 720],
   tall: [0, 0, 400, 500],
 }
-/** The drawing's own area: the deep panel and the scan cover it; the list panel sits outside. */
+/** The map's area: the deep panel and the scan cover it; the surveyor and the list sit outside. */
 export const S01_ART: Readonly<Record<LayoutId, Rect>> = {
-  wide: { x: 0, y: 0, w: 640, h: 640 },
-  tall: { x: 0, y: 0, w: 400, h: 300 },
+  wide: { x: 0, y: 0, w: 640, h: 720 },
+  tall: { x: 0, y: 0, w: 400, h: 236 },
 }
 
-const BOX_W: readonly [number, number] = [280, 84]
-const BOX_T: readonly [number, number] = [180, 46]
-const COL_W = [20, 340]
-const ROW_W = [40, 180, 320, 460]
-const COL_T = [10, 210]
-const ROW_T = [8, 68, 128, 188]
+const BOX_W: readonly [number, number] = [280, 144]
+const BOX_T: readonly [number, number] = [184, 48]
+const COL_W = [24, 336]
+const ROW_W = [36, 204, 372, 540]
+const COL_T = [8, 208]
+const ROW_T = [6, 64, 122, 180]
 
 /** Cell of each tool: [column, row]. pm is the hub, so it sits by inbox, field and estimate. */
 const CELL: Readonly<Record<S01Tool, readonly [number, number]>> = {
@@ -56,6 +62,18 @@ const CELL: Readonly<Record<S01Tool, readonly [number, number]>> = {
   accounting: [1, 2],
   timesheets: [0, 3],
   payroll: [1, 3],
+}
+
+/** The glyph that names each tool. */
+export const S01_GLYPH: Readonly<Record<S01Tool, GlyphKind>> = {
+  estimate: 'grid',
+  drive: 'folder',
+  pm: 'gantt',
+  inbox: 'envelope',
+  field: 'phone',
+  accounting: 'ledger',
+  timesheets: 'timecard',
+  payroll: 'paycheck',
 }
 
 export const S01_VIEW: GraphView<FirmRev> = {
@@ -77,8 +95,7 @@ const viewed = applyView(firmGraph, S01_VIEW)
 
 /**
  * The S-01 graph: the firm re-laid out by S01_VIEW, with its own box sizes and
- * no people or notes of the firm's (the surveyor is drawn by the figure; the
- * hand notes are HTML).
+ * no people or notes of the firm's (the surveyor is drawn by the figure).
  */
 export const s01Graph: Graph<FirmLabel, FirmRev> = {
   ...viewed,
@@ -112,21 +129,56 @@ export const rectOf = (tool: S01Tool, family: LayoutId): Rect =>
     family,
   )
 
-/** The total station: feet of the tripod and the instrument head (the fan's origin). */
-export const S01_STATION: Readonly<Record<LayoutId, { feet: Pt; head: Pt; person: Pt }>> = {
-  wide: { feet: [60, 620], head: [60, 584], person: [112, 622] },
-  tall: { feet: [24, 294], head: [24, 274], person: [52, 296] },
+/** The tool's glyph (open polylines): right of centre, under the crosshair's corner. */
+export function s01Glyph(tool: S01Tool, family: LayoutId): Pt[][] {
+  const r = rectOf(tool, family)
+  const s = r.h * 0.46
+  const c: Pt = [r.x + r.w - 0.75 * s - r.h * 0.14, r.y + r.h * 0.58]
+  return glyphLines(S01_GLYPH[tool], c, s)
 }
 
-/** Fan: 12° wide, starts pointing east, sweeps up through sweepDeg. Long enough to reach every box. */
-export const S01_FAN = { halfDeg: 6, sweepDeg: 80, len: { wide: 700, tall: 420 } } as const
+/** The survey crosshair: the box's top right corner. */
+export function crossAt(tool: S01Tool, family: LayoutId): { c: Pt; r: number; arm: number } {
+  const r = rectOf(tool, family)
+  const s = r.h * 0.46
+  // the instrument's sight on the tool: centred on its glyph
+  return {
+    c: [r.x + r.w - 0.75 * s - r.h * 0.14, r.y + r.h * 0.58],
+    r: family === 'wide' ? 15 : 6,
+    arm: family === 'wide' ? 26 : 11,
+  }
+}
 
-const deg = (a: Pt, b: Pt) => (-Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI
+/**
+ * The total station: feet of the tripod and the instrument head (the fan's origin), and the
+ * surveyor beside it. Wide: top of the right-hand column (the list hangs below), the
+ * surveyor mirrored so he faces the instrument. Tall: under the map, at its left.
+ */
+export const S01_STATION: Readonly<
+  Record<LayoutId, { feet: Pt; head: Pt; person: Pt; k: number; mirror: boolean }>
+> = {
+  wide: { feet: [790, 176], head: [790, 104], person: [850, 176], k: 1.35, mirror: true },
+  tall: { feet: [22, 274], head: [22, 254], person: [46, 276], k: 0.52, mirror: false },
+}
+
+/**
+ * Fan: 12° wide, drawn pointing at startDeg (screen degrees, y down: 0 east, 180 west) and
+ * swept counterclockwise through sweepDeg. Long enough to reach every box.
+ */
+export const S01_FAN = {
+  halfDeg: 6,
+  startDeg: { wide: 188, tall: 0 },
+  sweepDeg: { wide: 72, tall: 86 },
+  len: { wide: 860, tall: 420 },
+} as const
+
+const deg = (a: Pt, b: Pt) => (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI
 
 /** Progress at which the fan's centre line crosses each tool (linear in the sweep window). */
 export function crossP(tool: S01Tool, family: LayoutId): number {
-  const a = deg(S01_STATION[family].head, center(rectOf(tool, family)))
-  const t = Math.min(1, Math.max(0, a / S01_FAN.sweepDeg))
+  const th = deg(S01_STATION[family].head, center(rectOf(tool, family)))
+  const a = (((S01_FAN.startDeg[family] - th) % 360) + 360) % 360
+  const t = Math.min(1, Math.max(0, a / S01_FAN.sweepDeg[family]))
   return Math.round((S01.sweepFromP + t * (S01.sweepToP - S01.sweepFromP)) * 1000) / 1000
 }
 
@@ -149,33 +201,27 @@ const both = (fw: (f: LayoutId) => Pt): S01Pos => ({
 export const toolLabelAt = (tool: S01Tool): S01Pos =>
   both((f) => {
     const r = rectOf(tool, f)
-    return [r.x + (f === 'wide' ? 12 : 8), r.y + (f === 'wide' ? 12 : 6)]
+    return [r.x + (f === 'wide' ? 12 : 7), r.y + (f === 'wide' ? 10 : 4)]
   })
 
-/** Survey tag ("TOOL 01 · 3 BY HAND"): just under the box. */
+/** Survey tag ("3 BY HAND"): inside the box, bottom left (the tag hangs up from here). */
 export const tagAt = (tool: S01Tool): S01Pos =>
   both((f) => {
     const r = rectOf(tool, f)
-    return [r.x + 4, r.y + r.h + (f === 'wide' ? 6 : 3)]
+    return [r.x + (f === 'wide' ? 12 : 7), r.y + r.h - (f === 'wide' ? 10 : 4)]
   })
 
-/** Δ tag digit: at the cloud's top-left corner. */
+/** Δ tag: inside the box, top right, where the crosshair was (the tag hangs left from here). */
 export const cloudTagAt = (tool: S01Tool): S01Pos =>
   both((f) => {
     const r = rectOf(tool, f)
-    return [r.x - 6, r.y - (f === 'wide' ? 28 : 20)]
+    return [r.x + r.w - (f === 'wide' ? 8 : 4), r.y + (f === 'wide' ? 8 : 3)]
   })
 
-/** Hand notes (and the specs they become), in the strip under the boxes. */
-export const S01_NOTES = {
-  head: { wide: pctOf([136, 560], 'wide'), tall: pctOf([76, 252], 'tall') },
-  version: { wide: pctOf([400, 560], 'wide'), tall: pctOf([228, 252], 'tall') },
-} as const
+/** The ranked list panel: under the surveyor, right of the map (wide); below them (tall). */
+export const S01_LIST: S01Pos = { wide: pctOf([668, 212], 'wide'), tall: pctOf([10, 284], 'tall') }
 
-/** The ranked list panel: right of the art (wide), below it (tall). */
-export const S01_LIST: S01Pos = { wide: pctOf([664, 24], 'wide'), tall: pctOf([10, 306], 'tall') }
-
-/** The ranked list (EXAMPLE): item keys with effort and payoff on a three-step scale. */
+/** The ranked list: item keys with effort and payoff on a three-step scale. */
 export const S01_ITEMS = [
   { key: 'item.1', effort: 1, payoff: 3 },
   { key: 'item.2', effort: 2, payoff: 3 },
