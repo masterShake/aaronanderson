@@ -9,7 +9,7 @@ import type {
   SvgNode,
   SymbolId,
 } from '../types'
-import { placeSymbol } from '../symbols'
+import { placeSymbol, toolGlyph, type ToolKind } from '../symbols'
 import { firmGraph } from '../graphs/firm'
 import { FIRM_CELL } from '../views/home'
 import { primD } from '../lib/geometry'
@@ -34,17 +34,14 @@ import {
  * once rewired, so no ghost sits under the finished drawing (W4 finish A5).
  *
  * firmBuilder() is graphDoc plus the firm's own finish:
- * - every tool is a piece of equipment: its box gets a nameplate cell with a
- *   glyph for what it is (envelope, spreadsheet grid, folder, card file, Gantt
- *   bars, ledger, chart sheet, phone, time card, pay stub);
- * - rewired conduits get flanges at both joints and an orange packet stream
- *   on the l-pkt layer (left out of the stills);
+ * - every tool is a piece of equipment: its box gets a nameplate cell with the
+ *   kit's glyph for what it is (envelope, spreadsheet grid, folder, card file,
+ *   Gantt bars, ledger, chart sheet, phone, time clock, pay stub);
+ * - rewired conduits get flanges at both joints (the kit's own pair is left
+ *   off, so there is one) and an orange packet stream on the l-pkt layer
+ *   (left out of the stills);
  * - groups carry a role class (k-node, k-pipe, k-inst) so the figure's CSS
  *   can choreograph the As found → Rewired change.
- *
- * STOPGAP: the glyphs below stand in until the kit's tool-kind glyphs
- * (src/drawings/symbols, W4 kit M2) land at integration; then toolGlyph()
- * should defer to them and keep only the nameplate cell.
  */
 
 export const FIRM_STATES: readonly StateSpec[] = [
@@ -57,21 +54,12 @@ export const firmDrawing = graphBuilder(firmGraph, FIRM_STATES)
 
 type AnyGraph = Graph<string, string>
 
-/** What a tool is, for its glyph. */
-export type ToolGlyph =
-  | 'envelope'
-  | 'sheet'
-  | 'folder'
-  | 'cards'
-  | 'gantt'
-  | 'ledger'
-  | 'chart'
-  | 'phone'
-  | 'timecard'
-  | 'paystub'
-
-export const FIRM_GLYPHS: Readonly<Record<string, ToolGlyph>> = {
-  inbox: 'envelope',
+/**
+ * What each tool is, as the kit's tool kind (symbols/library.ts toolGlyph): the
+ * glyph in its nameplate cell, the same glyphs the hero draws.
+ */
+export const FIRM_GLYPHS: Readonly<Record<string, ToolKind>> = {
+  inbox: 'inbox',
   estimate: 'sheet',
   drive: 'folder',
   crm: 'cards',
@@ -79,218 +67,13 @@ export const FIRM_GLYPHS: Readonly<Record<string, ToolGlyph>> = {
   accounting: 'ledger',
   report: 'chart',
   field: 'phone',
-  timesheets: 'timecard',
-  payroll: 'paystub',
+  timesheets: 'timesheet',
+  payroll: 'payroll',
 }
 
 export { FIRM_CELL }
 
 const R = (v: number) => Math.round(v * 100) / 100
-
-/** A glyph in unit space (-0.5 … 0.5), as outline prims and detail prims. */
-function unitGlyph(kind: ToolGlyph): { outline: Prim[]; detail: Prim[] } {
-  const rect = (x: number, y: number, w: number, h: number): Prim => ({
-    t: 'rect',
-    at: [x, y],
-    size: [w, h],
-  })
-  const line = (a: Pt, b: Pt): Prim => ({ t: 'line', a, b })
-  const poly = (pts: Pt[], closed = false): Prim => ({ t: 'poly', pts, closed })
-  switch (kind) {
-    case 'envelope':
-      return {
-        outline: [rect(-0.5, -0.33, 1, 0.66)],
-        detail: [
-          poly([
-            [-0.5, -0.33],
-            [0, 0.06],
-            [0.5, -0.33],
-          ]),
-          line([-0.5, 0.33], [-0.14, -0.02]),
-          line([0.5, 0.33], [0.14, -0.02]),
-        ],
-      }
-    case 'sheet':
-      return {
-        outline: [rect(-0.42, -0.42, 0.84, 0.84)],
-        detail: [
-          line([-0.42, -0.2], [0.42, -0.2]),
-          line([-0.42, 0.02], [0.42, 0.02]),
-          line([-0.42, 0.22], [0.42, 0.22]),
-          line([-0.16, -0.42], [-0.16, 0.42]),
-          line([0.13, -0.42], [0.13, 0.42]),
-        ],
-      }
-    case 'folder':
-      return {
-        outline: [
-          poly(
-            [
-              [-0.5, -0.36],
-              [-0.12, -0.36],
-              [-0.02, -0.24],
-              [0.5, -0.24],
-              [0.5, 0.36],
-              [-0.5, 0.36],
-            ],
-            true,
-          ),
-        ],
-        detail: [line([-0.5, -0.12], [0.5, -0.12])],
-      }
-    case 'cards':
-      return {
-        outline: [
-          poly(
-            [
-              [-0.5, 0.02],
-              [0.5, 0.02],
-              [0.42, 0.4],
-              [-0.42, 0.4],
-            ],
-            true,
-          ),
-        ],
-        detail: [
-          poly([
-            [-0.3, 0.02],
-            [-0.3, -0.42],
-            [0.38, -0.42],
-            [0.38, 0.02],
-          ]),
-          poly([
-            [-0.4, 0.02],
-            [-0.4, -0.28],
-            [0.26, -0.28],
-            [0.26, 0.02],
-          ]),
-          line([-0.3, -0.16], [0.14, -0.16]),
-          line([-0.3, -0.06], [0.04, -0.06]),
-          line([-0.16, 0.2], [0.16, 0.2]),
-        ],
-      }
-    case 'gantt':
-      return {
-        outline: [line([-0.46, -0.44], [-0.46, 0.44]), line([-0.46, 0.44], [0.48, 0.44])],
-        detail: [
-          rect(-0.36, -0.36, 0.42, 0.14),
-          rect(-0.12, -0.1, 0.46, 0.14),
-          rect(0.12, 0.16, 0.34, 0.14),
-        ],
-      }
-    case 'ledger':
-      return {
-        outline: [
-          poly(
-            [
-              [0, -0.3],
-              [-0.5, -0.38],
-              [-0.5, 0.32],
-              [0, 0.4],
-              [0.5, 0.32],
-              [0.5, -0.38],
-            ],
-            true,
-          ),
-        ],
-        detail: [
-          line([0, -0.3], [0, 0.4]),
-          line([-0.38, -0.18], [-0.1, -0.14]),
-          line([-0.38, -0.02], [-0.1, 0.02]),
-          line([-0.38, 0.14], [-0.1, 0.18]),
-          line([0.1, -0.14], [0.38, -0.18]),
-          line([0.1, 0.02], [0.38, -0.02]),
-          line([0.1, 0.18], [0.38, 0.14]),
-        ],
-      }
-    case 'chart':
-      return {
-        outline: [
-          poly(
-            [
-              [-0.38, -0.46],
-              [0.2, -0.46],
-              [0.38, -0.28],
-              [0.38, 0.46],
-              [-0.38, 0.46],
-            ],
-            true,
-          ),
-        ],
-        detail: [
-          poly([
-            [0.2, -0.46],
-            [0.2, -0.28],
-            [0.38, -0.28],
-          ]),
-          line([-0.26, 0.32], [0.26, 0.32]),
-          rect(-0.22, 0.08, 0.1, 0.24),
-          rect(-0.05, -0.06, 0.1, 0.38),
-          rect(0.12, -0.2, 0.1, 0.52),
-        ],
-      }
-    case 'phone':
-      return {
-        outline: [{ t: 'poly', pts: rectPts(-0.26, -0.46, 0.52, 0.92), closed: true, r: 0.08 }],
-        detail: [rect(-0.18, -0.34, 0.36, 0.58), { t: 'circle', c: [0, 0.35], r: 0.045 }],
-      }
-    case 'timecard':
-      return {
-        outline: [rect(-0.38, -0.46, 0.76, 0.92)],
-        detail: [
-          { t: 'circle', c: [0, -0.1], r: 0.24 },
-          line([0, -0.1], [0, -0.26]),
-          line([0, -0.1], [0.12, -0.04]),
-          line([-0.26, 0.28], [0.26, 0.28]),
-        ],
-      }
-    case 'paystub':
-      return {
-        outline: [rect(-0.5, -0.3, 1, 0.6)],
-        detail: [
-          rect(-0.42, -0.22, 0.84, 0.44),
-          { t: 'circle', c: [0, 0], r: 0.13 },
-          line([-0.32, -0.12], [-0.22, -0.12]),
-          line([0.22, 0.12], [0.32, 0.12]),
-        ],
-      }
-  }
-}
-
-function rectPts(x: number, y: number, w: number, h: number): Pt[] {
-  return [
-    [x, y],
-    [x + w, y],
-    [x + w, y + h],
-    [x, y + h],
-  ]
-}
-
-/** Scale and move a unit-space prim to centre c with size s. */
-function place(p: Prim, c: Pt, s: number): Prim {
-  const pt = (q: Pt): Pt => [R(c[0] + q[0] * s), R(c[1] + q[1] * s)]
-  switch (p.t) {
-    case 'line':
-      return { t: 'line', a: pt(p.a), b: pt(p.b) }
-    case 'poly':
-      return { ...p, pts: p.pts.map(pt), ...(p.r ? { r: R(p.r * s) } : {}) }
-    case 'rect':
-      return { t: 'rect', at: pt(p.at), size: [R(p.size[0] * s), R(p.size[1] * s)] }
-    case 'circle':
-      return { t: 'circle', c: pt(p.c), r: R(p.r * s) }
-    default:
-      return p
-  }
-}
-
-/** A tool's glyph centred at c, s units across. */
-export function toolGlyph(kind: ToolGlyph, c: Pt, s: number): { outline: Prim[]; detail: Prim[] } {
-  const u = unitGlyph(kind)
-  return {
-    outline: u.outline.map((p) => place(p, c, s)),
-    detail: u.detail.map((p) => place(p, c, s)),
-  }
-}
 
 /** Flanges: a pair of short bars across a pipe, `back` units in from each end. */
 export function flangePrims(pts: readonly Pt[], back = 9, half = 5.5): Prim[] {
@@ -300,10 +83,15 @@ export function flangePrims(pts: readonly Pt[], back = 9, half = 5.5): Prim[] {
     0,
   )
   if (len < back * 3) return out
-  for (const [end, t] of [
-    [pts[0]!, 0],
-    [pts[pts.length - 1]!, 1],
+  const seg = (a: Pt, b: Pt) => Math.hypot(b[0] - a[0], b[1] - a[1])
+  // a flange sits on the straight run at its end; a run too short for it (a bend right at the
+  // port) gets none, so no flange ever lands on a curve
+  const room = back + 3 + 12
+  for (const [end, t, run] of [
+    [pts[0]!, 0, seg(pts[0]!, pts[1] ?? pts[0]!)],
+    [pts[pts.length - 1]!, 1, seg(pts[pts.length - 2] ?? pts[0]!, pts[pts.length - 1]!)],
   ] as const) {
+    if (pts.length > 2 && run < room) continue
     const d = directionAt(pts, t)
     const sign = t === 0 ? 1 : -1
     for (const k of [back, back + 3]) {
@@ -350,7 +138,8 @@ export function firmDoc(
   /** Scale of the people (placeSymbol k); the kit's default when left out. */
   personK?: number,
 ): SvgDoc {
-  const base = graphDoc(g, rev, family, { medium })
+  // the firm draws its own flanges (below, part `.flange`): the kit's pair would double them
+  const base = graphDoc(g, rev, family, { medium, flanges: false })
   // people at Home's scale: the same pencil cut-outs graphDoc draws, larger
   const person = (child: SvgNode & { el: 'g' }): SvgNode => {
     const p = (g.people ?? []).find((x) => x.id === child.part)
@@ -387,7 +176,10 @@ export function firmDoc(
       const x = rc.x + rc.w - cell
       const divider: Prim = { t: 'line', a: [R(x), R(rc.y + 6)], b: [R(x), R(rc.y + rc.h - 6)] }
       const s = Math.min(cell * 0.62, rc.h * 0.56)
-      const gl = kind ? toolGlyph(kind, [x + cell / 2, rc.y + rc.h / 2], s) : null
+      const kg = kind
+        ? toolGlyph(kind, { x: R(x + cell / 2 - s / 2), y: R(rc.y + rc.h / 2 - s / 2), g: s })
+        : null
+      const gl = kg ? { outline: kg.outline, detail: kg.rules } : null
       const ink = cad ? 'cyan' : 'pencil'
       const fill = cad ? 'panel' : 'paper'
       const extra: SvgNode[] = [
