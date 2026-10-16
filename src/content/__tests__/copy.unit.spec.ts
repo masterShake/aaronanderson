@@ -82,9 +82,9 @@ test('copy-8: S-03 explains AI in plain terms everywhere, in two sentences', () 
   expect(sentences(text!).length).toBeLessThanOrEqual(2)
 })
 
-test('copy-9: S-05 is tagged as an example firm and its record is SAMPLE', () => {
+test('copy-9: S-05 is tagged as an example firm, once (W4 finish A3: no second stamp)', () => {
   expect((s05Figure as { tag?: string }).tag).toBe(site.exampleTag)
-  expect(s05Figure.ui.recordTitle).toMatch(/SAMPLE/)
+  expect(s05Figure.ui.recordTitle).not.toMatch(/SAMPLE|EXAMPLE/)
 })
 
 test('copy-11: glossary links mid-sentence keep sentence case', () => {

@@ -37,9 +37,8 @@ export const s05Figure = {
     columns: ['Session', 'Done'],
   },
   ui: {
-    // copy-9 (src/content/__tests__/copy.unit.spec.ts) still asks for SAMPLE here; finish
-    // standard A3 says the title strip's stamp is the only one (request filed to drop it)
-    recordTitle: 'TRAINING RECORD · SAMPLE',
+    // Finish standard A3: the title strip's stamp is the only demo label (copy-9 checks it)
+    recordTitle: 'TRAINING RECORD',
     'row.office': 'OFFICE SESSION',
     'row.field': 'FIELD SESSION',
     'row.playbook': 'PROMPT PLAYBOOK',
