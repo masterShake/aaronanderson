@@ -27,7 +27,7 @@ interface Item {
   part: string
   faces: Face[]
   /** Pipe and open-run segments in screen space, with the pipe's screen radius h. */
-  runs: { pts: Pt[]; h: number }[]
+  runs: { pts: Pt[]; h: number; joinA?: boolean; joinB?: boolean }[]
 }
 
 function footprint(p: ModelPart): { pts: Pt[]; closed: boolean; round?: boolean }[] {
@@ -105,6 +105,9 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
             runs: [
               {
                 pts: seg.map((q) => P(planToWorld(q, (z0 + z1) / 2))),
+                // runs that meet another run of the same pipe extend into the joint
+                joinA: i > 1,
+                joinB: i < f.pts.length - 1,
                 // the pipe's screen radius: half its depth, projected
                 h:
                   p.material === 'line'
@@ -187,8 +190,10 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
       a.it.depth - b.it.depth ||
       (a.it.part < b.it.part ? -1 : a.it.part > b.it.part ? 1 : a.k - b.k),
   )
+  // one decimal is a tenth of a viewBox unit: invisible, and it keeps the inline hero small
+  const n1 = (v: number) => num(Math.round(v * 10) / 10)
   const d = (pts: readonly Pt[], closed: boolean) =>
-    `M${pts.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}${closed ? 'Z' : ''}`
+    `M${pts.map((q) => `${n1(q[0])} ${n1(q[1])}`).join('L')}${closed ? 'Z' : ''}`
   const children: SvgNode[] = []
   let i = 0
   for (const { it } of order) {
@@ -215,28 +220,19 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         })
         continue
       }
-      // a tube: a lit aluminum band with clean edges, round where runs meet
-      const n: Pt = [(-(b[1] - a[1]) / l) * r.h, ((b[0] - a[0]) / l) * r.h]
+      // a tube: a lit aluminum band with clean edges; runs that meet overlap into the joint
+      const u: Pt = [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
+      const n: Pt = [-u[1] * r.h, u[0] * r.h]
+      const ea = r.joinA ? r.h : 0
+      const eb = r.joinB ? r.h : 0
+      const A: Pt = [a[0] - u[0] * ea, a[1] - u[1] * ea]
+      const B: Pt = [b[0] + u[0] * eb, b[1] + u[1] * eb]
       const band: Pt[] = [
-        [a[0] + n[0], a[1] + n[1]],
-        [b[0] + n[0], b[1] + n[1]],
-        [b[0] - n[0], b[1] - n[1]],
-        [a[0] - n[0], a[1] - n[1]],
+        [A[0] + n[0], A[1] + n[1]],
+        [B[0] + n[0], B[1] + n[1]],
+        [B[0] - n[0], B[1] - n[1]],
+        [A[0] - n[0], A[1] - n[1]],
       ]
-      const disk = (c: Pt): Pt[] =>
-        Array.from({ length: 12 }, (_, k) => [
-          c[0] + Math.cos((k * Math.PI) / 6) * r.h,
-          c[1] + Math.sin((k * Math.PI) / 6) * r.h,
-        ])
-      for (const c of [a, b])
-        children.push({
-          el: 'path',
-          d: d(disk(c), true),
-          len: 0,
-          part: it.part,
-          i: i++,
-          cls: 'f-alu-300',
-        })
       children.push({
         el: 'path',
         d: d(band, true),
@@ -246,15 +242,14 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         cls: 'f-alu-300',
       })
       const up = n[1] < 0 ? 1 : -1
-      for (const s of [1, -1])
-        children.push({
-          el: 'path',
-          d: d([band[s === 1 ? 0 : 3]!, band[s === 1 ? 1 : 2]!], false),
-          len: 0,
-          part: it.part,
-          i: i++,
-          cls: 'p-018 i-cyan-dim',
-        })
+      children.push({
+        el: 'path',
+        d: d([band[0]!, band[1]!], false) + d([band[3]!, band[2]!], false),
+        len: 0,
+        part: it.part,
+        i: i++,
+        cls: 'p-018 i-cyan-dim',
+      })
       // the highlight along the upper side
       const k = 0.45 * up
       children.push({

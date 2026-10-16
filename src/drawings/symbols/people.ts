@@ -97,7 +97,7 @@ function limb(a: Pt, b: Pt, c: Pt, w: readonly [number, number, number]): Prim {
       const s2: Pt = [n2[0] * h1, n2[1] * h1]
       const a0 = ang(s1)
       const sw = sweep(a0, ang(s2))
-      const steps = Math.min(4, Math.round(Math.abs(sw) / 0.35))
+      const steps = Math.min(3, Math.round(Math.abs(sw) / 0.45))
       mid = [
         [b[0] + s1[0], b[1] + s1[1]],
         ...arcPts(b, Math.abs(h1), a0, a0 + sw, steps),
@@ -109,12 +109,12 @@ function limb(a: Pt, b: Pt, c: Pt, w: readonly [number, number, number]): Prim {
   const left = side(1)
   const right = side(-1).reverse()
   // round caps: at c from the + side to the − side (forward), at a from − to + (backward)
-  const capC = arcPts(c, w[2] / 2, ang(n2), ang(n2) - Math.PI, 4)
-  const capA = arcPts(a, w[0] / 2, ang(n1) + Math.PI, ang(n1), 4)
+  const capC = arcPts(c, w[2] / 2, ang(n2), ang(n2) - Math.PI, 3)
+  const capA = arcPts(a, w[0] / 2, ang(n1) + Math.PI, ang(n1), 2)
   return { t: 'poly', pts: [...left, ...capC, ...right, ...capA].map(R), closed: true }
 }
 
-function ellipse(c: Pt, rx: number, ry: number, n = 16): Prim {
+function ellipse(c: Pt, rx: number, ry: number, n = 12): Prim {
   return {
     t: 'poly',
     pts: Array.from({ length: n }, (_, i) =>
