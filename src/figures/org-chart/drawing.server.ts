@@ -73,7 +73,7 @@ function cardNodes(
   const rule: Prim =
     family === 'wide'
       ? { t: 'line', a: [t.x, t.y], b: [t.x + t.w, t.y] }
-      : { t: 'line', a: [t.x, t.y], b: [t.x, t.y + t.h] }
+      : { t: 'line', a: [t.x, r.y], b: [t.x, r.y + r.h] }
   const { at, k } = L.feet(r, poses.length)
   // the ground line the figures stand on, kept inside the card
   const x0 = family === 'wide' ? r.x : r.x
@@ -86,7 +86,7 @@ function cardNodes(
   const kids: SvgNode[] = []
   if (cad) {
     kids.push(
-      clean([rectPrim(r)], id, i, strokeCls({ pen: '050', ink: 'cyan', fill: 'panel' })),
+      clean([rectPrim(r)], id, i, strokeCls({ pen: '050', ink: 'cyan' })),
       clean([rule], `${id}.rule`, i, strokeCls({ pen: '025', ink: 'cyan-dim' })),
       clean([ground], `${id}.ground`, i, strokeCls({ pen: '018', ink: 'cyan-dim' })),
     )

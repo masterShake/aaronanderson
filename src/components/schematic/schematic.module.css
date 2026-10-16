@@ -50,6 +50,16 @@
   animation-delay: calc(var(--i, 0) * var(--sch-stagger) * 0.25);
 }
 
+/* the boxes' panel fills come in with the panel itself (it fades to deep over --dur-state) */
+.schematic[data-toggle='rewired'] :global(.l-cad g.k-node) {
+  animation: sch-fade var(--dur-state, 900ms) var(--ease-machine, ease) both;
+}
+
+.schematic[data-toggle='rewired'] :global(.l-cad g.k-inst) {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-pipes);
+}
+
 /* a tool's name follows its box */
 .schematic[data-toggle='rewired'] .tool > * {
   animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
@@ -67,10 +77,20 @@
   animation-delay: calc(var(--sch-pipes) + var(--i, 0) * var(--sch-stagger));
 }
 
-/* ports, chevrons and fills: they come in with their line */
-.schematic[data-toggle='rewired'] :global(.l-cad g:is(.k-pipe, .k-inst) > path:not(.draw)) {
+/* chevrons, flanges and the instruments on a line: once the line has drawn past them */
+.schematic[data-toggle='rewired'] :global(.l-cad g.k-pipe > path:not(.draw)),
+.schematic[data-toggle='rewired']
+  :global(
+    .l-cad g.k-pipe > path:is([data-part$='.flange'], [data-part$='.ai'], [data-part$='.hv'])
+  ) {
   animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--sch-pipes) + var(--i, 0) * var(--sch-stagger));
+  animation-delay: calc(var(--sch-pipes) + var(--i, 0) * var(--sch-stagger) + var(--sch-ink));
+}
+
+/* the leader lines belong to the labels: they arrive together */
+.schematic[data-toggle='rewired'] :global(.labels) > .leaders {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-labels);
 }
 
 /* people step in at their stations once the lines are there */
@@ -326,6 +346,9 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--c-label-on-deep);
+  /* a drafting wipeout: where a label has to sit near a line, the line stops at its text */
+  padding: 0 3px;
+  background: var(--c-blueprint-deep);
 }
 
 .schematic :global(.labels) > .leaders {

@@ -12,7 +12,7 @@ import type { LayoutId, Pt, SymbolId, ViewBox } from '../types'
  * Each card holds an architect's scale figure over a title rule; the title is
  * HTML (keys into src/content/figures/org-chart.ts `labels`). YOU and the
  * builders keep their places in both states. Wide runs left to right
- * (960 × 380); tall runs top to bottom (400 × 700). Geometry only: the drawing
+ * (960 × 380); tall runs top to bottom (400 × 730). Geometry only: the drawing
  * is built in src/figures/org-chart/drawing.server.ts.
  */
 
@@ -121,9 +121,9 @@ export const ORG_LAYOUT: Readonly<Record<LayoutId, Layout>> = {
     dimOff: [0, -48],
   },
   tall: {
-    viewBox: [0, 0, 400, 700],
-    card: (slot) => ({ x: 36, y: 22 + slot * 136, w: 328, h: 104 }),
-    title: (r) => ({ x: r.x + 112, y: r.y, w: r.w - 112, h: r.h }),
+    viewBox: [0, 0, 400, 730],
+    card: (slot) => ({ x: 36, y: 22 + slot * 144, w: 328, h: 104 }),
+    title: (r) => ({ x: r.x + 112, y: r.y + 8, w: r.w - 112, h: r.h - 16 }),
     feet: (r, n) => {
       const k = n > 1 ? 1.05 : 1.3
       const y = r.y + r.h - 8
@@ -138,7 +138,7 @@ export const ORG_LAYOUT: Readonly<Record<LayoutId, Layout>> = {
       [a.x + 56, a.y + a.h],
       [b.x + 56, b.y],
     ],
-    note: [108, 404],
+    note: [108, 419],
     dimOff: [64, 0],
   },
 }

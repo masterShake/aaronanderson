@@ -51,6 +51,7 @@
 }
 
 .org[data-toggle='ours'] :global(.l-cad g.k-wire path:not(.draw)),
+.org[data-toggle='ours'] :global(.l-cad g.k-wire path[data-part='wire.flange']),
 .org[data-toggle='ours'] :global(.l-cad g.person) {
   animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
   animation-delay: calc(var(--org-wire) + var(--org-wire-dur) * 0.6);

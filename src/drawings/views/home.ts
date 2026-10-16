@@ -127,10 +127,16 @@ const BESIDE: Readonly<Record<string, string>> = { p2: 'estimate', p3: 'field' }
 /** The hand note by Timesheets: in the clear margin under it, per family. */
 const NOTE_AT: Readonly<Record<LayoutId, Pt>> = { wide: [370, 548], tall: [210, 604] }
 
+/**
+ * Home leaves out the monitor's signal lines (branch routes m06, m08, m10):
+ * drawn straight from the gauge, they cut through tool boxes and names at
+ * every size. Its label says what it does ("watches every connection").
+ */
 const laidOut: Graph<FirmLabel, FirmRev> = {
   ...firmGraph,
   viewBox: { ...firmGraph.viewBox, tall: [0, 0, 400, TALL_H] },
   nodes: tallRows(firmGraph.nodes),
+  routes: firmGraph.routes.filter((r) => r.kind !== 'branch'),
 }
 
 function stations(
