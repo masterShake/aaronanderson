@@ -206,7 +206,7 @@ export function S01Figure() {
         </>
       }
     >
-      <ScrubPlay id="s01" playMs={S01.playMs} />
+      <ScrubPlay id="s01" playMs={S01.playMs} lead />
     </FigureFrame>
   )
 }
