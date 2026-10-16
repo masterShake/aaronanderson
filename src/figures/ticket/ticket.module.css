@@ -107,7 +107,9 @@
   inline-size: fit-content;
   max-inline-size: calc(var(--lw, 20) * 1%);
   white-space: normal;
-  overflow-wrap: break-word;
+  /* names wrap between words only; the type steps down in a narrow sticky column */
+  overflow-wrap: normal;
+  font-size: clamp(10px, 1.6cqi, 12px);
   color: var(--c-asphalt);
   transition:
     opacity var(--ticket-rev-switch, 600ms) var(--ease-machine, ease),
@@ -187,7 +189,7 @@
   border: 3px double var(--c-asphalt);
   background: var(--c-paper);
   color: var(--c-asphalt);
-  font-size: clamp(7px, 1.2cqi, 11px);
+  font-size: clamp(8px, 1.4cqi, 11px);
   font-weight: 600;
   line-height: 1.25;
   overflow-wrap: normal;
