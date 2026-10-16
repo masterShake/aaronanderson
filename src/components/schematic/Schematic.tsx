@@ -62,6 +62,10 @@ export interface SchematicProps {
   /** Detail bubbles (Rewired only): links to the service sheets, anchored on graph elements. */
   details?: readonly DetailBubble[]
   initial?: State
+  /** Width of each tool's nameplate cell (its glyph) per family, in viewBox units: names keep clear of it. */
+  plate?: Readonly<Record<LayoutId, number>>
+  /** People the tall family's drawing leaves out once rewired (their place labels go too). */
+  omitTall?: readonly string[]
 }
 
 export interface DetailBubble {
@@ -118,7 +122,12 @@ const poseAt = (pose: Pose, family: LayoutId): Pt =>
   family === 'tall' && pose.atTall ? pose.atTall : pose.at
 
 /** Everything drawn in one family and state that labels must stay clear of (viewBox units). */
-function obstaclesOf(g: AnyGraph, family: LayoutId, st: string): Box[] {
+function obstaclesOf(
+  g: AnyGraph,
+  family: LayoutId,
+  st: string,
+  omit: readonly string[] = [],
+): Box[] {
   const out: Box[] = g.nodes.filter((n) => inRev(n, st)).map((n) => nodeRect(n, family))
   for (const r of routeGraph(g, st, family).values()) {
     const ins = instrumentsOn(r)
@@ -138,7 +147,7 @@ function obstaclesOf(g: AnyGraph, family: LayoutId, st: string): Box[] {
   }
   for (const p of g.people ?? []) {
     const pose = poseOf(p, st)
-    if (pose)
+    if (pose && !omit.includes(p.id))
       out.push(primsBox(placeSymbol(pose.symbol, poseAt(pose, family)).flatMap((q) => q.prims)))
   }
   return out
@@ -175,6 +184,8 @@ export function Schematic({
   symbolKeys = { ai: 'sym.ai', valve: 'sym.valve' },
   details = [],
   initial = 'asFound',
+  plate,
+  omitTall = [],
 }: SchematicProps) {
   const dom = figureDomId(id)
   const p = `${id}-sch`
@@ -251,9 +262,18 @@ export function Schematic({
       px: { wide: [BUBBLE_PX, BUBBLE_PX], tall: [BUBBLE_PX, BUBBLE_PX] },
     })
 
-  // instrument labels (rewired only): plain words first, then the sub-line, then the (N) chip
-  const inst = (key: string) => {
-    const sub = c.maybe(`${key}-sub`)
+  // instrument labels (rewired only): plain words first, then the sub-line, then the (N) chip;
+  // the sub-line explains a kind once, on its first instrument, never on every copy
+  const explained = new Set<string>()
+  const subOf = (key: string) => {
+    if (explained.has(key)) return undefined
+    explained.add(key)
+    return c.maybe(`${key}-sub`)
+  }
+  const subs: Record<string, string | undefined> = {}
+  const inst = (key: string, at = key) => {
+    if (!(at in subs)) subs[at] = subOf(key)
+    const sub = subs[at]
     return (
       <>
         {c.label(key)}
@@ -261,9 +281,9 @@ export function Schematic({
       </>
     )
   }
-  const instPx = (key: string) => {
+  const instPx = (key: string, at = key) => {
     const short = `${c.label(key)} ${c.label(ERA_TAG.N)}`
-    const sub = c.maybe(`${key}-sub`)
+    const sub = subs[at]
     return textPx(short, sub ? `${c.label(key)} · ${sub} ${c.label(ERA_TAG.N)}` : short)
   }
   const labelText: Record<string, ReactNode> = {}
@@ -274,37 +294,37 @@ export function Schematic({
     const it = instrumentsOn(rt)
     if (iw.ai && it.ai) {
       const key = `${r.id}-ai`
-      labelText[key] = inst(symbolKeys.ai)
+      labelText[key] = inst(symbolKeys.ai, key)
       placed.push({
         key,
         show: wired,
         a: { wide: iw.ai.at, tall: it.ai.at },
         gap: { wide: 20, tall: 20 },
-        px: instPx(symbolKeys.ai),
+        px: instPx(symbolKeys.ai, key),
       })
     }
     if (iw.valve && it.valve) {
       const key = `${r.id}-hv`
-      labelText[key] = inst(symbolKeys.valve)
+      labelText[key] = inst(symbolKeys.valve, key)
       placed.push({
         key,
         show: wired,
         a: { wide: iw.valve.at, tall: it.valve.at },
         gap: { wide: 18, tall: 18 },
-        px: instPx(symbolKeys.valve),
+        px: instPx(symbolKeys.valve, key),
       })
     }
   }
   for (const n of g.nodes.filter((x) => x.kind !== 'tool' && inRev(x, wired))) {
     const rw = nodeRect(n, 'wide')
     const rt = nodeRect(n, 'tall')
-    labelText[n.id] = inst(n.label)
+    labelText[n.id] = inst(n.label, n.id)
     placed.push({
       key: n.id,
       show: wired,
       a: { wide: center(rw), tall: center(rt) },
       gap: { wide: Math.max(rw.w, rw.h) / 2 + 4, tall: Math.max(rt.w, rt.h) / 2 + 4 },
-      px: instPx(n.label),
+      px: instPx(n.label, n.id),
     })
   }
   // where people stand once rewired, when the place has a name
@@ -351,7 +371,7 @@ export function Schematic({
     obstacles[family] = {}
     lines[family] = {}
     for (const st of [found, wired]) {
-      const obs = obstaclesOf(g, family, st)
+      const obs = obstaclesOf(g, family, st, family === 'tall' && st === wired ? omitTall : [])
       obstacles[family][st] = flat(obs)
       lines[family][st] = linesOf(g, family, st)
       const items = placed.filter((x) => x.show === st)
@@ -400,6 +420,7 @@ export function Schematic({
           className={note ? s.note : s.inst}
           data-show={x.show}
           data-place={x.key}
+          data-wide-only={omitTall.some((pid) => x.key === `${pid}-place`) ? '' : undefined}
           data-at={a['data-at']}
           data-gap={a['data-gap']}
           style={note ? { ...a.style, rotate: `${noteRotate[x.key]}deg` } : a.style}
@@ -444,7 +465,17 @@ export function Schematic({
             aria-expanded={false}
             aria-controls={`${p}-callout`}
             aria-describedby={`${p}-d-${t.id}-${initial}`}
-            style={rectVars(g, nodeRect(t, 'wide'), nodeRect(t, 'tall'))}
+            style={
+              {
+                ...rectVars(g, nodeRect(t, 'wide'), nodeRect(t, 'tall')),
+                ...(plate
+                  ? {
+                      '--pr': pct(plate.wide, g.viewBox.wide[2]),
+                      '--prt': pct(plate.tall, g.viewBox.tall[2]),
+                    }
+                  : {}),
+              } as CSSProperties
+            }
           >
             <span className={s.name} data-show={rewiredLabels[t.id] ? found : undefined}>
               {c.label(t.label)}

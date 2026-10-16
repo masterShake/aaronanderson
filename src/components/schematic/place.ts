@@ -37,7 +37,8 @@ export interface PlaceOptions {
 }
 
 const HARD = 100
-const SOFT = 1
+/** A label across a line reads badly (W4 finish B5): worth a few rings of distance to avoid. */
+const SOFT = 5
 const EDGE = 400
 
 /** Directions tried at each distance, as unit vectors. */

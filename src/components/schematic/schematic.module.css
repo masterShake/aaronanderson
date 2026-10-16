@@ -1,11 +1,25 @@
 /*
  * The interactive schematic. States: data-toggle on the figure (asFound or
- * rewired). As found is pencil on paper; Rewired is CAD on blueprint-deep,
- * scanned in left to right, with the pencil left as a 22% ghost.
+ * rewired). As found is pencil on paper; Rewired is CAD on blueprint-deep.
+ *
+ * As found → Rewired plays once per press, in order (W4 finish C1): the pencil
+ * erases and the panel goes deep; the equipment inks in, then the conduits
+ * draw on in reading order (--i), then the glyphs, flanges and instruments;
+ * the labels and detail bubbles arrive with or after their objects; then the
+ * packets flow, linear at FLOW speed, for FLOW loops, and stop on a clean
+ * still. Base CSS is the finished frame; reduced motion and paused motion get
+ * it at once.
  */
 
 .schematic {
   position: relative;
+  /* the beats of the change, from the shared timing tokens */
+  --sch-stagger: calc(var(--pencil-stagger-min, 45ms) * 0.67);
+  --sch-ink: var(--dur-sheet, 420ms);
+  --sch-names: calc(var(--dur-sheet, 420ms) * 0.6);
+  --sch-pipes: var(--dur-sheet, 420ms);
+  --sch-labels: calc(var(--dur-state, 900ms) * 1.9);
+  --sch-flow: calc(var(--dur-state, 900ms) * 2.2);
 }
 
 /* Panels and layers per state */
@@ -17,17 +31,121 @@
   transition: opacity var(--dur-state, 900ms) var(--ease-machine, ease);
 }
 
-.schematic :global(.drawing .l-cad) {
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path var(--dur-state, 900ms) var(--ease-machine, ease);
+.schematic :global(.drawing :is(.l-cad, .l-pkt)) {
+  visibility: hidden;
 }
 
-.schematic[data-toggle='rewired'] :global(.drawing .l-cad) {
-  clip-path: inset(0 0 0 0);
+.schematic[data-toggle='rewired'] :global(.drawing :is(.l-cad, .l-pkt)) {
+  visibility: visible;
 }
 
+/* the pencil is erased once rewired: no ghost under the finished drawing (finish A5) */
 .schematic[data-toggle='rewired'] :global(.drawing .l-pencil) {
-  opacity: 0.22;
+  opacity: 0;
+}
+
+/* the ink: equipment first, then the conduits, each drawing on in turn */
+.schematic[data-toggle='rewired'] :global(.l-cad g.k-node .draw) {
+  animation: sch-draw var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--i, 0) * var(--sch-stagger) * 0.25);
+}
+
+/* a tool's name follows its box */
+.schematic[data-toggle='rewired'] .tool > * {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-names);
+}
+
+/* the monitor's signal lines arrive with the monitor's label */
+.schematic[data-toggle='rewired'] :global(.l-cad g.k-signal) {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-labels);
+}
+
+.schematic[data-toggle='rewired'] :global(.l-cad g:is(.k-pipe, .k-inst) .draw) {
+  animation: sch-draw var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--sch-pipes) + var(--i, 0) * var(--sch-stagger));
+}
+
+/* ports, chevrons and fills: they come in with their line */
+.schematic[data-toggle='rewired'] :global(.l-cad g:is(.k-pipe, .k-inst) > path:not(.draw)) {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--sch-pipes) + var(--i, 0) * var(--sch-stagger));
+}
+
+/* people step in at their stations once the lines are there */
+.schematic[data-toggle='rewired'] :global(.l-cad g.person) {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-labels);
+}
+
+/* labels, era tags and bubbles: with or after the thing they name */
+.schematic[data-toggle='rewired'] :global(.labels) > .inst,
+.schematic[data-toggle='rewired'] .tool > .era,
+.schematic[data-toggle='rewired'] .bubble {
+  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
+  animation-delay: var(--sch-labels);
+}
+
+/* the packets: orange capsules along each conduit, a constant FLOW speed, FLOW loops, then a still */
+.schematic :global(.l-pkt path.pk) {
+  opacity: 0;
+  stroke-linecap: round;
+  /* a 5-unit capsule every 105 units (FLOW.packetEvery at FLOW.speed), on pathLength 1 */
+  stroke-dasharray: calc(5 / var(--len, 100)) calc(100 / var(--len, 100));
+}
+
+.schematic[data-toggle='rewired'] :global(.l-pkt path.pk) {
+  animation: sch-flow var(--flow-loop, 6000ms) linear var(--sch-flow) var(--flow-loops, 3) none;
+}
+
+@keyframes sch-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sch-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* one loop moves 840 units (FLOW.speed × FLOW.loop), a whole number of packet spacings */
+@keyframes sch-flow {
+  from {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    opacity: 1;
+    stroke-dashoffset: calc(-840 / var(--len, 100));
+  }
+}
+
+:global(html[data-motion='paused']) .schematic :global(.l-pkt path.pk),
+.schematic:global([data-offscreen]) :global(.l-pkt path.pk) {
+  animation-play-state: paused;
+}
+
+/* paused motion (the switch, or reduced motion with no saved choice): the finished frame at once */
+:global(html[data-motion='paused']) .schematic :global(.l-pkt) {
+  display: none;
+}
+
+:global(html[data-motion='paused']) .schematic *,
+:global(html[data-motion='paused']) .schematic :global(.drawing *) {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Elements tied to one state */
@@ -130,16 +248,19 @@
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  padding: 2px 8px;
+  padding: 2px calc(var(--pr, 0) * 1% + 4px) 2px 8px;
   border: 0;
   background: transparent;
   color: var(--c-asphalt);
   font-family: var(--ff-mono);
-  font-size: var(--fs-label);
+  /* the name scales with the figure, so it fits beside its glyph at every wide width */
+  font-size: clamp(0.5625rem, 1.15cqi, var(--fs-label));
   line-height: 1.2;
   letter-spacing: 0.02em;
   text-align: left;
-  overflow-wrap: anywhere;
+  /* names wrap between words only: a file name never breaks */
+  overflow-wrap: normal;
+  hyphens: none;
   cursor: pointer;
   pointer-events: auto;
 }
@@ -169,6 +290,9 @@
     top: calc(var(--lyt) * 1%);
     width: calc(var(--lwt) * 1%);
     height: calc(var(--lht) * 1%);
+    padding-right: calc(var(--prt, 0) * 1% + 3px);
+    padding-left: 6px;
+    font-size: clamp(0.59375rem, 2.8cqi, var(--fs-label));
   }
 }
 
@@ -223,6 +347,12 @@
   .sub {
     display: none;
   }
+}
+
+/* the place labels of the people the tall drawing leaves out (keyed on the family the
+   client switched to: a container query here left Chrome painting nothing in wide) */
+.schematic[data-family='tall'] :global(.labels) > [data-wide-only] {
+  display: none;
 }
 
 .schematic :global(.labels) > .note {
