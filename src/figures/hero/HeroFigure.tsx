@@ -4,14 +4,13 @@ import { HERO_VIEWBOX, heroGraph } from '@/drawings/views/hero'
 import { counts } from '@/drawings/lib/counts'
 import { FigureFrame } from '@/figures/FigureFrame'
 import { FigureBoundary } from '@/figures/FigureBoundary.client'
-import { HERO } from '@/motion/timing/hero'
+import { HERO, HERO_ENTRY } from '@/motion/timing/hero'
 import { cssVars } from '@/motion/timing-css'
 import { heroBuild } from './doc.server'
 import { HeroLayers } from './HeroLayers'
 import { HeroLabels } from './HeroLabels'
 import { HeroController } from './HeroController.client'
 import { HeroGate } from './HeroGate.client'
-import { GATE } from '@/motion/timing/global'
 import { BREAKPOINT } from '@/styles/tokens'
 import s from './hero.module.css'
 
@@ -108,7 +107,7 @@ export function HeroFigure() {
         </div>
       }
     >
-      <HeroGate ratio={GATE.entry} wide={BREAKPOINT.lg} />
+      <HeroGate ratio={HERO_ENTRY} wide={BREAKPOINT.lg} />
       <FigureBoundary figureId="hero">
         <HeroController liveDone={typeof copy.live.done === 'string' ? copy.live.done : ''} />
       </FigureBoundary>

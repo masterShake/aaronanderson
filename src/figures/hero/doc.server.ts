@@ -1,6 +1,6 @@
 import 'server-only'
 import type { LayoutId, Prim, Pt, SvgDoc, SvgNode, SymbolId } from '@/drawings/types'
-import { heroGraph, HERO_PERSON, HERO_NOTES, HERO_SUBJECT } from '@/drawings/views/hero'
+import { heroGraph, HERO_CUT, HERO_PERSON, HERO_NOTES, HERO_SUBJECT } from '@/drawings/views/hero'
 import { nodeRect, routeGraph } from '@/drawings/lib/route'
 import { isConnection } from '@/drawings/lib/counts'
 import { primD, seedFrom } from '@/drawings/lib/geometry'
@@ -95,6 +95,11 @@ const path = (d: string, len: number, part: string, i: number, cls: string): Svg
   cls,
 })
 
+/**
+ * The pencil strokes of some prims, each run of strokes that meet end to start joined into one
+ * path (the inline budget): a box, a line or a cloud then draws on as one continuous stroke, the
+ * way a hand draws it, and lands on the same finished frame.
+ */
 function rough(
   prims: readonly Prim[],
   seed: string,
@@ -103,9 +108,18 @@ function rough(
   cls: string,
   preset: 'box' | 'line' | 'cloud' | 'person',
 ): SvgNode[] {
-  return pencil(prims, { seed: seedFrom(seed), preset }).map((s) =>
-    path(round(s.d), s.len, part, i, cls),
-  )
+  const runs: { d: string; len: number }[] = []
+  for (const s of pencil(prims, { seed: seedFrom(seed), preset })) {
+    const d = round(s.d)
+    const prev = runs[runs.length - 1]
+    const start = /^M(-?\d+) ?(-?\d+)/.exec(d)
+    const end = prev && !/z$/i.test(prev.d) ? /(-?\d+) ?(-?\d+)$/.exec(prev.d) : null
+    if (prev && start && end && start[1] === end[1] && start[2] === end[2]) {
+      prev.d += d.slice(start[0].length)
+      prev.len += s.len
+    } else runs.push({ d, len: s.len })
+  }
+  return runs.map((r) => path(r.d, r.len, part, i, cls))
 }
 
 const clean = (prims: readonly Prim[], part: string, i: number, cls: string): SvgNode =>
@@ -196,7 +210,8 @@ export interface HeroBuild {
     at: Pt
     scan: number
   }[]
-  places: readonly { key: string; at: Pt; scan: number }[]
+  /** Place names: when each shows (pop) and inks for the panel (scan, before it shows). */
+  places: readonly { key: string; at: Pt; pop: number; scan: number }[]
   /** Where the APPROVED chip sits (plan, viewBox units), beside the person at the valve. */
   approved: Pt
   /** The owner's report box: bottom centre and width (its card slides out under it). */
@@ -217,13 +232,13 @@ const PLAN_LABELS: Readonly<Record<Fam, Readonly<Record<string, Pt>>>> = {
     'sym.valve': [424, 452],
     'sym.store': [590, 282],
     'place.estimating': [536, 160],
-    'place.site': [222, 404],
+    'place.site': [222, 384],
   },
   tall: {
     'sym.ai': [175, 356],
     'sym.valve': [306, 232],
     'sym.store': [228, 456],
-    'place.estimating': [96, 118],
+    'place.estimating': [78, 116],
     'place.site': [56, 252],
   },
 }
@@ -331,7 +346,8 @@ function build(family: Fam): HeroBuild {
             'draw p-035 i-pencil',
             'cloud',
           ),
-          clean([arrowhead(before, end, 10)], r.id, li, 'draw p-035 i-pencil'),
+          // the head goes on as the line reaches it (hero.module.css .ah)
+          clean([arrowhead(before, end, 10)], r.id, li, 'draw p-035 i-pencil ah'),
         ],
         'k-line',
       ),
@@ -394,6 +410,7 @@ function build(family: Fam): HeroBuild {
     group('frame', [...frameKids, ...decoKids], 'k-frame'),
     group('leaders', lead, 'k-lead'),
   ]
+  const kc = HERO_CUT[family] / 64
   for (const p of model.people) {
     const subject = p.id === 'p1'
     cadKids.push(
@@ -402,7 +419,7 @@ function build(family: Fam): HeroBuild {
         personNodes(
           p.symbol as SymbolId,
           p.at,
-          subject ? k * HERO_SUBJECT : k,
+          subject ? kc * HERO_SUBJECT : kc,
           `${p.id}.r`,
           crossAt(p.at[0], W) + 120,
           'p-035 i-pencil',
@@ -542,6 +559,15 @@ function build(family: Fam): HeroBuild {
 
   // ── labels ──────────────────────────────────────────────────────────────
   const labels: HeroLabel[] = []
+  // about half the widest instrument or place label (viewBox units), and each instrument's
+  // half width on the plan (the store with its sight glass); INKED ms: the ink change (160 ms,
+  // hero.module.css) is done before such a label shows
+  const LABEL_HALF = family === 'wide' ? 56 : 40
+  const INKED = 200
+  const half = (p: (typeof model.spec.parts)[number]) => {
+    const q = p.prims[0]!
+    return q.t === 'circle' ? q.r + (p.kind === 'tank' ? 14 : 0) : family === 'wide' ? 15 : 12
+  }
   for (const part of model.spec.parts) {
     if (!part.anchor) continue
     const prim = part.prims[0]!
@@ -565,27 +591,37 @@ function build(family: Fam): HeroBuild {
     const nudge = family === 'tall' ? TALL_ISO_NUDGE[part.id] : undefined
     const isoP: Pt = nudge ? [iso1[0] + nudge[0], iso1[1] + nudge[1]] : iso1
     const bi = boxes.findIndex((n) => n.id === part.id)
-    const scan = crossAt(at[0], W)
+    // an instrument's name goes on once the scan has drawn all of it, and all of the label
+    const done = crossAt(Math.max(at[0] + LABEL_HALF, c[0] + half(part)), W)
     labels.push({
       key: part.anchor,
       at,
       iso: isoP,
       ...(pl ? { w: pl.w } : {}),
-      scan,
-      pop: bi >= 0 ? HERO.sketchStart + bi * HERO.toolGap + HERO.toolDur : scan,
+      // inked for the panel before it shows, so it never reads as a ghost on the deep panel
+      scan: bi >= 0 ? crossAt(at[0], W) : done - INKED,
+      // a tool's name after its outline and glyph (hero.module.css .k-box)
+      pop: bi >= 0 ? HERO.sketchStart + bi * HERO.toolGap + Math.round(HERO.toolDur * 1.3) : done,
     })
   }
   const places = people.flatMap((p) => {
     const key = p.id === 'p2' ? 'place.estimating' : p.id === 'p3' ? 'place.site' : null
     if (!key) return []
     const at = PLAN_LABELS[family][key]!
-    return [{ key, at, scan: crossAt(p.rewired.at[0], W) + 120 }]
+    // with its person (the cut-out), and never before the scan has passed the whole label
+    const pop = Math.max(crossAt(p.rewired.at[0], W) + 120, crossAt(at[0] + LABEL_HALF, W))
+    return [{ key, at, pop, scan: pop - INKED }]
   })
-  // a note goes as the scan bar reaches its left end (half a note: wide ~150 u, tall ~110 u)
+  // a note has faded out (160 ms, hero.module.css) before the scan bar reaches its left end
+  // (half a note: wide ~150 u, tall ~110 u), so the bar never touches it
   const notes = HERO_NOTES[family].map((n) => ({
     key: n.key,
     at: n.at,
-    scan: crossAt(n.at[0] - (family === 'wide' ? 150 : 110), W),
+    // (the bar starts slowly: a note at the left edge can wait for the scan to begin)
+    scan: Math.max(
+      crossAt(n.at[0] - (family === 'wide' ? 150 : 110), W) - 220,
+      HERO.scanStart - 60,
+    ),
   }))
   const reportNode = g.nodes.find((n) => n.id === 'report')!
   const rr = nodeRect(reportNode, 'wide')

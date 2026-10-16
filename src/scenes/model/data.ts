@@ -344,7 +344,7 @@ const CORE = {
       { id: 'p2', symbol: 'fig.tablet', at: [618, 186] },
       { id: 'p3', symbol: 'fig.phone', at: [222, 482] },
     ],
-    person: 60,
+    person: 80,
   },
   tall: {
     spec: {
@@ -624,10 +624,10 @@ const CORE = {
     },
     people: [
       { id: 'p1', symbol: 'fig.at-valve', at: [238, 280] },
-      { id: 'p2', symbol: 'fig.tablet', at: [152, 142] },
+      { id: 'p2', symbol: 'fig.tablet', at: [142, 144] },
       { id: 'p3', symbol: 'fig.phone', at: [140, 280] },
     ],
-    person: 42,
+    person: 60,
   },
 }
 

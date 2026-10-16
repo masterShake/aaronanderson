@@ -37,3 +37,10 @@ export const HERO = {
   packetGap: 750,
   approveHold: 700,
 } as const
+
+/**
+ * The hero's entry gate on phones (intersection ratio): it starts as its title strip comes into
+ * view, so the sketch is already going on when the panel enters and no visitor sees an empty
+ * panel (W4b: a blank frame is a failure). Other figures keep GATE.entry.
+ */
+export const HERO_ENTRY = 0.15

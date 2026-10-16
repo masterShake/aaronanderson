@@ -241,9 +241,10 @@ const mod: SceneModule = {
           // a tool's label sits on its name plate (right of the glyph)
           const [cx, cz] =
             q.t === 'rect' ? plate([q.at[0], q.at[1], q.size[0], q.size[1]]).c : centre(p)
-          // the AI reader's label below it, the valve's above its handwheel (close in plan)
+          // the AI reader's label down and left of it, the valve's right of its person: in
+          // clear space, never on a card
           const [dx, dy, dz] =
-            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [-26, 44, -34] : [0, 1, 0]
+            p.id === 'ai' ? [-30, -top, 80] : p.id === 'valve' ? [64, 44, -86] : [0, 1, 0]
           a.position.set(cx + dx, z0 + top + dy, cz + dz)
           anchors.set(p.anchor, a)
           three.add(a)
@@ -347,8 +348,8 @@ const mod: SceneModule = {
         if (!sym) continue
         const c = makeCutout(
           { viewBox: [0, 0, 40, 72], d: sym },
-          // the person at the valve is the subject of the approval: larger than the others
-          data.person * (p.id === 'p1' ? 2.1 : 1.6),
+          // at least 12% of the frame on the iso model; the person at the valve a little larger
+          data.person * (p.id === 'p1' ? 2.4 : 2.2),
           p.at,
           ctx.renderer,
         )
