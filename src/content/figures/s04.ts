@@ -53,8 +53,7 @@ export const s04Figure = {
     chipsLabel: 'Ask the example firm a question',
     answerLabel: 'SAMPLE ANSWER',
     'q.project': 'Where are we on this project?',
-    'a.project':
-      'Sample: on schedule. Two change orders are waiting for sign-off, and job cost is in range.',
+    'a.project': 'Sample: on schedule. Two change orders are waiting for sign-off.',
     'q.budget': 'Which jobs need a look?',
     'a.budget':
       'Sample: one job. Labor is running ahead of the estimate, and the weekly report has the details.',

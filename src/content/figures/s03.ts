@@ -4,8 +4,8 @@ import { site } from '../site'
 /**
  * S-03 AI Workflow Automation, DETAIL 3 / S-03 (owner: scenes-b). The demo
  * batch holds at the sign-off tray until the visitor presses Approve.
- * Render-time vars {entered} and {held} come from the demo batch. Data cards
- * are tagged with site.sampleTag. No hand notes. The doc.* names show as the
+ * Render-time vars {entered} and {held} come from the demo batch. The figure
+ * says EXAMPLE once, in its title strip (tag). No hand notes. The doc.* names show as the
  * DOCUMENTS IN label's second line while that document runs.
  */
 export const s03Figure = {

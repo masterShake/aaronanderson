@@ -131,6 +131,12 @@
   --b: calc(var(--s04-tank-b) - 0.03 + var(--i) * 0.01);
 }
 
+/* Riser flanges come once their riser is drawn. */
+.s04 :global(.w-fl) {
+  --a: calc(var(--s04-tank-b) - 0.02);
+  --b: var(--s04-tank-b);
+}
+
 /* Needles: drawn straight up (IN RANGE); at rest they lie on the stop, below LOW, until the
    loops settle them on their readings. */
 .s04 :global(.needle) {
@@ -227,9 +233,11 @@
   padding-block-start: 8px;
 }
 
+/* A tile's name goes with its pencil, under the scan: gone before the panel's names come,
+   so no tile name ever sits on a finished instrument. */
 .tlt {
-  --a: var(--s04-names-a);
-  --b: var(--s04-names-b);
+  --a: calc(var(--s04-scan-a) + 0.06);
+  --b: var(--s04-scan-b);
   opacity: calc(var(--drawn) * (1 - var(--e)));
 }
 
@@ -385,6 +393,14 @@
 .text {
   margin: 0;
   font-size: var(--fs-small);
+}
+
+/* The still tier offers Play the drawing, so Replay is not offered there (as on S-03). */
+:global(html[data-tier='still'])
+  .s04:not(:global([data-user-play]))
+  :global([data-action='replay']),
+.s04:global([data-phase='still']:not([data-user-play])) :global([data-action='replay']) {
+  display: none;
 }
 
 .runAgain {

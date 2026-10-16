@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import { s03Figure as copy } from '@/content/figures/s03'
-import { site } from '@/content/site'
 import type { Rich } from '@/content/types'
 import { drawingSrc } from '@/drawings/files'
 import { S03_BATCH, S03_COUNTS, S03_LABELS, pct, type S03LabelKey } from '@/drawings/views/s03'
@@ -92,7 +91,6 @@ function Labels() {
         )
       })}
       <span data-anchor="card" className={`${s.label} ${s.card}`} style={at('card')}>
-        <span className={s.cardTag}>{site.sampleTag}</span>
         {BARS.map((b, i) => (
           <span key={b} style={{ display: 'contents' }}>
             <span>{plain(ui[b])}</span>

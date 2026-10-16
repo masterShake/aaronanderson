@@ -305,7 +305,13 @@ function doc(family: LayoutId, still: boolean): SvgDoc {
       if (k === 2)
         kids.push(
           clean(
-            [{ t: 'circle', c: [x + w - b / 2, ry + b / 2], r: b * 0.3 }],
+            [
+              {
+                t: 'circle',
+                c: [x + b * 1.8 + (w - b * 1.8) * lens[k]! + b * 0.9, ry + b / 2],
+                r: b * 0.3,
+              },
+            ],
             `list.flag`,
             4,
             'f-redline',
@@ -440,7 +446,7 @@ function doc(family: LayoutId, still: boolean): SvgDoc {
           ),
           `riser.${i}.flanges`,
           i + 1,
-          'pv fade w-tk p-035 i-cyan f-deep',
+          'pv fade w-fl p-035 i-cyan f-deep',
         ),
       ]),
     )

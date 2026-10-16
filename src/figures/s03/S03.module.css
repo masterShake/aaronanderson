@@ -446,14 +446,6 @@
   font-size: 0.6875rem;
 }
 
-.cardTag {
-  grid-column: 1 / -1;
-  justify-self: start;
-  padding-inline: 4px;
-  border: 1px solid var(--c-cyan-dim);
-  color: var(--c-cyan-dim);
-}
-
 /* A field's value, drawn as written words (dashes on a rule), never a solid bar. */
 .bar {
   display: block;
