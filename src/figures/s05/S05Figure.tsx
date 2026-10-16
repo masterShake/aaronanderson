@@ -111,11 +111,24 @@ export function S05Figure() {
       vars={cssVars(S05, 's05')}
       controls={{ replay: true }}
       drawing={
-        <LazyDrawing
-          src={file('wide.json')}
-          tallSrc={file('tall.json')}
-          stillSrc={file('wide.trained.still.svg')}
-        />
+        <>
+          {/* the starting drawing, complete, until the layers load (never an empty panel) */}
+          {(['wide', 'tall'] as const).map((f) => (
+            <img
+              key={f}
+              src={file(`${f}.start.still.svg`)}
+              alt=""
+              loading="lazy"
+              className={s.start}
+              data-family={f}
+            />
+          ))}
+          <LazyDrawing
+            src={file('wide.json')}
+            tallSrc={file('tall.json')}
+            stillSrc={file('wide.trained.still.svg')}
+          />
+        </>
       }
       labels={<Labels />}
       still={

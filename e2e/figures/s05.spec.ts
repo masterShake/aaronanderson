@@ -23,7 +23,45 @@ test('drawing files are served', async ({ request }) => {
     const svg = await still.text()
     // paper only: no blueprint-deep panel anywhere
     expect(svg.toLowerCase()).not.toContain('#143a6b')
+    const start = await request.get(`/drawings/s05.${f}.start.still.svg`)
+    expect(start.headers()['content-type']).toContain('image/svg+xml')
   }
+})
+
+test('at p = 0 the starting drawing is complete; the tools are not handed yet', async ({
+  page,
+  guard,
+}) => {
+  await gotoTier(page, '/kit/fig/s05?p=0', 'svg')
+  const fig = page.locator('#fig-s05')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const start = await fig.locator('svg.l-pencil path:is(.gr, .pp, .qc, .sc)').evaluateAll((ps) =>
+    ps.map((p) => {
+      const cs = getComputedStyle(p)
+      return { off: parseFloat(cs.strokeDashoffset) || 0, op: Number(cs.opacity) }
+    }),
+  )
+  expect(start.length).toBeGreaterThan(20)
+  for (const s of start) expect(s).toEqual({ off: 0, op: 1 })
+  // the hands are empty: no pose prop, and the handed tools have not drawn
+  expect(await fig.locator('svg.l-pencil [data-part$=".props.held"]').count()).toBe(0)
+  const tools = await fig
+    .locator('svg.l-cad path.tl')
+    .evaluateAll((ps) => ps.map((p) => Number(getComputedStyle(p).opacity)))
+  expect(Math.max(...tools)).toBe(0)
+  expect(guard.errors).toEqual([])
+})
+
+test('before the layers load, the starting drawing stands in', async ({ page }) => {
+  await page.route(/\/drawings\/s05\..+\.json$/, () => {})
+  await gotoTier(page, '/kit/fig/s05?p=0', 'svg')
+  const fig = page.locator('#fig-s05')
+  await fig.scrollIntoViewIfNeeded()
+  const img = fig.locator('.drawing img').filter({ visible: true })
+  await expect(img).toHaveCount(1)
+  await expect
+    .poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0))
+    .toBe(true)
 })
 
 test('the crew and the new hire stay pencil', async ({ page, guard }) => {

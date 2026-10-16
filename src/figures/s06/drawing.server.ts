@@ -1,5 +1,5 @@
 import 'server-only'
-import type { LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
 import { cad, docsBuilder, frameNodes, isoPrintDoc, modelBounds } from '@/drawings/render'
 import { s06Glyphs } from '@/scenes/model/s06-data'
 import { planFrame } from '@/drawings/lib/frame'
@@ -132,7 +132,32 @@ function make(family: LayoutId, rev: string): SvgDoc {
   }
 }
 
-export const drawing = docsBuilder(make, [
+const MONTH = /^m[1-3](\.|$)/
+
+/** The plan without the month instruments: the drawing at p = 0. */
+function startOnly(nodes: readonly SvgNode[]): SvgNode[] {
+  return nodes.flatMap((n): SvgNode[] => {
+    if (n.part && MONTH.test(n.part)) return []
+    if (n.el === 'path') return [n]
+    const children = startOnly(n.children)
+    return children.length ? [{ ...n, children }] : []
+  })
+}
+
+const layers = docsBuilder(make, [
   { rev: 'plan', ground: 'deep' },
   { rev: 'print', ground: 'deep' },
 ])
+const start = docsBuilder(
+  (family) => {
+    const d = make(family, 'plan')
+    return { ...d, groups: d.groups.map((g) => ({ ...g, children: startOnly(g.children) })) }
+  },
+  [{ rev: 'start', ground: 'deep' }],
+)
+
+/** Plus s06.{family}.start.still.svg: the plan at p = 0, shown until the layers load. */
+export const drawing: DrawingBuilder = {
+  files: [...layers.files, 'wide.start.still.svg', 'tall.start.still.svg'],
+  build: (file) => (file.includes('.start.') ? start.build(file) : layers.build(file)),
+}

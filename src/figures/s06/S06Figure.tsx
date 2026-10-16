@@ -16,8 +16,9 @@ import s from './s06.module.css'
 
 /**
  * DETAIL 6 / S-06, Run & Improve (pages-drawings §6.6, stage-hero §4.4): the hero's rewired
- * machine under a monthly inspection. Scroll (or, below 1024 px, play on entry) draws the
- * CAD plan to p .15 (the WebGL hand-off), then the iso print with its tool names; from p .40 an
+ * machine under a monthly inspection. The CAD plan, with its names, is complete at p = 0 (its
+ * still stands in until the layers load); scroll (or, below 1024 px, play on entry) holds it to
+ * p .15 (the WebGL hand-off), then the iso print with its tool names; from p .40 an
  * inspection light sweeps three times (a fault shows at the flange on the last, then FIXED) and
  * each further .15 bolts on a month's instrument. The health card ticks as each thing happens
  * and shows labels only. Labels sit on the print (iso positions) or, in WebGL, on the Stage's
@@ -80,11 +81,24 @@ export function S06Figure() {
       vars={vars}
       controls={{ replay: true, motion: true }}
       drawing={
-        <LazyDrawing
-          src={drawingSrc('s06', 'wide.json')}
-          tallSrc={drawingSrc('s06', 'tall.json')}
-          stillSrc={drawingSrc('s06', 'wide.print.still.svg')}
-        />
+        <>
+          {/* the plan, complete, until the layers load (never an empty panel) */}
+          {(['wide', 'tall'] as const).map((f) => (
+            <img
+              key={f}
+              src={drawingSrc('s06', `${f}.start.still.svg`)}
+              alt=""
+              loading="lazy"
+              className={s.start}
+              data-family={f}
+            />
+          ))}
+          <LazyDrawing
+            src={drawingSrc('s06', 'wide.json')}
+            tallSrc={drawingSrc('s06', 'tall.json')}
+            stillSrc={drawingSrc('s06', 'wide.print.still.svg')}
+          />
+        </>
       }
       labels={
         <>

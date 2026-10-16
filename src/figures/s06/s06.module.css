@@ -62,18 +62,37 @@
   fill: var(--c-paper);
 }
 
-/* The plan draws on, in order, before the hand-off. */
-.s06 :global(.drawing .l-cad path.draw) {
-  --lp: clamp(0, (var(--p, 1) - var(--i, 0) * 0.0015) / 0.05, 1);
-  stroke-dashoffset: calc(1 - var(--lp));
+/* The CAD plan is the starting drawing: complete at p = 0 (W4b: never an empty panel), with
+   its names, until the hand-off tilts it. Until the layers load, its still stands in. */
+.start {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
 }
 
-/* the plan's fills (the owner's report, the valve) arrive with the first lines, not before */
-.s06
-  :global(
-    .drawing .l-cad path:not(.draw, [data-part^='m1'], [data-part^='m2'], [data-part^='m3'])
-  ) {
-  opacity: clamp(0, var(--p, 1) / 0.05, 1);
+.start[data-family='tall'],
+.s06:global([data-layers='ready']) .start {
+  display: none;
+}
+
+/* ...and nothing else moves over it (on screen; the still tier sets the finished frame). */
+@media screen {
+  :global(html:is([data-tier='svg'], [data-tier='webgl']))
+    .s06:not(:global([data-layers='ready'])):not(:global([data-phase='still'])) {
+    --p: 0 !important;
+  }
+}
+
+@container fig (width < 440px) {
+  .start[data-family='wide'] {
+    display: none;
+  }
+
+  .s06:not(:global([data-layers='ready'])) .start[data-family='tall'] {
+    display: block;
+  }
 }
 
 .s06 :global(.drawing .l-cad) {
@@ -127,14 +146,11 @@
   }
 }
 
-/* On the CAD plan the names sit in their boxes: they arrive once the boxes are drawn and leave
-   as the hand-off starts to tilt the plan. */
+/* On the CAD plan the names sit in their boxes, from p = 0; they leave as the hand-off starts
+   to tilt the plan. */
 .s06.s06 .planName {
   background: none;
-  opacity: calc(
-    clamp(0, (var(--p, 1) - 0.05) / 0.03, 1) *
-      clamp(0, (var(--s06-handoff-p) + 0.04 - var(--p, 1)) / 0.04, 1)
-  );
+  opacity: clamp(0, (var(--s06-handoff-p) + 0.04 - var(--p, 1)) / 0.04, 1);
 }
 
 /* the owner's report box is orange on the plan: its name stays dark there */

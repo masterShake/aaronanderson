@@ -1,5 +1,5 @@
 import 'server-only'
-import type { LayoutId, Prim, Pt, SvgDoc, SvgNode } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Prim, Pt, SvgDoc, SvgNode } from '@/drawings/types'
 import { cad, docsBuilder, partsNodes, pencil } from '@/drawings/render'
 import { group, strokeCls } from '@/drawings/render/cad'
 import { seedFrom } from '@/drawings/lib/geometry'
@@ -260,13 +260,11 @@ function make(family: Fam): SvgDoc {
 
   S05_CREW.forEach((c, i) => {
     const feet = feetAt(family, i)
-    // the pose's own hand prop (a tablet or binder sheet) is left out: the handed tool takes its
-    // place, so the hand is empty until then; the hard hat stays
-    const parts = placeSymbol(c.symbol, feet, { k: g.k, prefix: c.person }).flatMap((p) => {
-      if (!p.id.endsWith('.props')) return [p]
-      const prims = p.prims.filter((q) => q.t !== 'rect')
-      return prims.length ? [{ ...p, prims }] : []
-    })
+    // the pose's own hand prop (the kit's props.held part: a tablet or binder) is left out: the
+    // handed tool takes its place, so the hand is empty until then; the hard hat is its own part
+    const parts = placeSymbol(c.symbol, feet, { k: g.k, prefix: c.person }).filter(
+      (p) => !p.id.endsWith('.props.held'),
+    )
     pencilKids.push(
       group(
         c.person,
@@ -372,6 +370,35 @@ function make(family: Fam): SvgDoc {
   }
 }
 
+/** The beats drawn at p = 0: the ground, the crew, their question bubbles and the desk. */
+const START = /(^|\s)(gr|pp|qc|sc)(\s|$)/
+
+function startOnly(nodes: readonly SvgNode[]): SvgNode[] {
+  return nodes.flatMap((n): SvgNode[] => {
+    if (n.el === 'path') return START.test(n.cls) ? [n] : []
+    // the new hire walks in later
+    if (n.cls?.includes('s05-walk')) return []
+    const children = startOnly(n.children)
+    return children.length ? [{ ...n, children }] : []
+  })
+}
+
+/** The starting drawing (p = 0), complete: what shows before the layers load. */
+function makeStart(family: Fam): SvgDoc {
+  const d = make(family)
+  return { ...d, groups: d.groups.map((g) => ({ ...g, children: startOnly(g.children) })) }
+}
+
 export const S05_REV = REV
 
-export const drawing = docsBuilder((family) => make(family), [{ rev: REV, ground: 'paper' }])
+const trained = docsBuilder((family) => make(family), [{ rev: REV, ground: 'paper' }])
+const start = docsBuilder((family) => makeStart(family), [{ rev: 'start', ground: 'paper' }])
+
+/**
+ * Files: s05.{family}.json and s05.{family}.trained.still.svg (the final frame), plus
+ * s05.{family}.start.still.svg, the starting drawing the figure shows until its layers load.
+ */
+export const drawing: DrawingBuilder = {
+  files: [...trained.files, 'wide.start.still.svg', 'tall.start.still.svg'],
+  build: (file) => (file.includes('.start.') ? start.build(file) : trained.build(file)),
+}

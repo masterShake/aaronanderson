@@ -1,7 +1,8 @@
 /**
  * S-06 timing (owner: hero lane, which owns S-06 end to end). Progress values end in P
  * (unitless in cssVars); durations are ms.
- *   handoffP     2D phases end; the WebGL hand-off window opens (Appendix B §B8)
+ *   handoffP     the plan (complete from p = 0, W4b) holds until here; the WebGL hand-off
+ *                window opens (Appendix B §B8)
  *   printFromP…  the svg tier cross-fades the CAD plan to the iso print
  *   motionFromP  the inspection loops start
  *   monthFromP + n × monthStepP  month n bolts on (n = 1…3: p .55, .70, .85)
