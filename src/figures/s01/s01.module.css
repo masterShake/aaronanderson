@@ -19,7 +19,7 @@
 @container fig (width < 440px) {
   .fig :global(.box) {
     --s01-art-w: 1;
-    --s01-art-h: 0.472;
+    --s01-art-h: 0.512;
     --s01-fan: var(--s01-fan-deg-t);
   }
 }

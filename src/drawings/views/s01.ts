@@ -43,7 +43,7 @@ export const S01_VB: { wide: ViewBox; tall: ViewBox } = {
 /** The map's area: the deep panel and the scan cover it; the surveyor and the list sit outside. */
 export const S01_ART: Readonly<Record<LayoutId, Rect>> = {
   wide: { x: 0, y: 0, w: 600, h: 720 },
-  tall: { x: 0, y: 0, w: 400, h: 236 },
+  tall: { x: 0, y: 0, w: 400, h: 256 },
 }
 
 /* Wide: the left column is wider, for the longest name (a file name never wraps). */
@@ -51,11 +51,11 @@ const BOX_W: readonly (readonly [number, number])[] = [
   [306, 144],
   [238, 144],
 ]
-const BOX_T: readonly [number, number] = [184, 48]
+const BOX_T: readonly [number, number] = [184, 56]
 const COL_W = [20, 346]
 const ROW_W = [36, 204, 372, 540]
 const COL_T = [8, 208]
-const ROW_T = [6, 64, 122, 180]
+const ROW_T = [6, 68, 130, 192]
 
 /** Cell of each tool: [column, row]. pm is the hub, so it sits by inbox, field and estimate. */
 const CELL: Readonly<Record<S01Tool, readonly [number, number]>> = {
@@ -167,7 +167,7 @@ export const S01_STATION: Readonly<
   Record<LayoutId, { feet: Pt; head: Pt; person: Pt; k: number; mirror: boolean }>
 > = {
   wide: { feet: [752, 152], head: [752, 90], person: [812, 152], k: 1.2, mirror: true },
-  tall: { feet: [22, 274], head: [22, 254], person: [46, 276], k: 0.52, mirror: false },
+  tall: { feet: [22, 294], head: [22, 274], person: [46, 296], k: 0.52, mirror: false },
 }
 
 /**
@@ -228,7 +228,7 @@ export const cloudTagAt = (tool: S01Tool): S01Pos =>
   })
 
 /** The ranked list panel: under the surveyor, right of the map (wide); below them (tall). */
-export const S01_LIST: S01Pos = { wide: pctOf([626, 176], 'wide'), tall: pctOf([10, 284], 'tall') }
+export const S01_LIST: S01Pos = { wide: pctOf([626, 176], 'wide'), tall: pctOf([10, 304], 'tall') }
 
 /** The ranked list: item keys with effort and payoff on a three-step scale. */
 export const S01_ITEMS = [

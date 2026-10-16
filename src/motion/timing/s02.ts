@@ -67,6 +67,7 @@ export const S02 = {
   reseatMs: 400,
   resumeAt: 4000,
   playMs: 3000,
-  holdMs: 300,
+  /** The finished plan holds this long before the loops start (C1: key states hold 400–800 ms). */
+  holdMs: 600,
   printMs: 300,
 } as const

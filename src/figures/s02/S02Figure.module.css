@@ -121,6 +121,12 @@
   --a: var(--s02-carry-a);
   --b: var(--s02-carry-b);
   translate: calc(var(--e) * var(--s02-walk, 0) * 1px) 0;
+  /* he arrives with the hand-carry line he walks */
+  opacity: clamp(
+    0,
+    (var(--p, 1) - var(--s02-carry-line-a)) / (var(--s02-carry-line-b) - var(--s02-carry-line-a)),
+    1
+  );
 }
 
 .s02 :global(.step) {

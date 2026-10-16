@@ -329,7 +329,8 @@ const mod: SceneModule = {
         if (leadNow >= 0)
           paths.lead.getPoint(leadNow / paths.lead.length, anchors.get('lead')!.position).y +=
             L.pipeR * 2
-        const show = p >= S02.labelsP
+        // labels stay through the hand-off (plan pose), hide while the model turns, and return
+        const show = p >= S02.labelsP || p < S02.tiltA
         projectAnchors(
           anchors,
           rig.camera,

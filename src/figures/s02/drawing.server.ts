@@ -60,8 +60,9 @@ const rough = (
   cls: string,
   preset: 'box' | 'line' = 'box',
 ) => pencil(prims, { seed: seedFrom(seed), preset }).map((s) => node(s.d, s.len, part, i, cls))
-const PENCIL = 'draw pv e-pencil p-035 i-pencil'
-const DETAIL = 'draw pv e-pencil p-025 i-pencil'
+// draw-on eases in and out (e-machine is the cubic smoothstep)
+const PENCIL = 'draw pv e-machine p-035 i-pencil'
+const DETAIL = 'draw pv e-machine p-025 i-pencil'
 
 function planDoc(family: LayoutId): SvgDoc {
   const l = S02_LAYOUT[family]
@@ -120,7 +121,11 @@ function planDoc(family: LayoutId): SvgDoc {
   }
   const cad = frameNodes(planFrame(model)).map((n) => {
     if (n.el !== 'path') return n
-    if (n.part.startsWith('pipe.')) return { ...n, i: order[n.part]!, cls: `${n.cls} pv w-cd` }
+    if (n.part.startsWith('pipe.'))
+      return { ...n, i: order[n.part]!, cls: `${n.cls} pv e-machine w-cd` }
+    // the junction arrives with the conduits it joins
+    if (n.part === 'tee')
+      return { ...n, i: 1, cls: `${n.cls.replace('draw', '')} pv fade w-cd`.trim() }
     if (n.part.startsWith('flange.'))
       return { ...n, i: order[n.part]!, cls: `${n.cls.replace('draw', '')} pv pop w-fl`.trim() }
     return n

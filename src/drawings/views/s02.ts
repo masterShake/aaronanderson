@@ -353,12 +353,13 @@ export function s02Lamp(l: S02Layout, d: S02Dest): Pt {
 }
 
 /**
- * Where a tool's label sits on its enclosure's top in the iso views (plan units): left of
- * centre in the back half, so the label clears the glyph and the enclosure behind it.
+ * Where a tool's label sits on its enclosure's top in the 3D and print views (plan units):
+ * centred in the back half, clear of the glyph. At the plan pose (the hand-off) a label
+ * hung above this point lands where the plan label is, so nothing jumps.
  */
 export function s02LabelAt(l: S02Layout, t: S02Tool): Pt {
   const [x, y, w, h] = l.boxes[t]
-  return [x + w * 0.45, y + h * 0.4]
+  return [x + w * 0.5, y + h * 0.36]
 }
 
 /** The glyph of one S-02 tool, in plan units. */
