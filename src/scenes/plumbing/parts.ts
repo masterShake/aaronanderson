@@ -14,21 +14,59 @@ export interface Enclosure {
   mesh: Mesh
   /** Vertical edges: hidden in plan (they project to points), shown once extruded. */
   verticals: LineSegments2
+  /** Service-panel outlines on the south and east faces, when asked for (hidden in plan). */
+  panels?: LineSegments2
 }
 
-/** A box on the ground: face material (flat-mixed in plan) plus its outline at base and top. */
+/**
+ * The service panels on the two faces the south-east camera sees (south, +z; east, +x):
+ * an inset outline standing just proud of each face, so the box reads as a cabinet.
+ */
+function panels([x, y, w, h]: Rect, height: number, inset: number): number[] {
+  const out: number[] = []
+  const lo = inset
+  const hi = height - inset
+  const z = y + h + 0.4
+  const e = x + w + 0.4
+  const loop = (pts: readonly (readonly [number, number, number])[]) =>
+    pts.forEach((a, i) => out.push(...a, ...pts[(i + 1) % pts.length]!))
+  loop([
+    [x + inset, lo, z],
+    [x + w - inset, lo, z],
+    [x + w - inset, hi, z],
+    [x + inset, hi, z],
+  ])
+  loop([
+    [e, lo, y + inset],
+    [e, lo, y + h - inset],
+    [e, hi, y + h - inset],
+    [e, hi, y + inset],
+  ])
+  return out
+}
+
+/**
+ * A box on the ground: face material (flat-mixed in plan) plus its outline at base and top.
+ * With `panel` (an inset and a detail line), its south and east faces get service-panel
+ * outlines; like the vertical edges, they stay hidden until the scene shows them.
+ */
 export function enclosure(
   rect: Rect,
   height: number,
   face: Material,
   edge: LineMaterial,
+  panel?: { inset: number; line: LineMaterial },
 ): Enclosure {
   const mesh = new Mesh(extrudeRect(rect, height), face)
   const ring = segments([...rectRing(rect, 0), ...rectRing(rect, height)], edge)
   const verticals = segments(rectVerticals(rect, height), edge)
   verticals.visible = false
   mesh.add(ring, verticals)
-  return { mesh, verticals }
+  if (!panel) return { mesh, verticals }
+  const p = segments(panels(rect, height, panel.inset), panel.line)
+  p.visible = false
+  mesh.add(p)
+  return { mesh, verticals, panels: p }
 }
 
 /** The route's centre line at height y as segment pairs, arcs sampled every `step` degrees. */

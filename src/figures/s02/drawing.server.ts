@@ -199,6 +199,30 @@ function printDoc(family: LayoutId): SvgDoc {
         'p-035 i-cad',
       ),
     )
+  const panel = (t: S02Tool, side: 'south' | 'east'): SvgNode => {
+    const [x, y, w, h] = l.boxes[t]
+    const H = l.heights[t]
+    const i = H * 0.16
+    const pts: [Pt, number][] =
+      side === 'south'
+        ? [
+            [[x + i, y + h], i],
+            [[x + w - i, y + h], i],
+            [[x + w - i, y + h], H - i],
+            [[x + i, y + h], H - i],
+          ]
+        : [
+            [[x + w, y + i], i],
+            [[x + w, y + h - i], i],
+            [[x + w, y + h - i], H - i],
+            [[x + w, y + i], H - i],
+          ]
+    const d = pts
+      .map(([q, z]) => P(q, z))
+      .map((q, k) => `${k ? 'L' : 'M'}${q[0].toFixed(2)} ${q[1].toFixed(2)}`)
+      .join('')
+    return node(`${d}Z`, 0, `panel.${t}`, 0, 'p-025 i-cad o-55')
+  }
   const beads = S02_DESTS.map((d, i) => {
     const end = l.routes[d][l.routes[d].length - 1]!
     const a = P([end[0] - l.flangeIn - 22, end[1]], l.pipeY)
@@ -217,9 +241,13 @@ function printDoc(family: LayoutId): SvgDoc {
       const kids: SvgNode[] = []
       for (const c of g.children) {
         kids.push(c)
-        // right after each enclosure's top face (alu-100), its glyph
-        if (c.el === 'path' && c.part.startsWith('box.') && c.cls.includes('f-alu-100'))
-          kids.push(...glyphs(c.part.slice(4) as S02Tool))
+        if (c.el !== 'path' || !c.part.startsWith('box.')) continue
+        const t = c.part.slice(4) as S02Tool
+        // right after each enclosure's top face (alu-100), its glyph; after its south
+        // (alu-300) and east (alu-500) faces, their service panels, as in WebGL
+        if (c.cls.includes('f-alu-100')) kids.push(...glyphs(t))
+        else if (c.cls.includes('f-alu-300')) kids.push(panel(t, 'south'))
+        else if (c.cls.includes('f-alu-500')) kids.push(panel(t, 'east'))
       }
       return { ...g, rev: 'print', children: [...kids, ...beads] }
     }),
