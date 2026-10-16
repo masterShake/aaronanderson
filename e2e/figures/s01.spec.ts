@@ -51,7 +51,7 @@ test('layers load and --p drives the beats', async ({ page, guard }) => {
 const sketch = (fig: import('@playwright/test').Locator) =>
   fig.evaluate((el) =>
     // (the paper backings under the hand-off lines are 0.8 by design)
-    [...el.querySelectorAll('svg path.sk:not(.f-paper), svg path.gl, .labels > span')]
+    [...el.querySelectorAll('svg path.sk:not(.f-paper), svg path.gl, svg path.sv, .labels > span')]
       .filter((n) => n.matches('path') || /tool/.test(n.className))
       .map((n) => Number(getComputedStyle(n).opacity)),
   )

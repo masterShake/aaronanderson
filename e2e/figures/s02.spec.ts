@@ -172,6 +172,18 @@ test('s02 below 1024 px plays on entry with Replay and requests no 3D', async ({
   expect(await page.evaluate(() => document.documentElement.dataset.stageRuntime)).toBeUndefined()
 })
 
+test('s02 on a phone ends with Run again and no layout shift', async ({ page }) => {
+  test.skip(test.info().project.name !== 'mobile', 'mobile project only')
+  test.setTimeout(60_000)
+  await page.goto('/kit/fig/s02')
+  const fig = await ready(page)
+  const height = () => fig.evaluate((el) => el.getBoundingClientRect().height)
+  const before = await height()
+  await expect(fig).toHaveAttribute('data-phase', 'done', { timeout: 45_000 })
+  await expect(fig.locator('[data-action="run-again"]')).toBeVisible()
+  expect(await height()).toBe(before)
+})
+
 test('s02 still tier shows the print and fetches no layers and no 3D', async ({ page, guard }) => {
   const fetched: string[] = []
   page.on('request', (q) => {

@@ -111,7 +111,7 @@
   --ps: max(var(--p, 1), var(--pre, 1) * var(--s01-lead-p));
 }
 
-.fig :global(path:is(.sk, .gl)),
+.fig :global(path:is(.sk, .gl, .sv)),
 .fig .tool {
   --p: var(--ps);
 }
@@ -130,7 +130,7 @@
 
 .fig :global(path.sv) {
   --a: var(--s01-survey-from-p);
-  --b: var(--s01-sweep-from-p);
+  --b: var(--s01-survey-to-p);
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
 }
 

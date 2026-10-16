@@ -391,6 +391,14 @@
   display: inline-block;
 }
 
+/* Narrow strips have no room for a third control: once done, Run again takes Replay's place
+   on the controls row (so the strip never grows a row and nothing below it shifts). */
+@container fig (width < 440px) {
+  .s02:global([data-phase='done']) :global([data-action='replay']) {
+    display: none;
+  }
+}
+
 @media (pointer: coarse) {
   .runAgain {
     min-height: 44px;
