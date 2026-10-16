@@ -1,15 +1,16 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from '../fixtures'
-import { isProductionBuild } from '../helpers/budgets'
+import { isReviewBuild } from '../helpers/budgets'
 import { home } from '../../src/content/pages/home'
 import { people } from '../../src/content/people'
+import { resolveHeld } from '../../src/content/hold'
 import { processSteps } from '../../src/content/process'
 import { services } from '../../src/content/services'
 
 /**
  * Home sections B to G (owner: home-about): no H1 of their own, the CTA band
  * last, nothing sticky below 1024 px, the sheet index and its key plans, one
- * "You:" line per step, one card per crew member, and as-builts in preview
+ * "You:" line per step, one card per crew member once the crew is confirmed, and as-builts in review mode
  * only. Expectations come from content, never from literals.
  */
 
@@ -91,33 +92,85 @@ test('the process strip has one "You:" line per step and links to How it works',
   await expect(section.locator(`a[href="${home.process.link.href}"]`)).toHaveCount(1)
 })
 
+/** Are there crew cards? Once a name or role is real, or in review mode. */
+const crewIn = (review: boolean) =>
+  people.people.some(
+    (p) =>
+      resolveHeld(p.name, review).show !== 'omit' || resolveHeld(p.role, review).show !== 'omit',
+  )
+
 test('the crew: one card per person, APPROVED BY: YOU, and a link to About', async ({ page }) => {
   await page.goto('/')
   const section = page.locator(`#${home.crew.id}`)
+  await expect(section.getByRole('heading', { level: 2 })).toHaveCount(1)
+  if (!crewIn(await isReviewBuild(page))) {
+    // no confirmed crew yet: the claim stays, with a plain link to About and no cards or
+    // orphan "Meet the crew" link
+    await expect(section.locator('li[data-person]')).toHaveCount(0)
+    await expect(section.getByRole('link', { name: home.crew.link.label })).toHaveCount(0)
+    const link = section.getByRole('link', { name: home.crew.linkNoCrew.label })
+    await expect(link).toHaveAttribute('href', home.crew.linkNoCrew.href)
+    return
+  }
   await expect(section.locator('li[data-person]')).toHaveCount(people.people.length)
   await expect(section).toContainText(home.crew.approvedBy.value)
   await expect(section.locator(`a[href="${home.crew.link.href}"]`)).toHaveCount(1)
 })
 
-test('preview: as-builts show HOLD clouds; production: no proof, no HOLD, names fall back', async ({
+test('review mode: as-builts show HOLD clouds; production look: no proof, no HOLD, names fall back', async ({
   page,
 }) => {
   await page.goto('/')
-  const prod = await isProductionBuild(page)
+  const review = await isReviewBuild(page)
   const asBuilts = page.locator(`#${home.asBuilts.id}`)
-  if (!prod) {
+  if (review) {
     await expect(asBuilts).toHaveCount(1)
     expect(await asBuilts.locator('[data-hold]').count()).toBeGreaterThan(0)
     return
   }
   await expect(asBuilts).toHaveCount(0)
   await expect(page.locator('main [data-hold]')).toHaveCount(0)
-  // names are essential HOLDs with no fallback: each card's heading is its role
+  await expect(page.locator('main [data-confirm]')).toHaveCount(0)
+  // names are essential HOLDs with no fallback: each card's heading is its role (cards show
+  // once a name or role is real; the crew test covers the no-card look)
   const headings = page.locator(`#${home.crew.id} li[data-person] h3`)
-  await expect(headings).toHaveCount(people.people.length)
+  await expect(headings).toHaveCount(crewIn(false) ? people.people.length : 0)
   for (let i = 0; i < people.people.length; i++) {
     const role = people.people[i]!.role
     const expected = typeof role === 'string' ? role : role.prodFallback
     if (expected) await expect(headings.nth(i)).toHaveText(expected)
   }
 })
+
+// craft-22: the whole hero text column shows in the first screen on common laptop sizes.
+for (const [w, h] of [
+  [1280, 800],
+  [1440, 900],
+] as const) {
+  test(`hero: deck, Book a call and the mono line show without scrolling at ${w} × ${h}`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'desktop sizes')
+    await page.setViewportSize({ width: w, height: h })
+    await page.goto('/')
+    await page.evaluate(() => document.fonts.ready)
+    const hero = page.locator('#hero')
+    const bottoms = await Promise.all(
+      [
+        hero.getByText(home.hero.deck as string),
+        hero.getByRole('link', { name: 'Book a call' }),
+        hero.getByText(home.hero.specLine),
+      ].map(async (l) => {
+        const b = (await l.boundingBox())!
+        return b.y + b.height
+      }),
+    )
+    for (const b of bottoms) expect(b).toBeLessThanOrEqual(h)
+    // the H1 stays big: at least 70 px
+    const size = await hero
+      .locator('h1')
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+    expect(size).toBeGreaterThanOrEqual(70)
+  })
+}

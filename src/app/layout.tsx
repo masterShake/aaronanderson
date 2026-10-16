@@ -5,6 +5,7 @@ import { HEAD_SCRIPT } from '@/motion/head-script'
 import { timingCss } from '@/motion/timing-css'
 import { HtmlStateSync } from '@/motion/HtmlStateSync.client'
 import { rootMetadata } from '@/lib/metadata'
+import { SHOW_HOLDS } from '@/lib/env'
 import { siteGraph } from '@/lib/jsonld'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { SkipLink } from '@/components/chrome/SkipLink'
@@ -17,7 +18,8 @@ export const viewport: Viewport = { themeColor: '#F4F2EC', colorScheme: 'light' 
 
 /**
  * The root layout: one <main>, the skip link first, the head script before
- * anything paints, and the site JSON-LD. Frozen after W0.
+ * anything paints, and the site JSON-LD. A review-mode build (SHOW_HOLDS=1) marks <html
+ * data-review> so the tests know which look they are checking.
  */
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
@@ -25,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       lang="en-US"
       className={fontVariables}
       data-scroll-behavior="smooth"
+      data-review={SHOW_HOLDS ? '' : undefined}
       suppressHydrationWarning
     >
       <head>

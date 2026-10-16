@@ -30,6 +30,10 @@ export function FaqSection() {
     } else answer = <RichText value={f.a} />
     return [{ id: f.id, q: f.q, answer, open }]
   })
+  if (!items.length) return null
+  // A short log (the production look while most answers wait for the owner) starts open,
+  // so the section reads as answered rather than as one closed row.
+  const expand = items.length < 3
   return (
     <section id={c.id} aria-labelledby={`${c.id}-title`} className={`wrap ${s.faq}`}>
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
@@ -38,7 +42,7 @@ export function FaqSection() {
       </p>
       <div className={s.rfiLog}>
         {items.map((f) => (
-          <details key={f.id} id={`rfi-${f.id}`} className={s.rfi}>
+          <details key={f.id} id={`rfi-${f.id}`} className={s.rfi} open={expand || undefined}>
             <summary className={s.rfiQ}>
               <span className={s.rfiText}>{f.q}</span>
               <span className={s.rfiStatus} aria-hidden="true">

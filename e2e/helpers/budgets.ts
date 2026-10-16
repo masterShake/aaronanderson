@@ -93,6 +93,15 @@ export function pngSize(buf: Buffer): { width: number; height: number } {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
 }
 
+/**
+ * Is this a review-mode build (SHOW_HOLDS=1)? Only then do HOLD clouds and CONFIRM marks
+ * render; every other build shows the production look. The root layout marks <html data-review>.
+ */
+export async function isReviewBuild(page: Page): Promise<boolean> {
+  const r = await page.request.get('/')
+  return /<html[^>]*\sdata-review=/.test(await r.text())
+}
+
 /** Is this a production-mode build? Production returns 404 for /punch-list. */
 export async function isProductionBuild(page: Page): Promise<boolean> {
   const r = await page.request.get('/punch-list', { maxRedirects: 0 })

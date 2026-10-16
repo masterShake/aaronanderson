@@ -91,7 +91,8 @@ export const site: SiteConfig = {
     home: 'Actual Engineer, home',
   },
   skipLink: 'Skip to content',
-  motion: { label: 'Pause motion', on: 'Motion on', off: 'Motion paused' },
+  // short: the header's visible words where the bar is tight; the full label stays the name.
+  motion: { label: 'Pause motion', short: 'Pause', on: 'Motion on', off: 'Motion paused' },
   sheet: { label: 'SHEET', scale: 'SCALE: AS NOTED' },
   marks: {
     hold: 'HOLD',

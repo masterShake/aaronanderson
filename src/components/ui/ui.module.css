@@ -126,6 +126,11 @@
   min-height: 44px;
 }
 
+/* The visible words; the header may hide [data-switch-more] visually where it is tight. */
+.switchLabel {
+  white-space: nowrap;
+}
+
 .switchInput {
   flex: none;
   appearance: none;

@@ -26,7 +26,7 @@ export function Header() {
           <NavLinks items={site.nav} variant="bar" />
         </nav>
         <div className={s.wide}>
-          <MotionSwitch variant="header" label={site.motion.label} />
+          <MotionSwitch variant="header" label={site.motion.label} short={site.motion.short} />
         </div>
         <BookCallButton className={s.book} />
         <div className={s.narrow}>

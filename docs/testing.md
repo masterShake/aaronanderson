@@ -64,6 +64,18 @@ npm run test:prod
 npm run build   # rebuild without VERCEL_ENV before verify or any preview-mode suite
 ```
 
+## Review mode
+
+The default build is the production look: no HOLD clouds or CONFIRM marks. Tests that check
+the review tags read `<html data-review>` (`isReviewBuild` in `e2e/helpers/budgets.ts`) and
+take their review branch only on a `SHOW_HOLDS=1` build:
+
+```sh
+SHOW_HOLDS=1 node scripts/with-lock.mjs npm run build
+npm run test:smoke   # review tags on the pages, and /punch-list answers
+npm run build        # rebuild without SHOW_HOLDS afterwards
+```
+
 ## Environment knobs
 
 | Variable              | Used by                                            | Meaning                                                                    |
@@ -121,8 +133,8 @@ npm run perf:lh -- --runs 5 --calibrate --routes /,/services,/how-it-works,/abou
 - Writes `summary.json` (per route: medians of LCP, TBT, CLS, FCP, Speed Index and score,
   with every run) plus the multiplier and benchmarkIndex.
 - Lighthouse numbers swing with machine load. Run it with the machine otherwise idle, and
-  gate only on a production-mode build (`VERCEL_ENV=production`), so no HOLD clouds are
-  measured.
+  gate only on a production-mode build (`VERCEL_ENV=production`). No build measures HOLD
+  clouds unless it sets `SHOW_HOLDS=1`.
 
 ## W0 baselines (stub site, M1 Max)
 

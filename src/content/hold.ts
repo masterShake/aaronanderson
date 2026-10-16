@@ -53,8 +53,11 @@ export interface Confirm<T = string> {
 export type Held = string | Hold
 export type Claim = Confirm<string>
 
-/** Inlined by next.config.ts `env`. '0' only on VERCEL_ENV=production builds, or when SHOW_HOLDS=0 is set. */
-export const SHOW_HOLDS: boolean = process.env.SHOW_HOLDS !== '0'
+/**
+ * Review mode. Inlined by next.config.ts `env`: on only when the build sets SHOW_HOLDS=1.
+ * Every other build (local dev, next start, previews, production) shows the production look.
+ */
+export const SHOW_HOLDS: boolean = process.env.SHOW_HOLDS === '1'
 
 const registry = new Map<string, Hold | Confirm<unknown>>()
 
@@ -98,10 +101,10 @@ export type Resolved =
   | { readonly show: 'hold'; readonly hold: Hold }
   | { readonly show: 'omit' }
 
-/** Text, a HOLD to mark (preview), the production fallback, or nothing. */
-export function resolveHeld(v: Held): Resolved {
+/** Text, a HOLD to mark (review mode), the production fallback, or nothing. */
+export function resolveHeld(v: Held, review: boolean = SHOW_HOLDS): Resolved {
   if (typeof v === 'string') return { show: 'text', text: v }
-  if (SHOW_HOLDS) return { show: 'hold', hold: v }
+  if (review) return { show: 'hold', hold: v }
   return v.prodFallback !== null ? { show: 'text', text: v.prodFallback } : { show: 'omit' }
 }
 
@@ -114,12 +117,12 @@ export type ResolvedClaim<T> =
     }
   | { readonly show: 'omit' }
 
-/** A plain value, a confirmed claim, a pending claim (preview only), or nothing. */
-export function resolveClaim<T>(c: Confirm<T> | T): ResolvedClaim<T> {
+/** A plain value, a confirmed claim, a pending claim (review mode only), or nothing. */
+export function resolveClaim<T>(c: Confirm<T> | T, review: boolean = SHOW_HOLDS): ResolvedClaim<T> {
   if (!isConfirm(c)) return { show: 'value', value: c as T, pending: false, id: null }
   const k = c as Confirm<T>
   if (k.status === 'ok') return { show: 'value', value: k.value, pending: false, id: k.id }
-  if (k.status === 'pending' && SHOW_HOLDS)
+  if (k.status === 'pending' && review)
     return { show: 'value', value: k.value, pending: true, id: k.id }
   return { show: 'omit' }
 }
@@ -128,8 +131,8 @@ export function resolveClaim<T>(c: Confirm<T> | T): ResolvedClaim<T> {
 export const fact = (v: Held): string | undefined => (typeof v === 'string' ? v : undefined)
 
 /** For attributes that cannot hold a chip (aria-label, alt). */
-export function heldText(v: Held): string | undefined {
-  const r = resolveHeld(v)
+export function heldText(v: Held, review: boolean = SHOW_HOLDS): string | undefined {
+  const r = resolveHeld(v, review)
   return r.show === 'text' ? r.text : r.show === 'hold' ? `HOLD: ${r.hold.note}` : undefined
 }
 

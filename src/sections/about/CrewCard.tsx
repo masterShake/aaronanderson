@@ -3,7 +3,17 @@ import { about } from '@/content/pages/about'
 import { fact, resolveHeld } from '@/content/hold'
 import { HeldText } from '@/components/ui/HeldText'
 import { HoldCloud } from '@/components/blueprint/HoldCloud'
+import { people } from '@/content/people'
 import s from './crew.module.css'
+
+/**
+ * Are there crew cards to show? Only once a name or a role is confirmed (or in review mode).
+ * Until then the production look has no cards: tags alone are a guess (people.tags), and a
+ * card with nothing but tags reads as scaffolding.
+ */
+export const crewShown = people.people.some(
+  (p) => resolveHeld(p.name).show !== 'omit' || resolveHeld(p.role).show !== 'omit',
+)
 
 /**
  * One crew member as title-block cells (About), or the compact card Home E

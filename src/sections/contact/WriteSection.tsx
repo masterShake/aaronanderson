@@ -1,13 +1,12 @@
 import { contact, contactUi } from '@/content/pages/contact'
 import { afterContactFigure } from '@/content/figures/after-contact'
 import { services } from '@/content/services'
-import { SHOW_HOLDS } from '@/content/hold'
 import { drawingSrc } from '@/drawings/files'
 import { RECEIVED_LABELS } from '@/drawings/graphs/after-contact'
 import { RichText } from '@/components/ui/RichText'
 import { ContactForm } from '@/components/contact/ContactForm.client'
 import { LIMITS } from '@/lib/contact/fields'
-import { scheduler } from './scheduler'
+import { noScheduler } from './scheduler'
 import { plain, splitRich } from './rich'
 
 /**
@@ -18,7 +17,7 @@ import { plain, splitRich } from './rich'
  */
 export function WriteSection() {
   const f = contact.form
-  const isBook = !scheduler && !SHOW_HOLDS
+  const isBook = noScheduler
   const id = isBook ? 'book' : f.id
   const msg = f.fields.message
   const short = LIMITS.name

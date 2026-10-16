@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { test, expect } from './fixtures'
 import { ROUTES } from './routes'
 import { cspViolations, watchCsp } from './helpers/console'
+import { isProductionBuild, isReviewBuild } from './helpers/budgets'
 
 /** Every sheet renders statically with one H1, one main, a skip link, Book a call and no errors. */
 
@@ -27,6 +28,25 @@ for (const r of ROUTES) {
     expect(guard.blocked).toEqual([])
   })
 }
+
+// Review tags (HOLD clouds and chips, CONFIRM marks) only on a SHOW_HOLDS=1 build; every other
+// build is the production look. /punch-list stays the owner's review list outside production.
+test('review tags follow the build; /punch-list answers outside production', async ({ page }) => {
+  const review = await isReviewBuild(page)
+  let tags = 0
+  for (const r of ROUTES) {
+    await page.goto(r.path)
+    const n = await page.locator('main [data-hold], main [data-confirm]').count()
+    if (!review) expect(n, `review tags on ${r.path}`).toBe(0)
+    tags += n
+  }
+  if (review) expect(tags).toBeGreaterThan(0)
+  if (!(await isProductionBuild(page))) {
+    const res = await page.goto('/punch-list')
+    expect(res?.status()).toBe(200)
+    expect(await page.locator('main table tbody tr').count()).toBeGreaterThan(0)
+  }
+})
 
 test('motion switch persists and pauses before hydration', async ({ page }) => {
   await page.goto('/')

@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures'
 import { ROUTES, pick } from './routes'
 import { gotoTier } from './helpers/tier'
-import { isProductionBuild, writeArtifact } from './helpers/budgets'
+import { isProductionBuild, isReviewBuild, writeArtifact } from './helpers/budgets'
 
 /**
  * The visible text of every route, for the copy review: the heading outline
@@ -29,7 +29,11 @@ const LEAKS = [
 ]
 
 test('dump the text of every route', async ({ page }) => {
-  const mode = (await isProductionBuild(page)) ? 'production' : 'preview'
+  const mode = (await isProductionBuild(page))
+    ? 'production'
+    : (await isReviewBuild(page))
+      ? 'review'
+      : 'preview'
   const all: Record<string, { title: string; headings: string[]; words: number; text: string }> = {}
   for (const path of paths) {
     await gotoTier(page, path, 'still')

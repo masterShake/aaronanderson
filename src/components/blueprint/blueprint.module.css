@@ -16,6 +16,10 @@
   color: var(--c-graphite);
 }
 
+.stripPart {
+  white-space: nowrap;
+}
+
 /* ── HOLD and CONFIRM (preview only) ─────────────────────────────────────── */
 .holdChip {
   --hc: var(--hold-c, var(--c-graphite));
@@ -120,7 +124,7 @@
 /* ── Page head: the only H1, grid bubbles and column lines ──────────────── */
 .pageHead {
   position: relative;
-  padding-block: var(--s-6) var(--s-7);
+  padding-block: var(--s-6);
   border-bottom: var(--line-frame) solid var(--c-asphalt);
   isolation: isolate;
 }
@@ -260,7 +264,7 @@
 
 /* ── Section head ────────────────────────────────────────────────────────── */
 .sectionHead {
-  margin-block-end: var(--s-6);
+  margin-block-end: var(--s-5);
 }
 
 .sectionHead > p {

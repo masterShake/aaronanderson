@@ -202,6 +202,11 @@
     grid-column: 1 / 9;
   }
 
+  /* No confirmed plates yet: the detail takes the full width, with no empty column beside it. */
+  .valveSolo {
+    grid-column: 1 / -1;
+  }
+
   .plates {
     grid-column: 9 / 13;
   }

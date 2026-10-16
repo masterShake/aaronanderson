@@ -10,6 +10,7 @@ import type { ContactState } from '@/lib/contact/fields'
 import { createTokens, type Tokens } from '@/lib/contact/token'
 import { limiterFromEnv, type Limiter } from '@/lib/contact/rate-limit'
 import { verifyTurnstile } from '@/lib/contact/turnstile'
+import { turnstileHosts } from '@/lib/contact/hosts'
 import { sendContactMail, type MailClient } from '@/lib/contact/mail'
 import { runContact } from '@/lib/contact/pipeline'
 import type { ContactInput } from '@/lib/contact/schema'
@@ -78,7 +79,7 @@ export async function submitContact(_prev: ContactState, fd: FormData): Promise<
   const h = await headers()
   const ip = h.get('x-real-ip') ?? h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
-  const host = new URL(site.url).host
+  const hosts = turnstileHosts({ siteUrl: site.url, production: IS_PRODUCTION, env: process.env })
   const { state, log } = await runContact(Object.fromEntries(fd), {
     message: { min: contact.form.fields.message.min, max: contact.form.fields.message.max },
     ip,
@@ -91,7 +92,7 @@ export async function submitContact(_prev: ContactState, fd: FormData): Promise<
             response,
             ip,
             idempotencyKey: nonce,
-            hosts: IS_PRODUCTION ? [host] : [host, 'localhost', '127.0.0.1'],
+            hosts,
           })
       : undefined,
     compose,

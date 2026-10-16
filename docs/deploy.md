@@ -21,8 +21,8 @@ The list lives in `.env.example`, with one comment per variable. `npm run punchl
 
 | Variable                                                 | Where                     | Notes                                                                                                                                   |
 | -------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `VERCEL_ENV`                                             | set by Vercel             | `production` hides HOLDs and proof, 404s `/kit` and `/punch-list`, and makes pages indexable. Set it locally only to test.              |
-| `SHOW_HOLDS`                                             | optional                  | `1` shows HOLD clouds, `0` shows the fallbacks. Defaults to `0` only in production.                                                     |
+| `VERCEL_ENV`                                             | set by Vercel             | `production` 404s `/kit` and `/punch-list` and makes pages indexable. Set it locally only to test.                                      |
+| `SHOW_HOLDS`                                             | optional, review only     | `1` turns on review mode (HOLD clouds, CONFIRM marks). Unset or anything else: the production look, on every build.                     |
 | `STRICT_HOLDS`                                           | Production, at launch     | `1` fails the build while any essential HOLD or pending CONFIRM remains.                                                                |
 | `CSP_MODE`                                               | first preview only        | `report` sends the policy as report-only. Leave it unset everywhere else.                                                               |
 | `RESEND_API_KEY`                                         | Production and Preview    | A "sending access" key limited to the verified domain. Unset locally: messages are logged, not sent.                                    |
@@ -33,6 +33,13 @@ The list lives in `.env.example`, with one comment per variable. `npm run punchl
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`     | optional                  | A shared rate limit for the form (`KV_REST_API_*` from the Vercel marketplace also work). Without them each instance limits on its own. |
 
 Never commit a real value. `.env*` files stay out of git (only `.env.example` is tracked).
+
+**Turnstile hostnames.** In Cloudflare, the widget's hostname list must include every host
+the form is used on: the site's domain, and each deployment host people reach it on (for
+example the Render or Vercel address). The server accepts the site's host plus the
+deployment's own hostnames when the platform sets them (`RENDER_EXTERNAL_HOSTNAME`,
+`VERCEL_URL`, `VERCEL_BRANCH_URL`), and `localhost` outside production
+(`src/lib/contact/hosts.ts`).
 
 ## 3. Email (Resend)
 
@@ -59,12 +66,12 @@ Never commit a real value. `.env*` files stay out of git (only `.env.example` is
 
 ## 5. Previews and production
 
-- **Previews** show every HOLD as a dashed cloud and every pending CONFIRM with a mark.
-  `/punch-list` lists what is still open; `/kit` shows the design system. Previews send
-  `X-Robots-Tag: noindex`.
-- **Production** shows the fallback text instead of HOLDs, leaves pending CONFIRMs and the
-  proof section out, returns 404 for `/kit` and `/punch-list`, and is the only indexable
-  build.
+- **Every build** shows the production look: fallback text instead of HOLDs, and pending
+  CONFIRMs and the proof section left out.
+- **Previews** also answer `/punch-list` (what is still open) and `/kit` (the design
+  system), and send `X-Robots-Tag: noindex`. To see the HOLD clouds and CONFIRM marks on
+  the pages, set `SHOW_HOLDS=1` on that build (review mode).
+- **Production** returns 404 for `/kit` and `/punch-list`, and is the only indexable build.
 - "Promote to Production" on a preview rebuilds with the production settings, which is
   safe.
 

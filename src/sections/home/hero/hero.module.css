@@ -1,7 +1,7 @@
 /* Home section A, the hero (owner: hero lane). Moved out of home.module.css (C8). */
 .hero {
   display: grid;
-  gap: var(--s-6);
+  gap: var(--s-4) var(--s-6);
   padding-block: var(--s-6) var(--section-pad);
 }
 
@@ -21,6 +21,10 @@
 
 .eyebrow {
   margin-block-end: var(--s-4);
+}
+
+.specPart {
+  white-space: nowrap;
 }
 
 .h1 {
@@ -89,5 +93,22 @@
 
   .see {
     display: none;
+  }
+
+  /* craft-22: at 1280 × 800 and 1440 × 900 the deck, Book a call and the mono line all show
+     without scrolling. The top tightens, and the H1 is capped by the viewport height (svh):
+     530 px is everything in the first screen but the H1, which runs at most four lines at
+     0.9. It stays as big as that allows, up to --fs-h1 (measured: 75 px and three lines at
+     1180-1365 × 800, the mono line ends near 735; 103 px at 1440 × 900, near 875). */
+  .hero {
+    padding-block-start: var(--s-4);
+  }
+
+  .eyebrow {
+    margin-block-end: var(--s-2);
+  }
+
+  .h1 {
+    font-size: clamp(3.25rem, calc((100svh - 530px) / 3.6), var(--fs-h1));
   }
 }
