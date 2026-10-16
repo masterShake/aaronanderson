@@ -204,3 +204,48 @@ for (const [tier, query] of [
     expect(describe(await axe(page))).toEqual([])
   })
 }
+
+test('s04 on the services page at 1440: one-row strip, sticky across the whole scrub', async ({
+  page,
+}) => {
+  desktopOnly()
+  test.setTimeout(60_000)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await gotoTier(page, '/services', 'svg')
+  await page.evaluate(() => document.fonts.ready)
+  const fig = page.locator(FIG)
+  const strip = await fig.locator('.strip').boundingBox()
+  expect(strip!.height).toBeLessThanOrEqual(49)
+  const sec = await fig.evaluate((el: HTMLElement) => {
+    const t = el.closest('section')!.querySelector<HTMLElement>('[data-scrub-track]')!
+    const r = t.getBoundingClientRect()
+    const top = parseFloat(getComputedStyle(el).top) || 0
+    return { top: r.top + scrollY - top, span: r.height - el.offsetHeight }
+  })
+  expect(sec.span).toBeGreaterThan(0)
+  // arrive from above, so the driver first sees the figure off screen
+  // (in steps, as a visitor scrolls, so the lazy controller loads while it is still below)
+  for (let y = sec.top - 2700; y < sec.top - 100; y += 300) {
+    await page.evaluate((y) => scrollTo(0, y), y)
+    await page.waitForTimeout(120)
+  }
+  for (const k of [0, 0.25, 0.5, 0.6]) {
+    await page.evaluate((y) => scrollTo(0, y), sec.top + sec.span * k)
+    await expect
+      .poll(async () => Number(await fig.evaluate((el) => el.style.getPropertyValue('--p'))))
+      .toBeCloseTo(k, 1)
+    // the whole figure is in view at every point of its scrub
+    const box = (await fig.boundingBox())!
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height).toBeLessThanOrEqual(900 + 0.5)
+  }
+  // in the svg medium the loops start at the hand-off: running at p .6, no stall to .76
+  await expect(fig).toHaveAttribute('data-loop', /\d/, { timeout: 4000 })
+  await page.evaluate((y) => scrollTo(0, y), sec.top + sec.span)
+  await expect
+    .poll(async () => Number(await fig.evaluate((el) => el.style.getPropertyValue('--p'))))
+    .toBeCloseTo(1, 1)
+  const box = (await fig.boundingBox())!
+  expect(box.y).toBeGreaterThanOrEqual(0)
+  expect(box.y + box.height).toBeLessThanOrEqual(900 + 0.5)
+})
