@@ -41,7 +41,7 @@ function wide(i: number, id: AfterContactLabel): AfterContactNode {
   return {
     id,
     box: [x, y, w, h],
-    glyph: [x + w / 2, cy, 62],
+    glyph: [x + w / 2, cy, 74],
     plate: [x + 10, y + 124, w - 20, 68],
     in: [x, cy],
     out: [x + w, cy],

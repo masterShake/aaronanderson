@@ -4,7 +4,7 @@ import { docsBuilder } from '@/drawings/render'
 import { group, strokeCls } from '@/drawings/render/cad'
 import { primD } from '@/drawings/lib/geometry'
 import { primLength } from '@/drawings/lib/length'
-import { chevron } from '@/drawings/symbols'
+import { arrowhead, chevron } from '@/drawings/symbols'
 import {
   AFTER_CONTACT_NODES,
   AFTER_CONTACT_VIEWBOX,
@@ -60,14 +60,18 @@ function glyphFor(n: AfterContactNode): { g: Glyph; sign?: Prim[] } {
       }
     }
     case 'reply': {
-      const env = envelope([x, y + s * 0.06], s * 0.84)
-      const ax = x - s * 0.5
-      const ay = y - s * 0.36
-      // a reply arrow over the envelope's corner
+      const env = envelope([x, y + s * 0.18], s * 0.8)
+      // a reply arrow curving back over the envelope, its head pointing left
+      const tip: Pt = [x - s * 0.36, y - s * 0.3]
       env.detail.push(
-        { t: 'arc', c: [ax + s * 0.3, ay + s * 0.2], r: s * 0.2, from: 180, to: 270 },
-        lineP([ax + s * 0.1, ay + s * 0.2], [ax + s * 0.04, ay + s * 0.12]),
-        lineP([ax + s * 0.1, ay + s * 0.2], [ax + s * 0.18, ay + s * 0.14]),
+        {
+          t: 'cubic',
+          a: [x + s * 0.34, y - s * 0.12],
+          c1: [x + s * 0.32, y - s * 0.42],
+          c2: [x - s * 0.06, y - s * 0.44],
+          b: tip,
+        },
+        arrowhead([x - s * 0.12, y - s * 0.4], tip, s * 0.16),
       )
       return { g: env }
     }
