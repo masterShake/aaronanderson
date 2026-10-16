@@ -3,7 +3,7 @@ import type { ModelPart } from '@/drawings/types'
 /**
  * What S-06 adds to the hero's wide model (views/s06.ts buildS06Model('wide')), precomputed
  * for the s06 scene: the flange the FIXED stall happens at, the monitor gauge, and the three
- * month instruments (stub and puck). data.unit.spec.ts asserts it equals the live build.
+ * month instruments (stub and enclosure). data.unit.spec.ts asserts it equals the live build.
  */
 export const S06_EXTRA = [
   {
@@ -18,7 +18,7 @@ export const S06_EXTRA = [
   {
     id: 'gauge',
     kind: 'cyl',
-    prims: [{ t: 'circle', c: [566, 376], r: 18 }],
+    prims: [{ t: 'circle', c: [566, 376], r: 22 }],
     depth: 60,
     material: 'aluminum',
     anchor: 'gauge',
@@ -42,9 +42,9 @@ export const S06_EXTRA = [
   },
   {
     id: 'm1',
-    kind: 'cyl',
-    prims: [{ t: 'circle', c: [84, 432], r: 14 }],
-    depth: 16,
+    kind: 'box',
+    prims: [{ t: 'rect', at: [69, 420], size: [30, 24] }],
+    depth: 22,
     material: 'orange',
     anchor: 'add.report',
     revs: ['m1'],
@@ -68,9 +68,9 @@ export const S06_EXTRA = [
   },
   {
     id: 'm2',
-    kind: 'cyl',
-    prims: [{ t: 'circle', c: [655, 142], r: 14 }],
-    depth: 16,
+    kind: 'box',
+    prims: [{ t: 'rect', at: [640, 130], size: [30, 24] }],
+    depth: 22,
     material: 'orange',
     anchor: 'add.alert',
     revs: ['m2'],
@@ -82,8 +82,8 @@ export const S06_EXTRA = [
       {
         t: 'poly',
         pts: [
-          [626, 320],
-          [626, 366],
+          [305, 96],
+          [305, 50],
         ],
       },
     ],
@@ -94,9 +94,9 @@ export const S06_EXTRA = [
   },
   {
     id: 'm3',
-    kind: 'cyl',
-    prims: [{ t: 'circle', c: [626, 366], r: 14 }],
-    depth: 16,
+    kind: 'box',
+    prims: [{ t: 'rect', at: [290, 38], size: [30, 24] }],
+    depth: 22,
     material: 'orange',
     anchor: 'add.automation',
     revs: ['m3'],

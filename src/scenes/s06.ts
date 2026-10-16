@@ -1,5 +1,6 @@
 import {
   CanvasTexture,
+  CircleGeometry,
   Mesh,
   MeshBasicMaterial,
   NearestFilter,
@@ -183,6 +184,38 @@ const mod: SceneModule = {
       return { m, o }
     }
 
+    /**
+     * The monitor's dial on the gauge's top face: a paper face, nine ticks and a needle (asphalt)
+     * and the IN RANGE arc (blueprint), riding the gauge's extrusion as its children.
+     */
+    function dial(mesh: Mesh, [cx, cz]: Pt, rim: readonly Pt[], top: number, order: number) {
+      const r = Math.hypot(rim[0]![0] - cx, rim[0]![1] - cz) * 0.82
+      const geo = new CircleGeometry(r, 32).rotateX(-Math.PI / 2).translate(cx, top + 0.3, cz)
+      const mat = new MeshBasicMaterial({ color: COLOR.paper, toneMapped: false })
+      mesh.add(new Mesh(geo, mat))
+      own.push({ geometry: geo, material: mat })
+      const y = top + 0.6
+      const at = (deg: number, k: number) => {
+        const a = (deg * Math.PI) / 180
+        return [cx + Math.sin(a) * r * k, y, cz - Math.cos(a) * r * k]
+      }
+      const ink: number[] = [cx, y, cz, ...at(14, 0.72)]
+      const arc: number[] = []
+      for (let d = -120; d <= 120; d += 30) ink.push(...at(d, 0.8), ...at(d, 0.98))
+      for (let d = -40; d < 40; d += 10) arc.push(...at(d, 0.6), ...at(d + 10, 0.6))
+      for (const [pos, color, pen] of [
+        [ink, COLOR.asphalt, '035'],
+        [arc, COLOR.blueprint, '100'],
+      ] as const) {
+        const m = lineMat({ color, width: 1, a2c: true })
+        const o = segments(pos, m)
+        o.renderOrder = 10 + order
+        own.push({ geometry: o.geometry })
+        lines.push({ m, pen, o })
+        mesh.add(o)
+      }
+    }
+
     function* build() {
       parts.forEach((p, order) => {
         const top = p.depth
@@ -222,11 +255,14 @@ const mod: SceneModule = {
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order, month })
           three.add(mesh)
+          if (p.id === 'gauge') dial(mesh, centre(p), outline(c).pts, top, order)
         })
-        if (p.anchor && (month || p.id === 'flange' || p.id === 'gauge')) {
+        if (p.anchor) {
+          // every labelled part (the hero's tools and store, the flange, the gauge and the month
+          // instruments) at its top face's centre, as on the print; CSS sets each label's offset
           const a = new Object3D()
           const [cx, cz] = centre(p)
-          a.position.set(cx, z0 + top + 14, cz)
+          a.position.set(cx, z0 + top, cz)
           anchors.set(p.anchor, a)
           if (month) months.set(p.anchor, month)
           three.add(a)
