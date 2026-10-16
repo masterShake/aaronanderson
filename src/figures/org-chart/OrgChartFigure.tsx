@@ -3,9 +3,8 @@ import { orgChartFigure as copy } from '@/content/figures/org-chart'
 import { about } from '@/content/pages/about'
 import { GATE, DUR } from '@/motion/timing'
 import { drawingSrc } from '@/drawings/files'
-import { nodeRect } from '@/drawings/lib/route'
 import type { LayoutId } from '@/drawings/types'
-import { orgChartGraph as g, ORG_REVS } from '@/drawings/views/org-chart'
+import { ORG_CARDS, ORG_LAYOUT, ORG_REVS, wireDim, wireEnds } from '@/drawings/views/org-chart'
 import { FigureFrame } from '@/figures/FigureFrame'
 import { LazyDrawing } from '@/figures/LazyDrawing.client'
 import { OrgChartToggle } from './OrgChartToggle.client'
@@ -13,9 +12,10 @@ import s from './org-chart.module.css'
 
 /**
  * The org chart on About (DETAIL 2 / G-02; owner: home-about): the usual
- * chain against ours, one wire long. Static drawings in two states, switched
- * by a two-button toggle (aria-pressed); the server renders "ours", so no-JS
- * and still-tier visitors see the point. Labels are HTML over the boxes.
+ * chain against ours, one wire long. Each role is a card with a scale figure
+ * over its title; the titles are HTML in the cards' title strips. Static
+ * drawings in two states, switched by a two-button toggle (aria-pressed); the
+ * server renders "ours", so no-JS and still-tier visitors see the point.
  */
 
 const FAMILIES: readonly LayoutId[] = ['wide', 'tall']
@@ -23,14 +23,16 @@ const INITIAL = 'ours'
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
 
 export function OrgChartFigure() {
-  const [, , ww, wh] = g.viewBox.wide
-  const [, , tw, th] = g.viewBox.tall
+  const W = ORG_LAYOUT.wide
+  const T = ORG_LAYOUT.tall
+  const [, , ww, wh] = W.viewBox
+  const [, , tw, th] = T.viewBox
   const labels = copy.labels as Readonly<Record<string, string>>
   const revs = copy.revs as Readonly<Record<string, string>>
   const src = (f: string) => drawingSrc('org-chart', f)
-  const nodeLabels = g.nodes.map((n) => {
-    const rw = nodeRect(n, 'wide')
-    const rt = nodeRect(n, 'tall')
+  const titles = ORG_CARDS.filter((c) => labels[c.id]).map((c) => {
+    const rw = W.title(W.card(c.slot))
+    const rt = T.title(T.card(c.slot))
     const style = {
       '--lx': pct(rw.x, ww),
       '--ly': pct(rw.y, wh),
@@ -40,30 +42,55 @@ export function OrgChartFigure() {
       '--lyt': pct(rt.y, th),
       '--lwt': pct(rt.w, tw),
       '--lht': pct(rt.h, th),
+      // the card's place in the drawing's order, so its title arrives with it
+      '--i': c.slot * 2,
     } as CSSProperties
-    const only = n.revs?.length === 1 ? n.revs[0] : undefined
+    const only = c.revs.length === 1 ? c.revs[0] : undefined
     return (
-      <span key={n.id} className={s.node} data-show={only} style={style}>
-        {labels[n.label] ?? n.label}
+      <span key={c.id} className={s.node} data-show={only} data-card={c.id} style={style}>
+        {labels[c.id] ?? c.id}
       </span>
     )
   })
-  const notes = (g.notes ?? []).flatMap((n) => {
-    const text = (copy.notes as Readonly<Record<string, string>> | undefined)?.[n.key]
-    if (!text) return []
-    const style = {
-      '--lx': pct(n.at[0], ww),
-      '--ly': pct(n.at[1], wh),
-      '--lxt': pct((n.atTall ?? n.at)[0], tw),
-      '--lyt': pct((n.atTall ?? n.at)[1], th),
-      rotate: `${n.rotate}deg`,
-    } as CSSProperties
-    return [
-      <span key={n.key} className={s.note} data-show="chain" style={style}>
-        {text}
-      </span>,
-    ]
-  })
+  // the dimension's label, centred on the dimension line (ours)
+  const dw = wireDim('wide', ...wireEnds('wide')).mid
+  const dt = wireDim('tall', ...wireEnds('tall')).mid
+  const wire = labels.wire ? (
+    <span
+      key="wire"
+      className={s.dim}
+      data-show="ours"
+      style={
+        {
+          '--lx': pct(dw[0], ww),
+          '--ly': pct(dw[1], wh),
+          '--lxt': pct(dt[0], tw),
+          '--lyt': pct(dt[1], th),
+        } as CSSProperties
+      }
+    >
+      {labels.wire}
+    </span>
+  ) : null
+  const lost = (copy.notes as Readonly<Record<string, string>> | undefined)?.lost
+  const note = lost ? (
+    <span
+      key="lost"
+      className={s.note}
+      data-show="chain"
+      style={
+        {
+          '--lx': pct(W.note[0], ww),
+          '--ly': pct(W.note[1], wh),
+          '--lxt': pct(T.note[0], tw),
+          '--lyt': pct(T.note[1], th),
+          rotate: '-3deg',
+        } as CSSProperties
+      }
+    >
+      {lost}
+    </span>
+  ) : null
   const still = FAMILIES.flatMap((fam) =>
     ORG_REVS.map((rev) => (
       // static SVG stills from /drawings/[file]; next/image would add nothing
@@ -83,7 +110,7 @@ export function OrgChartFigure() {
     <FigureFrame
       id="org-chart"
       copy={copy}
-      layouts={{ wide: g.viewBox.wide, tall: g.viewBox.tall }}
+      layouts={{ wide: W.viewBox, tall: T.viewBox }}
       driver="input"
       initialRev={INITIAL}
       initialToggle={INITIAL}
@@ -98,8 +125,9 @@ export function OrgChartFigure() {
       still={still}
       labels={
         <>
-          {nodeLabels}
-          {notes}
+          {titles}
+          {wire}
+          {note}
         </>
       }
       controls={{

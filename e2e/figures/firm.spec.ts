@@ -89,6 +89,41 @@ for (const width of WIDTHS) {
   })
 }
 
+test('tools read as equipment; Rewired ends clean, with packets and no ghost', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto(URL)
+  const fig = page.locator('#fig-firm')
+  await fig.scrollIntoViewIfNeeded()
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const tools = await fig.locator('button[data-tool]').count()
+  // every tool box carries its glyph, in both states
+  for (const [layer, rev] of [
+    ['pencil', 'asFound'],
+    ['cad', 'rewired'],
+  ] as const) {
+    const glyphs = await fig
+      .locator(`.drawing svg.l-${layer} g[data-rev="${rev}"] path[data-part$=".glyph"]`)
+      .evaluateAll((els) => new Set(els.map((e) => e.getAttribute('data-part'))).size)
+    expect(glyphs, `${rev} glyphs`).toBe(tools)
+  }
+  await page.locator('#fig-firm [data-state-value="rewired"]').click()
+  await expect(fig).toHaveAttribute('data-toggle', 'rewired')
+  // conduits carry flanges and a packet stream
+  expect(
+    await fig.locator('.drawing svg.l-cad path[data-part$=".flange"]').count(),
+  ).toBeGreaterThan(0)
+  expect(await fig.locator('.drawing svg.l-pkt path.pk').count()).toBeGreaterThan(0)
+  // the pencil erases: no ghost under the finished drawing
+  await expect
+    .poll(() =>
+      fig
+        .locator('.drawing svg.l-pencil')
+        .first()
+        .evaluate((el) => Number(getComputedStyle(el).opacity)),
+    )
+    .toBe(0)
+})
+
 test('rendered counts are the graph counts; the table lists every hand-off', async ({ page }) => {
   await page.goto(URL)
   const fig = page.locator('#fig-firm')

@@ -5,6 +5,7 @@ import { serviceHref } from '@/lib/routes'
 import { FIRM_DETAILS, FIRM_PLACES } from '@/drawings/graphs/firm'
 import { homeFirmGraph as graph } from '@/drawings/views/home'
 import { DRAWING_FILES, drawingSrc } from '@/drawings/files'
+import { FIRM_CELL, HOME_PERSON_K, HOME_TALL_HIDDEN } from '@/drawings/views/home'
 import { LazyDrawing } from '@/figures/LazyDrawing.client'
 import { InlineDrawing } from '@/figures/InlineDrawing'
 import { fill, schematicCopy } from './copy'
@@ -90,6 +91,9 @@ export async function FirmSchematic({
       rewiredLabels={FIRM_REWIRED_LABELS}
       places={FIRM_PLACES}
       details={details}
+      plate={FIRM_CELL}
+      omitTall={HOME_TALL_HIDDEN}
+      personK={HOME_PERSON_K}
     />
   )
 }

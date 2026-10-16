@@ -55,6 +55,28 @@ for (const width of [390, 1280]) {
       })
       expect(out.shown).toBeGreaterThan(1)
       expect(out.bad, `${rev} @${width}`).toEqual([])
+      // every card is a person, not just a title
+      expect(
+        await fig.locator(`.drawing g[data-rev="${rev}"] g.person path`).count(),
+      ).toBeGreaterThan(0)
+      // titles, the dimension and the hand note never touch each other
+      const hits = await fig.evaluate((el) =>
+        [...el.querySelectorAll<HTMLElement>('.labels > *')]
+          .filter((l) => l.checkVisibility())
+          .map((l) => {
+            const r = l.getBoundingClientRect()
+            return { what: l.textContent ?? '', at: [r.left, r.top, r.right, r.bottom] }
+          }),
+      )
+      const overlaps: string[] = []
+      for (let i = 0; i < hits.length; i++)
+        for (let j = i + 1; j < hits.length; j++) {
+          const [a, b] = [hits[i]!.at, hits[j]!.at]
+          const x = Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!)
+          const y = Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!)
+          if (x > 0.5 && y > 0.5) overlaps.push(`${hits[i]!.what} × ${hits[j]!.what}`)
+        }
+      expect(overlaps, `${rev} @${width}: overlapping`).toEqual([])
     }
   })
 }
