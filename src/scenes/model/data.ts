@@ -627,7 +627,7 @@ const CORE = {
       { id: 'p2', symbol: 'fig.tablet', at: [152, 142] },
       { id: 'p3', symbol: 'fig.phone', at: [140, 280] },
     ],
-    person: 46,
+    person: 42,
   },
 }
 

@@ -254,7 +254,7 @@ const mod: SceneModule = {
             q.t === 'rect' ? plate([q.at[0], q.at[1], q.size[0], q.size[1]]).c : centre(p)
           // the AI reader's label below it, the valve's above its handwheel (close in plan)
           const [dx, dy, dz] =
-            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [14, 40, -24] : [0, 1, 0]
+            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [-26, 44, -34] : [0, 1, 0]
           a.position.set(cx + dx, z0 + top + dy, cz + dz)
           anchors.set(p.anchor, a)
           three.add(a)
@@ -349,7 +349,7 @@ const mod: SceneModule = {
         const c = makeCutout(
           { viewBox: [0, 0, 40, 72], d: sym },
           // the person at the valve is the subject of the approval: larger than the others
-          data.person * (p.id === 'p1' ? 1.6 : 1.25),
+          data.person * (p.id === 'p1' ? 2.1 : 1.6),
           p.at,
           ctx.renderer,
         )

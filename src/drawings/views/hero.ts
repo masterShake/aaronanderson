@@ -176,14 +176,18 @@ function build(family: LayoutId): Graph<FirmLabel, FirmRev> {
  * The person at the sign-off valve is the subject there and stands HERO_SUBJECT times taller
  * (75 u, 12% of the frame).
  */
-export const HERO_PERSON: Readonly<Record<LayoutId, number>> = { wide: 60, tall: 46 }
+export const HERO_PERSON: Readonly<Record<LayoutId, number>> = { wide: 60, tall: 42 }
 export const HERO_SUBJECT = 1.25
 
-/** As found on the line; rewired at the valve, at estimating and on site. */
+/**
+ * As found on the line (at: fraction along it, wide and tall); rewired at the valve, at
+ * estimating and on site. In the tall sketch the on-site carrier walks further down its line,
+ * so the two clouds in the centre column never touch.
+ */
 const PEOPLE_PLAN = [
-  { id: 'p1', on: 'h02', at: 0.62, symbol: 'fig.at-valve' },
-  { id: 'p2', on: 'h05', at: 0.5, symbol: 'fig.tablet' },
-  { id: 'p3', on: 'h04', at: 0.5, symbol: 'fig.phone' },
+  { id: 'p1', on: 'h02', at: [0.62, 0.62], symbol: 'fig.at-valve' },
+  { id: 'p2', on: 'h05', at: [0.5, 0.5], symbol: 'fig.tablet' },
+  { id: 'p3', on: 'h04', at: [0.5, 0.8], symbol: 'fig.phone' },
 ] as const
 
 /**
@@ -200,7 +204,7 @@ function people(g: Graph<FirmLabel, FirmRev>, family: LayoutId): ScaleFigure<Fir
   return PEOPLE_PLAN.flatMap((p) => {
     const line = found.get(p.on)
     if (!line) return []
-    const q = pointAlong(line.pts, p.at)
+    const q = pointAlong(line.pts, p.at[family === 'wide' ? 0 : 1])
     return [
       {
         id: p.id,

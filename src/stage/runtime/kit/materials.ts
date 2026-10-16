@@ -22,12 +22,14 @@ export const TUNING = {
   aluminum: {
     physical: {
       color: COLOR.alu500,
-      metalness: 1,
+      // W4: a little diffuse under the brushed metal, so the faces turned from the key light
+      // read as aluminum in studio light rather than near-black
+      metalness: 0.8,
       roughness: 0.4,
       anisotropy: 0.85,
       envMapIntensity: 0.8,
     },
-    standard: { color: COLOR.alu500, metalness: 1, roughness: 0.44, envMapIntensity: 0.8 },
+    standard: { color: COLOR.alu500, metalness: 0.8, roughness: 0.44, envMapIntensity: 0.8 },
   },
   orange: {
     physical: {

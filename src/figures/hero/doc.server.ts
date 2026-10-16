@@ -578,7 +578,12 @@ function build(family: Fam): HeroBuild {
     const at = PLAN_LABELS[family][key]!
     return [{ key, at, scan: crossAt(p.rewired.at[0], W) + 120 }]
   })
-  const notes = HERO_NOTES[family].map((n) => ({ key: n.key, at: n.at, scan: crossAt(n.at[0], W) }))
+  // a note goes as the scan bar reaches its left end (half a note: wide ~150 u, tall ~110 u)
+  const notes = HERO_NOTES[family].map((n) => ({
+    key: n.key,
+    at: n.at,
+    scan: crossAt(n.at[0] - (family === 'wide' ? 150 : 110), W),
+  }))
   const reportNode = g.nodes.find((n) => n.id === 'report')!
   const rr = nodeRect(reportNode, 'wide')
 
