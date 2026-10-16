@@ -116,11 +116,23 @@ function straights(p: Prim): { a: Pt; b: Pt; ca: boolean; cb: boolean }[] | null
   const n = pts.length
   if (n < 2) return null
   const segs = closed ? n : n - 1
+  // a corner overshoots only when it is near square (60°–120°): arrow tips and folds stay crisp
+  const square = (v: number) => {
+    const p = pts[(v - 1 + n) % n]!
+    const q = pts[v % n]!
+    const r = pts[(v + 1) % n]!
+    const ax = q[0] - p[0]
+    const ay = q[1] - p[1]
+    const bx = r[0] - q[0]
+    const by = r[1] - q[1]
+    const l = Math.hypot(ax, ay) * Math.hypot(bx, by)
+    return l > 0 && Math.abs((ax * bx + ay * by) / l) < 0.5
+  }
   return Array.from({ length: segs }, (_, j) => ({
     a: pts[j]!,
     b: pts[(j + 1) % n]!,
-    ca: closed || j > 0,
-    cb: closed || j < n - 2,
+    ca: (closed || j > 0) && square(j),
+    cb: (closed || j < n - 2) && square(j + 1),
   }))
 }
 

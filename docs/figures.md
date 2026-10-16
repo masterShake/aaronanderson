@@ -150,15 +150,75 @@ Labels (children of `.labels`) are positioned by their top-left corner:
 
 ## Symbols and people
 
-- `symbols/library.ts`: tool, conduit, hand-carry (arrowhead and paper glyph), packet, AI
-  reader, HV valve, tolerance gauge, data tank, monitor, revision and HOLD clouds, Δ tag,
-  detail bubble. Each is geometry only; `partsNodes(parts, { variant: 'clean' | 'pencil' })`
-  draws either variant.
-- `symbols/people.ts`: architect's scale figures on one skeleton (40 × 72 artboard), varied only
-  by joint angles: standing, carrying paper, at the valve, at a desk with a stamp, walking,
-  survey, receive, tablet, phone, and hard-hat variants. Always pencil, paper-filled, 40 u tall
-  in firm drawings. No walk cycles.
+- `symbols/library.ts`: tool, conduit (flanged ends), flange, hand-carry (arrowhead and paper
+  glyph), packet, AI reader (housing, lens, reticle, orange ring), HV valve (bow-tie body with
+  end flanges, bonnet, stem, spoked handwheel), tolerance gauge (bezel, ticks, band, needle on
+  a hub), data tank (head seams, nozzle, sight glass on fittings, level), monitor (bezel,
+  ticks, needle), revision and HOLD clouds, Δ tag, detail bubble. Each is geometry only;
+  `partsNodes(parts, { variant: 'clean' | 'pencil' })` draws either variant. W4 changed how
+  they look, never their extents or anchors.
+- `symbols/people.ts`: architect's scale figures (entourage) on one body (40 × 72 artboard,
+  feet at y = 72), varied only by joint angles: standing, carrying paper, at the valve, at a
+  desk with a stamp, walking, survey, receive, tablet, phone, and hard-hat variants. Eight
+  heads tall; each limb is one closed outline (no joint seams); filled paper under a clean
+  `p-035` outline (`f-tint`, an opaque light tint of the panel, is available for a toned
+  silhouette). People parts carry `clean: true`, so
+  the pencil renderer draws them clean too: one style in pencil, CAD and on the iso sheet.
+  40 u tall in firm drawings. No walk cycles.
 - `placeSymbol(id, at, { k })` places a symbol (people by their feet).
+
+### Tool glyphs (opt in)
+
+A tool box can show what it is: an envelope (`inbox`), a spreadsheet grid (`sheet`), a phone
+(`phone`), a ledger (`ledger`), a chart sheet (`chart`), a card file (`cards`), Gantt bars
+(`gantt`), a folder (`folder`), a clock (`timesheet`) or a pay slip (`payroll`). Glyphs are
+drawn as outlines with fine rules (never solid bars), and never change a box's size.
+
+- Graphs: set `tool: ToolKind` on a node, and pass `glyphs` to `graphDoc` (or through your own
+  call):
+
+  ```ts
+  graphDoc(g, rev, family, { medium: 'cad', glyphs: true }) // each node's own `tool`
+  graphDoc(g, rev, family, { medium: 'cad', glyphs: 'auto' }) // also infer from id or label key
+  graphDoc(g, rev, family, { glyphs: 'auto', glyphPlace: 'corner' }) // 'right' | 'center' | 'corner'
+  ```
+
+  Default is off (today's bare boxes). `'right'` (default) sits beside a left-aligned label;
+  check your longest label at the family's minimum width with `labelCollisions` before
+  turning it on. `toolKindOf(id, labelKey)` shows what `'auto'` picks.
+
+- Anything else: `toolPrims(rect, kind, place)` returns `{ box, outline, rules }`; draw `box`
+  with the outline pen (`050` CAD, `035` pencil), `outline` with `035` (`025` pencil, preset
+  `detail`) and `rules` with `018`. `toolParts(kind)` gives the same as symbol parts
+  (180 × 64, like `sym.tool`).
+- CAD conduits get a flange pair 7 u in from each end (`flanges: false` turns it off).
+
+### Pens
+
+Three weights, used the same way everywhere: outlines `050` (conduits `070`), details `035`,
+hatch, rules, dimension and leader lines `018`/`025`. Pencil uses `035` for outlines and `025`
+for details. Pencil presets `box`, `line` and `detail` draw one confident stroke per straight,
+overshooting corners slightly and easing the bow off on long runs.
+
+### Labels: reveal rule and collision check
+
+- **Reveal:** add `data-reveal` to a label and give it the moment its object is drawn:
+  `--reveal-at` (scroll progress 0–1, compared with `--p`) or `--reveal-ms` (ms into the play,
+  for time-driven figures). The label fades in over 4% of the scrub, or 240 ms after that
+  moment. Still tier, reduced motion and a finished time-driven play show every label.
+- **Collisions:** `lib/collide.ts` `labelCollisions({ labels, edges, frame }, { pad })` returns
+  every label/label, label/edge and label/frame overlap. Labels are boxes
+  `{ id, x, y, w, h, owner? }` (`owner`: the edge id of the object the label sits inside);
+  edges come from `edgesOf(id, prims)` or DOM rects. Use one coordinate space (viewBox units,
+  or CSS px from `getBoundingClientRect`). Pure, so it runs in unit tests and in Playwright.
+
+### Title strip
+
+The title is one line at any width: `detail · title`, then the tag as a small square stamp
+(`[data-stamp]`), then the rev chip and the controls (which take a second row on narrow
+figures rather than squeeze the title). When space runs out the stamp trims
+first, the detail number leaves below 720 px (screen readers still hear it), and the name
+truncates last. Keep tags short (`EXAMPLE`, `SAMPLE`).
 
 ## The example firm and the schematic
 
@@ -178,6 +238,9 @@ Labels (children of `.labels`) are positioned by their top-left corner:
   `KEYPLAN_HIGHLIGHT` per sheet).
 
 ## The harness
+
+`/kit/fig` (preview only) is the kit showcase: every scale figure, tool glyph and symbol in
+pencil on paper and CAD on blueprint, plus a small iso print, each tile captioned with its id.
 
 `/kit/fig/{FigureId}` (preview only; 404 in production) renders any figure on its own sheet.
 Add `?tier=still|svg|webgl` and `?state={rev}`. The firm inlines its layers until

@@ -16,10 +16,11 @@
   background: var(--c-paper);
 }
 
-/* The title strip is one line at every width (_finish A3, M5). */
+/* The title is one line at every width (_finish A3, M5); on narrow figures the controls take
+   a second row rather than squeeze it. */
 .strip {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-2) var(--s-3);
   min-height: 48px;
@@ -29,11 +30,11 @@
 
 .title {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 24ch;
   align-items: center;
   gap: var(--s-2);
   min-width: 0;
-  max-width: none;
+  max-width: 100%;
   margin: 0;
   font-family: var(--ff-mono);
   font-size: var(--fs-label);
@@ -97,8 +98,10 @@
 
 .controls {
   display: flex;
-  flex: none;
-  flex-wrap: nowrap;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  max-width: 100%;
+  margin-inline-start: auto;
   align-items: center;
   gap: var(--s-2);
 }

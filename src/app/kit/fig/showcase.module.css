@@ -25,6 +25,16 @@
 
 .art {
   aspect-ratio: 1;
+  overflow: clip;
+}
+
+/* the iso print is a small plant: give it room */
+[data-showcase-group='iso'] .grid {
+  grid-template-columns: minmax(0, 480px);
+}
+
+[data-showcase-group='iso'] .art {
+  aspect-ratio: 480 / 300;
 }
 
 .art > svg {

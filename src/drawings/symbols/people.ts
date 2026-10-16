@@ -10,7 +10,8 @@ import type { Part, Prim, Pt, SymbolDef, SymbolId } from '../types'
  *
  * Each limb is ONE closed outline (a tapered capsule bent at the joint, round
  * at both ends), so there are no joint seams, diamonds or stick limbs. Every
- * shape is filled with a light tint of its panel (`f-tint`) under a clean
+ * shape is filled paper (a figure may restyle it to `f-tint`, an opaque light
+ * tint of its panel) under a clean
  * outline, drawn far arm, far leg, torso, near leg, head, near arm, props.
  * No faces, hair, gendered clothes or smiles; never colored. The pencil
  * renderer draws people clean (the 'person' preset), so one figure reads the
@@ -135,7 +136,7 @@ const part = (id: string, prims: readonly Prim[], fill = true): Part => ({
   prims,
   pen: '035',
   ink: 'pencil',
-  fill: fill ? 'tint' : 'none',
+  fill: fill ? 'paper' : 'none',
   clean: true,
 })
 
