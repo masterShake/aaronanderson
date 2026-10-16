@@ -321,9 +321,43 @@ function doc(family: LayoutId, still: boolean): SvgDoc {
     cad.push(group('list', kids))
   }
 
-  // cell 5: the report printer, and the owner's report it prints
+  // cell 5: the report printer, the last page it printed, and the owner's report it prints
   {
     const [x, y, w, h] = l.printer
+    // last week's page, already out and a little skewed in the tray, so the cell is never an
+    // empty slot: a header rule, written lines and a small bar row (the new report, with its
+    // orange tab, slides out over it)
+    const off = big ? 6 : 4
+    const [lx, ly, lw, lh] = l.card
+    const px0 = lx + off
+    const py0 = ly + off * 0.5
+    const P = (u: number, v: number): Pt => [px0 + lw * u, py0 + lh * v]
+    cad.push(
+      group('report.last', [
+        clean([rect([px0, py0, lw, lh])], 'report.last', 5, 'p-035 i-asphalt f-paper'),
+        clean([line(P(0.1, 0.16), P(0.62, 0.16))], 'report.last.head', 5, 'p-050 i-asphalt'),
+        clean(
+          [0.3, 0.42, 0.54].map((v, k) => line(P(0.1, v), P(k === 2 ? 0.58 : 0.86, v))),
+          'report.last.lines',
+          5,
+          'p-018 i-asphalt',
+        ),
+        clean(
+          [0.4, 0.65, 0.5, 0.8, 0.7].map((v, k) =>
+            rect([
+              px0 + lw * (0.12 + k * 0.15),
+              py0 + lh * (0.9 - 0.22 * v),
+              lw * 0.08,
+              lh * 0.22 * v,
+            ]),
+          ),
+          'report.last.bars',
+          5,
+          'p-018 i-asphalt',
+        ),
+        clean([line(P(0.08, 0.9), P(0.9, 0.9))], 'report.last.base', 5, 'p-018 i-asphalt'),
+      ]),
+    )
     cad.push(
       group('printer', [
         clean(

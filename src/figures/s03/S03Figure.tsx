@@ -115,33 +115,7 @@ export function S03Figure() {
       stage={{ scene: 's03', load: 'near', mode: 'scrub' }}
       vars={VARS}
       textVars={S03_COUNTS}
-      controls={{
-        replay: true,
-        playDrawing: true,
-        motion: true,
-        extra: (
-          <>
-            <span className={s.chip}>
-              <span data-when="running">{plain(ui.runningChip)}</span>
-              <span data-when="held">{plain(ui.heldChip)}</span>
-              <span data-when="approved">{plain(ui.approvedChip)}</span>
-            </span>
-            <button
-              type="button"
-              data-action="approve"
-              aria-disabled="true"
-              aria-describedby="fig-s03-wait"
-              className={`${frame.button} ${s.approve}`}
-            >
-              <span data-when="approve">{controls.approve}</span>
-              <span data-when="again">{controls.runAnother}</span>
-            </button>
-            <span id="fig-s03-wait" className={s.wait}>
-              {plain(ui.waiting)}
-            </span>
-          </>
-        ),
-      }}
+      controls={{ replay: true, playDrawing: true, motion: true }}
       labels={<Labels />}
       drawing={
         <LazyDrawing
@@ -177,6 +151,28 @@ export function S03Figure() {
         </>
       }
     >
+      {/* The sign-off bar, under the figure: Approve, the batch's status and the waiting
+          note. The title strip keeps one row (the title and the motion switch). */}
+      <div className={s.signoff}>
+        <button
+          type="button"
+          data-action="approve"
+          aria-disabled="true"
+          aria-describedby="fig-s03-wait"
+          className={`${frame.button} ${s.approve}`}
+        >
+          <span data-when="approve">{controls.approve}</span>
+          <span data-when="again">{controls.runAnother}</span>
+        </button>
+        <span className={s.chip}>
+          <span data-when="running">{plain(ui.runningChip)}</span>
+          <span data-when="held">{plain(ui.heldChip)}</span>
+          <span data-when="approved">{plain(ui.approvedChip)}</span>
+        </span>
+        <span id="fig-s03-wait" className={s.wait}>
+          {plain(ui.waiting)}
+        </span>
+      </div>
       <S03Controller liveHeld={fill(copy.live.held)} liveApproved={fill(copy.live.approved)} />
     </FigureFrame>
   )

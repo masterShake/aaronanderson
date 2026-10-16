@@ -11,7 +11,7 @@ import { site } from '../site'
 export const s03Figure = {
   id: 's03',
   detail: 'DETAIL 3 / S-03',
-  title: 'THE READING MACHINE',
+  title: 'READING MACHINE',
   tag: site.exampleTag,
   caption: 'Documents go in, labeled data comes out, and anything uncertain waits for a person.',
   longDescription: [

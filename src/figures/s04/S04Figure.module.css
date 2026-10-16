@@ -236,8 +236,8 @@
 /* A tile's name goes with its pencil, under the scan: gone before the panel's names come,
    so no tile name ever sits on a finished instrument. */
 .tlt {
-  --a: calc(var(--s04-scan-a) + 0.06);
-  --b: var(--s04-scan-b);
+  --a: calc(var(--s04-scan-a) + 0.01);
+  --b: calc(var(--s04-scan-a) + 0.07);
   opacity: calc(var(--drawn) * (1 - var(--e)));
 }
 
@@ -424,6 +424,11 @@
 
 .s04:global([data-phase='done']) .runAgain {
   display: inline-block;
+}
+
+/* Run again takes Replay's place when the runs are done, so the strip never gains a row. */
+.s04:global([data-phase='done']) :global([data-action='replay']) {
+  display: none;
 }
 
 @media (pointer: coarse) {

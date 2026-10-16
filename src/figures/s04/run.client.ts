@@ -145,6 +145,12 @@ export function runS04(
     if (p < S04.handoffP) {
       if (running || done) resetAll()
     } else if (p >= S04.motionFromP && !running && !done && pinned === null) startLoops()
+    else if (pinned !== null) {
+      // a pinned preview past motionFromP shows the end state: readings and the report out
+      const end = p >= S04.motionFromP
+      apply(null, end ? 1 : 0)
+      settle(end)
+    }
   }
 
   let stopPlay: (() => void) | null = null

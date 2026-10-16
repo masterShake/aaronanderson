@@ -261,6 +261,7 @@ export function s04Mech(
     }
     return -1
   })
-  const card = Math.min(1, Math.max(0, (ms - T.cardA) / (T.cardB - T.cardA)))
+  // the report prints once per run, in the first loop, and stays out (it never pops back in)
+  const card = loop > 0 ? 1 : Math.min(1, Math.max(0, (ms - T.cardA) / (T.cardB - T.cardA)))
   return { loop, done, rise, settled: done || loop > 0 || ms >= T.settleAt, card: done ? 1 : card }
 }

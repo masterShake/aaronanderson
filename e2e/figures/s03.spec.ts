@@ -195,6 +195,42 @@ for (const [family, width] of [
     expect(guard.errors).toEqual([])
   })
 
+test('p = 0 shows the whole pencil machine, never an empty panel', async ({ page, guard }) => {
+  await gotoTier(page, '/kit/fig/s03?p=0', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const sketch = await fig.evaluate((el) =>
+    [...el.querySelectorAll<SVGPathElement>('svg.l-pencil g[data-rev="sketch"] path')].map((p) => ({
+      o: Number(getComputedStyle(p).opacity),
+      off: parseFloat(getComputedStyle(p).strokeDashoffset),
+    })),
+  )
+  expect(sketch.length).toBeGreaterThan(0)
+  for (const s of sketch) {
+    expect(s.o).toBe(1)
+    expect(s.off).toBeLessThanOrEqual(0.001)
+  }
+  expect(guard.errors).toEqual([])
+})
+
+test('the title strip is one row; Approve sits under the figure with a solid outline', async ({
+  page,
+}) => {
+  test.skip(test.info().project.name !== 'desktop', 'desktop project only')
+  await page.setViewportSize({ width: 1000, height: 900 })
+  await gotoTier(page, '/kit/fig/s03', 'svg')
+  await page.addStyleTag({ content: `${FIG}{inline-size:532px}` })
+  const fig = page.locator(FIG)
+  await atHeld(page, fig)
+  const strip = await fig.locator('.strip').boundingBox()
+  expect(strip!.height).toBeLessThanOrEqual(49)
+  const btn = approveBtn(page)
+  const box = await fig.locator('.box').boundingBox()
+  expect((await btn.boundingBox())!.y).toBeGreaterThan(box!.y + box!.height)
+  await expect(btn).toHaveCSS('border-top-style', 'solid')
+})
+
 for (const tier of ['svg', 'still'] as const)
   test(`axe on the ${tier} tier, held and approved`, async ({ page, guard }) => {
     await gotoTier(page, '/kit/fig/s03', tier)
