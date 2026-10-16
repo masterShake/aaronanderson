@@ -430,11 +430,13 @@
      --reveal-ms  ms from the start of the play (time-driven figures)
    The label fades in over 4% of the scrub, or 240 ms after its object's draw-on ends. The
    finished frame (still tier, reduced motion, done) always shows every label. */
-.fig[data-driver='scroll'] .labels > [data-reveal] {
+.fig[data-driver='scroll'] .labels > [data-reveal]:not([data-reveal='free']) {
   opacity: clamp(0, (var(--p, 1) - var(--reveal-at, 0)) * 25, 1);
 }
 
-.fig[data-phase='playing']:not([data-driver='scroll']) .labels > [data-reveal] {
+.fig[data-phase='playing']:not([data-driver='scroll'])
+  .labels
+  > [data-reveal]:not([data-reveal='free']) {
   animation: fig-label-reveal 240ms cubic-bezier(0.65, 0, 0.35, 1) both;
   animation-delay: calc(var(--reveal-ms, 0) * 1ms);
 }
@@ -457,6 +459,14 @@
     opacity: 1;
     animation: none;
   }
+}
+
+/* The default rule (W4b): a label whose object is still drawing on waits, hidden, until the
+   object's draw-on completes. LabelReveal (LazyDrawing.client.tsx) finds each label's object
+   from the drawing and sets data-waiting; without JS nothing waits. Opt out with data-reveal
+   (explicit timing above) or data-reveal="free". */
+.fig.fig .box > .labels > [data-waiting] {
+  visibility: hidden;
 }
 
 @container fig (width < 560px) {

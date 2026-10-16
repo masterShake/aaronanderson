@@ -310,6 +310,138 @@ test('every figure title strip is one line at 390 and 1280, and nothing in it ov
   }
 })
 
+/** The strip's visible parts grouped into rows (parts whose boxes overlap vertically). */
+const stripRows = (page: Page, i: number) =>
+  page
+    .locator('figure[data-figure] > .strip')
+    .nth(i)
+    .evaluate((el) => {
+      const controls = el.querySelector('.controls')
+      const parts = [...el.children]
+        .filter((c) => c !== controls)
+        .concat(controls ? [...controls.children] : [])
+        .map((p) => ({ r: p.getBoundingClientRect(), v: getComputedStyle(p).visibility }))
+        .filter(({ r, v }) => r.width > 1 && r.height > 1 && v !== 'hidden')
+        .sort((a, b) => a.r.top - b.r.top)
+      const rows: { top: number; bottom: number }[] = []
+      for (const { r } of parts) {
+        const last = rows[rows.length - 1]
+        if (last && r.top < last.bottom - 2) last.bottom = Math.max(last.bottom, r.bottom)
+        else rows.push({ top: r.top, bottom: r.bottom })
+      }
+      const s = el.getBoundingClientRect()
+      const cs = getComputedStyle(el)
+      const bottom = s.bottom - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth)
+      const top = s.top + parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth)
+      return {
+        figure: el.closest('figure')!.getAttribute('data-figure')!,
+        rows: rows.length,
+        // space under the last row beyond the space over the first (a short strip centres its
+        // one row in the minimum height): an empty band if it is more than a few px
+        band: Math.round(
+          bottom - (rows[rows.length - 1]?.bottom ?? bottom) - ((rows[0]?.top ?? top) - top),
+        ),
+      }
+    })
+
+test('title strips: one row on wide figures, at most a compact second row, never an empty band', async ({
+  page,
+}) => {
+  for (const width of [390, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const path of ['/', '/services', '/about', '/how-it-works']) {
+      await page.goto(`${path}?tier=svg`)
+      const n = await page.locator('figure[data-figure] > .strip').count()
+      for (let i = 0; i < n; i++) {
+        const st = await stripRows(page, i)
+        const where = `${path} ${st.figure} strip at ${width}`
+        // S-03's three controls (Replay, Pause motion, Approve batch) are wider than its strip
+        // on phones and touch screens, so they take two rows of their own (S-03's lane, R2)
+        if (st.figure === 's03') {
+          expect(st.rows, where).toBeLessThanOrEqual(3)
+          expect(st.band, where).toBeLessThanOrEqual(4)
+          continue
+        }
+        expect(st.rows, where).toBeLessThanOrEqual(2)
+        expect(st.band, where).toBeLessThanOrEqual(4)
+        // wide figures whose parts fit in one row share it (the title no longer fills the row)
+        if (
+          ['firm', 'valve', 'ticket', 'strata', 'after-contact'].includes(st.figure) &&
+          width >= 1280
+        )
+          expect(st.rows, where).toBe(1)
+      }
+    }
+  }
+})
+
+test('labels wait for their objects: none shows over a box still drawing on', async ({ page }) => {
+  // a time-driven figure frozen mid-play, and a scrubbed one set mid-scrub (the hero times its
+  // own labels to its scan; hero.spec covers it)
+  for (const [path, id, moments] of [
+    ['/how-it-works', 'valve', [300, 600, 1000, 1700]],
+    ['/kit/fig/s02', 's02', [0.05, 0.1, 0.15, 0.3]],
+  ] as const) {
+    await page.goto(`${path}?tier=svg`)
+    const fig = page.locator(`#fig-${id}`)
+    await fig.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(500)
+    for (const v of moments) {
+      await page.evaluate(
+        ({ id, v }) => {
+          if (v <= 1) {
+            document.getElementById(`fig-${id}`)!.style.setProperty('--p', String(v))
+            return
+          }
+          for (const a of document.getAnimations()) {
+            a.pause()
+            a.currentTime = v
+          }
+        },
+        { id, v },
+      )
+      const ms = v
+      await page.waitForTimeout(120)
+      const early = await fig.evaluate((f) => {
+        // closed draw-on outlines still drawing, in client px
+        const open = [...f.querySelectorAll<SVGPathElement>('.drawing svg path.draw')]
+          .filter((p) => (parseFloat(getComputedStyle(p).strokeDashoffset) || 0) > 0.02)
+          .filter((p) =>
+            (p.parentElement as Element & { checkVisibility(o?: object): boolean }).checkVisibility(
+              { opacityProperty: true, visibilityProperty: true },
+            ),
+          )
+          .filter((p) => {
+            const d = p.getAttribute('d') ?? ''
+            return (
+              /[Zz]\s*$/.test(d) ||
+              p.getPointAtLength(0).x === p.getPointAtLength(p.getTotalLength()).x
+            )
+          })
+          .map((p) => p.getBoundingClientRect())
+        return [...f.querySelectorAll<HTMLElement>('.box > .labels > *')]
+          .filter((l) => {
+            const cs = getComputedStyle(l)
+            const r = l.getBoundingClientRect()
+            if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05 || !r.width) return false
+            const cx = (r.left + r.right) / 2
+            const cy = (r.top + r.bottom) / 2
+            return open.some(
+              (b) =>
+                b.width * b.height < 40000 &&
+                cx > b.left &&
+                cx < b.right &&
+                cy > b.top &&
+                cy < b.bottom,
+            )
+          })
+          .map((l) => l.textContent)
+      })
+      expect(early, `${id} at ${ms} ms`).toEqual([])
+    }
+  }
+})
+
 test('screenshots of the firm and hero harness at 390 and 1280', async ({ page, isMobile }) => {
   test.skip(isMobile, 'taken once, from the desktop project')
   const dir = process.env.ARTIFACTS_DIR

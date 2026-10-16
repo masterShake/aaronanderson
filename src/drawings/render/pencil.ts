@@ -92,6 +92,42 @@ export function splitMoves(d: string): string[] {
     .filter((s) => s.length > 1)
 }
 
+const startOf = (d: string): Pt | null => {
+  const m = /^M\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/.exec(d)
+  return m ? [Number(m[1]), Number(m[2])] : null
+}
+
+const endOf = (d: string): Pt | null => {
+  const m = /(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/.exec(d)
+  return m ? [Number(m[1]), Number(m[2])] : null
+}
+
+/**
+ * Subpaths that continue where the last one ended join into one path (W4b, the inline
+ * budget): a box's four sides or a cloud's scallops become one stroke, drawn on in order like
+ * one pen line. A subpath that starts anywhere else keeps its own path, since dashes restart
+ * per subpath. Returns each joined path with the number of subpaths in it.
+ */
+export function joinContinuous(ds: readonly string[]): { d: string; n: number }[] {
+  const out: { d: string; n: number }[] = []
+  for (const d of ds) {
+    const last = out[out.length - 1]
+    const end = last ? endOf(last.d) : null
+    const start = startOf(d)
+    if (
+      last &&
+      end &&
+      start &&
+      Math.abs(end[0] - start[0]) < 0.05 &&
+      Math.abs(end[1] - start[1]) < 0.05
+    ) {
+      last.d += d.replace(/^M\s*-?[\d.]+[\s,]+-?[\d.]+\s*/, '')
+      last.n++
+    } else out.push({ d, n: 1 })
+  }
+  return out
+}
+
 /** Presets drawn as straight segments with overshoot (see kit/rough.ts). */
 const STRAIGHT: ReadonlySet<PresetId> = new Set(['box', 'line', 'detail'])
 
@@ -192,7 +228,7 @@ export function pencil(prims: readonly Prim[], o: PencilOptions): readonly Strok
     // each pass covers the whole primitive once; share its length among the subpaths of a pass
     const passes = opts.disableMultiStroke ? 1 : 2
     const len = (primLength(p) * passes) / Math.max(1, ds.length)
-    for (const d of ds) out.push({ d, len: Math.round(len * 100) / 100 })
+    for (const j of joinContinuous(ds)) out.push({ d: j.d, len: Math.round(len * j.n * 100) / 100 })
   })
   return out
 }

@@ -81,6 +81,32 @@ test('rendering the same graph twice gives byte-identical strings', () => {
   expect(toSvgString(isoPrintDoc(model))).toBe(toSvgString(isoPrintDoc(model)))
 })
 
+test('compact output: continuous pencil subpaths join; iso cylinders are arcs (W4b)', () => {
+  // a cloud-preset box is one closed pen line, its length the whole perimeter
+  const box = pencil([{ t: 'rect', at: [0, 0], size: [100, 50] }], { seed: 42, preset: 'cloud' })
+  expect(box.length).toBe(1)
+  expect(box[0]!.d.match(/M/g)?.length).toBe(1)
+  expect(box[0]!.len).toBeCloseTo(300, 0)
+  // straight presets keep one path per overshooting side
+  expect(
+    pencil([{ t: 'rect', at: [0, 0], size: [100, 50] }], { seed: 42, preset: 'box' }).length,
+  ).toBeGreaterThanOrEqual(4)
+  const tank = isoPrintDoc(model).groups[0]!.children.filter(
+    (n): n is Extract<SvgNode, { el: 'path' }> => n.el === 'path' && n.part === 't',
+  )
+  // the side band and the top, each drawn with two arcs and no facets
+  expect(tank.length).toBe(2)
+  for (const n of tank) {
+    expect(n.d.match(/A/g)?.length).toBe(2)
+    expect(n.d.match(/L/g)?.length ?? 0).toBeLessThanOrEqual(1)
+    // radii and flags joined by commas, the end point a plain "x y" pair
+    expect(n.d).toMatch(/A[\d.]+,[\d.]+,0,0,[01],[\d.-]+ [\d.-]+/)
+  }
+  expect(isoPrintDoc(model).groups[0]!.children.every((n) => n.el !== 'path' || n.i === 0)).toBe(
+    true,
+  )
+})
+
 // spelled in two parts so `grep -rn` for the property over src/ finds only real uses
 const NON_SCALING = ['vector', 'effect'].join('-')
 

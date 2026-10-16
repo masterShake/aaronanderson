@@ -25,6 +25,14 @@ render/index.ts docsBuilder()           the same files from any SvgDoc factory (
 - **Deterministic:** every roughjs call gets a fresh options object with a fixed non-zero seed
   (`seedFrom(figure:element)`, FNV-1a). Rendering the same graph twice is byte-identical
   (unit test).
+- **Compact (W4b, the hero's 15 KB inline budget):** `pencil()` joins roughjs subpaths that
+  continue where the last one ended (`joinContinuous`), so a box's four sides or a cloud's
+  scallops are one path that draws on like one pen line (its `len` is the sum). Straight
+  presets (`box`, `line`, `detail`) keep one path per overshooting segment. `isoPrintDoc()`
+  draws cylinders with elliptical arcs (the top as two half arcs, the side band as the base's
+  and the top's front halves) and gives the print no stagger index (`--i: 0`; it fades in as
+  one layer). An arc's radii and flags are joined by commas (`A57,33,0,0,1,514 308`), so a
+  later pass that shifts every `x y` pair moves only the end point.
 
 ## Delivery
 
@@ -202,10 +210,23 @@ overshooting corners slightly and easing the bow off on long runs.
 
 ### Labels: reveal rule and collision check
 
-- **Reveal:** add `data-reveal` to a label and give it the moment its object is drawn:
+- **Reveal, by default (W4b):** a label never shows while its object is still drawing on.
+  `LabelReveal` (in `LazyDrawing.client.tsx`; FigureFrame mounts one in every figure) finds
+  each label's object in the drawing: the smallest closed draw-on outline (`path.draw`) round
+  the label's centre, or else every draw-on path within 6 px of it, plus the rest of each
+  object found (same `data-part`). While any of them has a stroke-dashoffset above 0.02 (and
+  its layer is shown), the label carries `data-waiting` and `figures.css` hides it. It reads
+  the computed offset each frame while the figure is in view, so it follows CSS animations,
+  scroll scrubs and Web Animations with no per-figure timing. Nothing waits without JS, in
+  the still tier, under reduced motion, on a WebGL stage (the Stage places those labels) or
+  once a time-driven play is done. It cannot see objects revealed by a clip or a fade rather
+  than a draw-on (the hero's scan): time those labels yourself.
+- **Opt out:** `data-reveal="free"` on a label shows it with no wait.
+- **Explicit timing:** add `data-reveal` to a label and give it the moment its object is drawn:
   `--reveal-at` (scroll progress 0–1, compared with `--p`) or `--reveal-ms` (ms into the play,
   for time-driven figures). The label fades in over 4% of the scrub, or 240 ms after that
-  moment. Still tier, reduced motion and a finished time-driven play show every label.
+  moment. Still tier, reduced motion and a finished time-driven play show every label. A label
+  with `data-reveal` is left to this rule, not the default one.
 - **Collisions:** `lib/collide.ts` `labelCollisions({ labels, edges, frame }, { pad })` returns
   every label/label, label/edge and label/frame overlap. Labels are boxes
   `{ id, x, y, w, h, owner? }` (`owner`: the edge id of the object the label sits inside);
@@ -214,12 +235,18 @@ overshooting corners slightly and easing the bow off on long runs.
 
 ### Title strip
 
-The title is one line at any width: `detail · title`, then the tag as a small square stamp
-(`[data-stamp]`), then the rev chip and the controls (which take a second row on narrow
-figures rather than squeeze the title). The stamp shows only the tag's first word
-(`EXAMPLE`, `SAMPLE`) and never trims; the rest of the tag is screen-reader text
-(`stampParts` in `FigureFrame.tsx`). When space runs out the detail number leaves below
-800 px (screen readers still hear it), and the name truncates last.
+One row (W4b): `detail · title` and the tag as a small square stamp (`[data-stamp]`) on the
+left, the rev chip and the controls on the right. The title takes only its own width, so the
+chip and the controls share its row whenever they fit. When they do not, they wrap together
+into one compact second row (chip left, controls right; below 560 px the chip is smaller and
+the gaps tighter), with no empty band. The stamp shows only the tag's first word (`EXAMPLE`,
+`SAMPLE`) and never trims; the rest of the tag is screen-reader text (`stampParts` in
+`FigureFrame.tsx`). The detail number leaves below 800 px (screen readers still hear it). The
+name never shows an ellipsis; it wraps between words only when it alone is wider than the
+strip. If a figure's strip still takes three rows, shorten its title or its controls in the
+figure's own content (e2e: `title strips` in `e2e/drawings.spec.ts`). A control hidden with
+`visibility: hidden` still takes its place in the row: hide it so it takes none, or keep it in
+a row that is never empty.
 
 ## The example firm and the schematic
 
