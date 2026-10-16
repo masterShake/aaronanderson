@@ -11,7 +11,7 @@
  */
 
 .root {
-  --u: 1.2;
+  --u: var(--s03-uw);
   --s03-scan: calc(
     clamp(
         0,
@@ -23,7 +23,7 @@
 }
 
 .root:global([data-family='tall']) {
-  --u: 0.5;
+  --u: var(--s03-ut);
 }
 
 /* A sticky, scrubbed figure must fit the viewport: the 4:3 box is capped by its height. */
@@ -59,6 +59,10 @@
   fill: var(--c-orange);
 }
 
+.root.root :global(.drawing path.f-cyan-dim) {
+  fill: var(--c-cyan-dim);
+}
+
 /* ── 2D phases on --p ─────────────────────────────────────────────────── */
 
 /* Pencil: draws on in the sketch window, staggered per element, erased by the scan. */
@@ -81,8 +85,36 @@
   clip-path: inset(0 calc(100% - var(--s03-scan)) 0 0);
 }
 
+/* The pencil ghost lives only through the scan: gone by scan-to + .04, so nothing sketchy
+   stays under the finished section. */
 .root :global(.drawing svg.l-ghost) {
-  opacity: var(--pencil-ghost, 0.22);
+  opacity: calc(
+    var(--pencil-ghost, 0.22) * (1 - clamp(0, (var(--p, 1) - var(--s03-scan-to-p)) / 0.04, 1))
+  );
+}
+
+/* Finishing details draw on with the internals (their --i is the detail step). */
+.root :global(g[data-rev='finish'] .pv) {
+  --a: calc(var(--s03-detail-from-p) + var(--i, 0) * var(--s03-detail-stagger-p));
+  --b: calc(var(--a) + var(--s03-stroke-p));
+}
+
+.root :global(g[data-rev='finish'] path:not(.pv)) {
+  opacity: clamp(
+    0,
+    (var(--p, 1) - var(--s03-detail-from-p) - var(--i, 0) * var(--s03-detail-stagger-p)) * 40,
+    1
+  );
+}
+
+/* Leaders draw just before their labels fade in. */
+.root :global(g[data-rev='leader'] .pv) {
+  --a: calc(var(--s03-labels-from-p) - var(--s03-stroke-p));
+  --b: var(--s03-labels-from-p);
+}
+
+.root :global(g[data-rev='leader'] path:not(.pv)) {
+  opacity: clamp(0, (var(--p, 1) - var(--s03-labels-from-p)) * 40, 1);
 }
 
 /* Section lines are drawn when the scan reveals them; the internals then draw on. */
@@ -322,59 +354,120 @@
 
 /* ── Labels ───────────────────────────────────────────────────────────── */
 
+/* Labels sit in clear space (S03_LABELS): the box is transparent and only the words mask
+   the panel behind them, so a box never hides linework. */
 .root :global(.labels) > .label {
   box-sizing: border-box;
   min-inline-size: 104px;
-  max-inline-size: 128px;
+  max-inline-size: 168px;
   min-block-size: 36px;
   padding: 4px 6px;
   white-space: normal;
   overflow-wrap: normal;
-  background: color-mix(in srgb, var(--c-blueprint-deep) 88%, transparent);
   color: var(--c-label-on-deep);
   opacity: clamp(0, (var(--p, 1) - var(--s03-labels-from-p)) * 30, 1);
 }
 
+/* A label never shows before its drawing: not until the layers are in (svg tier). */
+.root:not(:global([data-layers='ready'])):not(:global([data-phase='still'])) :global(.labels) {
+  opacity: 0;
+}
+
+.text,
 .sub {
-  display: block;
+  display: table;
+  padding-inline: 2px;
+  background: var(--c-blueprint-deep);
+}
+
+.sub {
+  font-size: 0.6875rem;
   text-transform: none;
   color: var(--c-cyan-dim);
 }
 
-/* Labels that show only while the batch runs: the current document and the data card. */
-.root :global(.labels > [data-anchor^='doc.']),
-.root :global(.labels > [data-anchor='card']) {
+.section {
+  white-space: nowrap;
+}
+
+/* The tall reader label keeps one line: there is room for one under the rollers. */
+@container fig (width < 440px) {
+  .reader .sub {
+    display: none;
+  }
+}
+
+/* The hopper label's second line names the document that is running. */
+.docName {
+  display: none;
+  text-transform: uppercase;
+}
+
+.root:global([data-batch='run'][data-doc='0']) .docName[data-doc-name='0'],
+.root:global([data-batch='run'][data-doc='1']) .docName[data-doc-name='1'],
+.root:global([data-batch='run'][data-doc='2']) .docName[data-doc-name='2'] {
+  display: table;
+}
+
+/* The data card readout (and its leader) shows once a card is out. */
+.root :global(.labels > [data-anchor='card']),
+.root :global(g[data-rev='leader'] [data-part='leader.card']) {
   visibility: hidden;
 }
 
-.root:global([data-batch='run'][data-doc='0']) :global(.labels > [data-anchor='doc.invoice']),
-.root:global([data-batch='run'][data-doc='1']) :global(.labels > [data-anchor='doc.ticket']),
-.root:global([data-batch]:is([data-doc='2'], [data-batch='held']))
-  :global(.labels > [data-anchor='doc.submittal']),
 .root:global(:is([data-cards='1'], [data-cards='2'], [data-cards='3'], [data-batch='held']))
-  :global(.labels > [data-anchor='card']) {
+  :global(:is(.labels > [data-anchor='card'], g[data-rev='leader'] [data-part='leader.card'])) {
   visibility: visible;
 }
 
-.card {
+.root :global(.labels) > .tray {
+  max-inline-size: 184px;
+}
+
+/* The waiting stack in the hopper: each sheet goes as its document feeds. */
+.root:global([data-batch]) :global([data-part='stack.0']),
+.root:global(:is([data-doc='1'], [data-doc='2'], [data-batch='held']))
+  :global([data-part='stack.1']),
+.root:global(:is([data-doc='2'], [data-batch='held'])) :global([data-part='stack.2']) {
+  visibility: hidden;
+}
+
+.root :global(.labels) > .card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 8px;
+  gap: 3px 8px;
   align-items: center;
-  inline-size: 132px;
+  inline-size: 128px;
+  max-inline-size: 128px;
+  min-inline-size: 128px;
+  padding: 6px 8px;
   border: 1px solid var(--c-cyan);
+  background: var(--c-blueprint-deep);
+  font-size: 0.6875rem;
 }
 
 .cardTag {
   grid-column: 1 / -1;
+  justify-self: start;
+  padding-inline: 4px;
+  border: 1px solid var(--c-cyan-dim);
   color: var(--c-cyan-dim);
 }
 
+/* A field's value, drawn as written words (dashes on a rule), never a solid bar. */
 .bar {
   display: block;
-  block-size: 6px;
+  block-size: 5px;
   inline-size: var(--w, 60%);
-  background: var(--c-cyan);
+  border-block-end: 1px solid var(--c-cyan-dim);
+  background: repeating-linear-gradient(
+      90deg,
+      var(--c-cyan) 0 5px,
+      transparent 5px 7px,
+      var(--c-cyan) 7px 9px,
+      transparent 9px 12px
+    )
+    0 0 / 100% 2px no-repeat;
 }
 
 /* ── Strip: status chip, Approve and the waiting note ─────────────────── */
@@ -431,6 +524,19 @@
 .wait {
   font-size: var(--fs-small);
   color: var(--c-graphite);
+}
+
+/* On narrow figures the waiting note stays for screen readers (it describes the dashed
+   Approve button) but leaves the strip, which keeps the strip short. */
+@container fig (width < 560px) {
+  .wait {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .root:global([data-batch='held']) .wait {

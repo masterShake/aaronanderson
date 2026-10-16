@@ -7,6 +7,7 @@ import type { LayoutId } from '@/drawings/types'
 import { S04 } from '@/motion/timing/s04'
 import {
   S04_DIALS,
+  S04_END,
   S04_LAYOUT,
   S04_QUESTIONS,
   S04_READINGS,
@@ -44,8 +45,10 @@ function rectVars(wide: Rect, tall: Rect): CSSProperties {
   } as CSSProperties
 }
 
-/** The store's label sits left of its sight glass. */
-const storeRect = ([x, y, w, h]: Rect): Rect => [x + w * 0.04, y, w * 0.72, h]
+/** The store's label sits on the shell, between the left head seam and the sight glass. */
+const storeRect = ([x, y, w, h]: Rect): Rect => [x + h / 2 + 6, y, w * 0.8 - h / 2 - 12, h]
+/** The report's label sits under the card's orange tab, above its drawn chart. */
+const reportRect = ([x, y, w, h]: Rect): Rect => [x, y + h * 0.12, w, h * 0.42]
 
 /** A tile's start offset (percent of the box) and tilt, in both families. */
 function tileFrom(t: (typeof S04_TILES)[number]): CSSProperties {
@@ -100,17 +103,24 @@ const TILE_LABEL = {
 const DIAL_LABEL = { cost: 'dial.cost', schedule: 'dial.schedule', hours: 'dial.hours' } as const
 const READING = { low: 'low', in: 'inRange', check: 'check' } as const
 const QUESTIONS = Object.keys(S04_QUESTIONS) as S04Question[]
+const CELLS = ['cell.chart', 'cell.list'] as const
 
 export function S04Figure() {
   const ui = copy.ui
   const labels = (
     <>
-      {S04_TILES.map((t) => (
+      {S04_TILES.map((t, i) => (
         <span
           key={t}
           data-anchor={TILE_LABEL[t]}
           className={s.tl}
-          style={{ ...rectVars(L.wide.tiles[t].at, L.tall.tiles[t].at), ...tileFrom(t) }}
+          style={
+            {
+              ...rectVars(L.wide.tiles[t].at, L.tall.tiles[t].at),
+              ...tileFrom(t),
+              '--i': i,
+            } as CSSProperties
+          }
         >
           <span className={`${s.tlt} pv`}>{copy.labels[TILE_LABEL[t]]}</span>
         </span>
@@ -134,10 +144,20 @@ export function S04Figure() {
           style={rectVars(L.wide.readings[d], L.tall.readings[d])}
         >
           {S04_READINGS.map((r) => (
-            <span key={r} data-v={r}>
+            <span key={r} data-v={r} {...(S04_END[d] === r ? { 'data-end': '' } : {})}>
               {ui[READING[r]]}
             </span>
           ))}
+        </span>
+      ))}
+      {CELLS.map((k, i) => (
+        <span
+          key={k}
+          data-anchor={k}
+          className={`${s.dn} pv fade`}
+          style={rectVars(L.wide.cellNames[i]!, L.tall.cellNames[i]!)}
+        >
+          {copy.labels[k]}
         </span>
       ))}
       <span
@@ -147,7 +167,11 @@ export function S04Figure() {
       >
         {copy.labels.store}
       </span>
-      <span data-anchor="report" className={s.rp} style={rectVars(L.wide.card, L.tall.card)}>
+      <span
+        data-anchor="report"
+        className={s.rp}
+        style={rectVars(reportRect(L.wide.card), reportRect(L.tall.card))}
+      >
         {copy.labels.report}
       </span>
     </>

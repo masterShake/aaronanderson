@@ -24,23 +24,19 @@ const MIN_PX: Readonly<Record<LayoutId, number>> = { wide: 440, tall: 360 }
  */
 const SLACK = 4
 const SIZE: Readonly<Record<S03LabelKey, readonly [w: number, h: number]>> = {
-  hopper: [128, 40],
-  tolerance: [123, 36],
-  reader: [128, 57],
-  gate: [128, 40],
+  hopper: [128, 44],
+  tolerance: [104, 36],
+  reader: [143, 44],
   output: [104, 36],
-  tray: [128, 57],
-  section: [128, 40],
-  'doc.invoice': [104, 36],
-  'doc.ticket': [128, 57],
-  'doc.submittal': [113, 36],
+  tray: [184, 44],
+  section: [104, 36],
   card: [128, 100],
 }
 
 /** The label strings exist in content (keys are not invented here). */
 function labelText(k: S03LabelKey): string {
   if (k === 'card') return copy.ui['card.vendor'] as string
-  return copy.labels[k as keyof typeof copy.labels]
+  return copy.labels[k]
 }
 
 function box(k: S03LabelKey, f: LayoutId) {
@@ -109,6 +105,21 @@ test('files: no text, no vector-effect, every state', () => {
     held.split('#F4F2EC" stroke="#BFE6F5"').length,
   )
   for (const f of FAMILIES) expect(s03Doc(f).viewBox).toEqual(S03_FAMILY[f].vb)
+})
+
+test('labels come after their drawing; the person reads at scale', () => {
+  // labels and leaders only once every detail has drawn on
+  expect(S03.labelsFromP).toBeGreaterThanOrEqual(
+    S03.detailFromP + S03.detailStaggerP * 5 + S03.strokeP - 0.02,
+  )
+  // B4: a subject person is at least about 12% of the figure's height, in both families
+  for (const f of FAMILIES) {
+    const ys = sectionFrame(f)
+      .lines.filter((l) => l.id.startsWith('person'))
+      .flatMap((l) => l.pts.map((p) => p[1]))
+    const h = Math.max(...ys) - Math.min(...ys)
+    expect(h / S03_FAMILY[f].vb[3], `person height (${f})`).toBeGreaterThanOrEqual(0.115)
+  }
 })
 
 test('demo counts and timing', () => {

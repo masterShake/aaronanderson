@@ -19,7 +19,8 @@ export const S03 = {
   scanToP: 0.31,
   detailFromP: 0.27,
   detailToP: 0.37,
-  labelsFromP: 0.33,
+  /** Labels (and their leaders) come after the details they name. */
+  labelsFromP: 0.355,
   /** Pencil and detail draw-on: each stroke's window, and the stagger per element (--i). */
   strokeP: 0.035,
   sketchStaggerP: 0.015,

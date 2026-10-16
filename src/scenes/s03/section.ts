@@ -27,8 +27,8 @@ export interface S03Family {
 }
 
 export const S03_FAMILY: Readonly<Record<LayoutId, S03Family>> = {
-  wide: { vb: [0, 0, 960, 720], s: 1.2, tx: 0, ty: 0 },
-  tall: { vb: [0, 0, 400, 500], s: 0.5, tx: -30, ty: 120 },
+  wide: { vb: [0, 0, 960, 720], s: 1.2, tx: -30, ty: -20 },
+  tall: { vb: [0, 0, 400, 500], s: 0.55, tx: -42, ty: 110 },
 }
 
 /** A design point in a family's viewBox units. */
@@ -67,20 +67,22 @@ export const G = {
   ] as readonly Pt[],
   /** Output tray: data cards stack on it. */
   tray: [520, 312, 160, 6] as Rect,
-  desk: [540, 480, 108, 6] as Rect,
+  /** A desk at seated height for the person (k = 2 below), knees under its edge. */
+  desk: [540, 456, 120, 6] as Rect,
   /** The sign-off tray on the desk. */
-  signTray: [548, 470, 60, 10] as Rect,
+  signTray: [556, 446, 64, 10] as Rect,
   legs: [
     [196, 440, 10, 80],
     [404, 440, 10, 80],
-    [546, 486, 6, 34],
-    [636, 486, 6, 34],
+    [548, 462, 6, 58],
+    [646, 462, 6, 58],
   ] as readonly Rect[],
-  person: { feet: [694, 520] as Pt, k: 1.45 },
+  /** Seated at k = 2: about 18% of the wide frame's height and 12% of the tall one. */
+  person: { feet: [690, 520] as Pt, k: 2 },
   /** Document sheets: 48 × 4, starting under the throat. */
   doc: [226, 296, 48, 4] as Rect,
   /** Where a held document comes to rest on the sign-off tray, relative to `doc`. */
-  heldAt: [328, 178] as Pt,
+  heldAt: [336, 146] as Pt,
   /** Data cards on the tray, bottom first. */
   card: [588, 303, 56, 8] as Rect,
 } as const
@@ -399,7 +401,7 @@ function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill
     'chute.0',
     [
       [G.chute[0], y1],
-      [G.signTray[0], G.signTray[1] + 2],
+      [G.signTray[0] - 4, G.signTray[1] + 4],
     ],
     false,
     '050',
@@ -408,7 +410,7 @@ function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill
     'chute.1',
     [
       [G.chute[1], y1],
-      [G.signTray[0] + 18, G.signTray[1] - 4],
+      [G.signTray[0] + 6, G.signTray[1] - 2],
     ],
     false,
     '035',

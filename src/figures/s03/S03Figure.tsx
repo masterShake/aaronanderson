@@ -25,6 +25,8 @@ import s from './S03.module.css'
 /** Timing vars plus the dial and gate angles (geometry, from section.ts). */
 const VARS = {
   ...cssVars(S03, 's03'),
+  '--s03-uw': S03_FAMILY.wide.s,
+  '--s03-ut': S03_FAMILY.tall.s,
   '--s03-ok-deg': `${DIAL.okDeg}deg`,
   '--s03-check-deg': `${DIAL.checkDeg}deg`,
   '--s03-gate-deg': `${G.gate.deg}deg`,
@@ -67,26 +69,25 @@ const SUBS: Partial<Record<S03LabelKey, keyof typeof copy.labels>> = {
   tray: 'tray-sub',
 }
 
+const KEYS = ['hopper', 'tolerance', 'reader', 'output', 'tray', 'section'] as const
+
 function Labels() {
-  const keys: S03LabelKey[] = [
-    'hopper',
-    'tolerance',
-    'reader',
-    'gate',
-    'output',
-    'tray',
-    'section',
-    ...S03_BATCH.map((d) => d.label),
-  ]
   const ui = copy.ui
   return (
     <>
-      {keys.map((k) => {
+      {KEYS.map((k) => {
         const sub = SUBS[k]
         return (
-          <span key={k} data-anchor={k} className={s.label} style={at(k)}>
-            {copy.labels[k as keyof typeof copy.labels]}
+          <span key={k} data-anchor={k} className={`${s.label} ${s[k] ?? ''}`} style={at(k)}>
+            <span className={s.text}>{copy.labels[k]}</span>
             {sub ? <span className={s.sub}>{copy.labels[sub]}</span> : null}
+            {k === 'hopper'
+              ? S03_BATCH.map((d, i) => (
+                  <span key={d.label} data-doc-name={i} className={`${s.sub} ${s.docName}`}>
+                    {copy.labels[d.label]}
+                  </span>
+                ))
+              : null}
           </span>
         )
       })}

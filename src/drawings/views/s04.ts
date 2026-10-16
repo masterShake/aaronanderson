@@ -7,7 +7,7 @@ import type { LayoutId, Pt, ViewBox } from '../types'
  *
  * An instrument panel of 3 × 2 cells over one data store. Five pencil tiles (the reports
  * each system exports today) lock into the first five cells; the top row becomes three
- * dials, the bottom row the report printer, the question slot and the nameplate. Tiles
+ * dials, the bottom row a cost chart, an open items list and the report printer. Tiles
  * are at least 104 × 36 CSS px at the 440 px (wide) and 360 px (tall) minimums.
  */
 
@@ -34,6 +34,16 @@ export const S04_BANDS: Readonly<Record<S04Reading, readonly [number, number]>> 
   check: [40, 120],
 }
 
+/**
+ * Where each dial ends once the loops settle: three different words (D3: LOW · IN RANGE ·
+ * CHECK). The still shows the same. Each question chip points at one of these.
+ */
+export const S04_END: Readonly<Record<S04Dial, S04Reading>> = {
+  cost: 'check',
+  schedule: 'in',
+  hours: 'low',
+}
+
 /** Each question chip moves one dial to one reading (scripted sample answers). */
 export const S04_QUESTIONS = {
   project: { dial: 'schedule', reading: 'in' },
@@ -53,7 +63,14 @@ export interface S04Layout {
   /** The dial name band at the top of each dial cell. */
   names: Readonly<Record<S04Dial, Rect>>
   readings: Readonly<Record<S04Dial, Rect>>
+  /** Name bands of the bottom row's chart (cell 3) and list (cell 4). */
+  cellNames: readonly Rect[]
+  /** The cost chart's plot area (cell 3) and the open items list's area (cell 4). */
+  chart: Rect
+  list: Rect
+  /** The report printer's housing (cell 5). */
   printer: Rect
+  /** 3D only (the WebGL panel, not shipped): the question slot and the nameplate. */
   slot: Rect
   nameplate: Rect
   /** The report card fully out, below the printer slot (it is revealed top down). */
@@ -116,20 +133,32 @@ function build(
     const [x, y, w, h] = cells[i]!
     names[d] = [x, y, w, dial.nameH]
     const free = h - dial.nameH - dial.readH
-    dials[d] = { c: [x + w / 2, y + dial.nameH + free / 2 + dial.r * 0.15], r: dial.r }
+    // the dial and its bezel (1.1 r) sit clear of the name and reading bands
+    const r = Math.min(dial.r, free / 2 - 8)
+    dials[d] = { c: [x + w / 2, y + dial.nameH + free / 2], r }
     readings[d] = [x, y + h - dial.readH, w, dial.readH]
   })
   const slotRect = (c: Rect): Rect => {
     const [x, y, w, h] = c
     return [x + w * 0.12, y + h * 0.42, w * 0.76, Math.max(10, h * 0.08)]
   }
-  const printer = slotRect(cells[3]!)
+  // The bottom row: a cost chart (cell 3), the open items list (cell 4) and the report
+  // printer (cell 5), each under a name band like the dials.
+  const cellNames = [3, 4].map((i) => {
+    const [x, y, w] = cells[i]!
+    return [x, y, w, dial.nameH] as Rect
+  })
+  const plot = (c: Rect): Rect => {
+    const [x, y, w, h] = c
+    return [x + w * 0.14, y + dial.nameH + h * 0.04, w * 0.72, h - dial.nameH - h * 0.16]
+  }
   const [cx, cy, cw, ch] = cells[5]!
+  const printer: Rect = [cx + cw * 0.12, cy + ch * 0.14, cw * 0.76, ch * 0.18]
   const nameplate: Rect = [cx + cw * 0.14, cy + ch * 0.3, cw * 0.72, ch * 0.34]
   const card: Rect = [
-    printer[0] + printer[2] * 0.1,
+    printer[0] + printer[2] * 0.06,
     printer[1] + printer[3],
-    printer[2] * 0.8,
+    printer[2] * 0.88,
     cardOut,
   ]
   const [tx, ty, tw] = tank
@@ -145,6 +174,9 @@ function build(
     dials,
     names,
     readings,
+    cellNames,
+    chart: plot(cells[3]!),
+    list: plot(cells[4]!),
     printer,
     slot: slotRect(cells[4]!),
     nameplate,
@@ -170,7 +202,7 @@ export const S04_LAYOUT: Readonly<Record<LayoutId, S04Layout>> = {
     ],
     { r: 58, nameH: 44, readH: 30 },
     [300, 540, 360, 110],
-    72,
+    112,
     { slab: 16, tankH: 64, pipeR: 5.4, pipeY: 14 },
   ),
   tall: build(
@@ -178,15 +210,15 @@ export const S04_LAYOUT: Readonly<Record<LayoutId, S04Layout>> = {
     [20, 28, 360, 300],
     [2, 10],
     [
-      [12, 320, -9],
-      [140, 352, 7],
-      [262, 318, -6],
-      [30, 170, 11],
-      [254, 160, -12],
+      [14, 24, -9],
+      [146, 196, 7],
+      [272, 40, -6],
+      [18, 336, 11],
+      [262, 334, -12],
     ],
     { r: 30, nameH: 42, readH: 22 },
     [70, 400, 260, 72],
-    56,
+    92,
     { slab: 10, tankH: 40, pipeR: 3, pipeY: 8 },
   ),
 }
