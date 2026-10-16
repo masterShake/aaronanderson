@@ -277,6 +277,12 @@
   }
 }
 
+/* a ticked item that wraps hangs its second line under the words, not the tick */
+.tick {
+  padding-inline-start: 2ch;
+  text-indent: -2ch;
+}
+
 .tick::before {
   content: '✓ ';
   color: var(--c-blueprint);
