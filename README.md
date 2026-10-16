@@ -24,7 +24,8 @@ Never use ports 3000, 4000, 5000, 5001, 5173, 5176, 5432 or 7000 on this machine
 Every visible word lives in `src/content/**`. Facts you still owe the site are `hold()`
 placeholders; promises you have not agreed to yet are `confirm()` claims.
 
-- `npm run punchlist` lists what is still open. Previews also show it at `/punch-list`.
+- `npm run punchlist` lists what is still open. Every build but production also shows it at
+  `/punch-list`; `SHOW_HOLDS=1 npm run dev` shows the tags on the pages.
 - `npm run punchlist -- --write` regenerates `PLACEHOLDERS.md`, with the deployment
   settings.
 - `npm run check:content` enforces the copy rules: banned words, digits, US spelling and
@@ -60,8 +61,10 @@ Every suite, its options and the budgets: `docs/testing.md`.
 
 ## Deploying
 
-Vercel, Node 24. Previews show HOLD placeholders; production shows plain fallbacks, hides
-proof until it is real, and returns 404 for `/kit` and `/punch-list`. Set `STRICT_HOLDS=1`
+Every build shows the production look: plain fallbacks, no HOLD or CONFIRM tags, and no
+proof until it is real. To review what is still open, use `/punch-list` (any build but
+production) or review mode (`SHOW_HOLDS=1 npm run dev`, see `docs/content.md`). Production
+also returns 404 for `/kit` and `/punch-list`. Set `STRICT_HOLDS=1`
 in Production only when you are ready to launch: the build then fails while any essential
 HOLD or pending CONFIRM remains.
 

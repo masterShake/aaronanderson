@@ -164,7 +164,13 @@ export interface SiteConfig {
     readonly home: string
   }
   readonly skipLink: string
-  readonly motion: { readonly label: string; readonly on: string; readonly off: string }
+  readonly motion: {
+    readonly label: string
+    /** The first word(s) of `label`, shown alone in the header where the bar is tight. */
+    readonly short: string
+    readonly on: string
+    readonly off: string
+  }
   /** The mono strip over every H1, e.g. 'SHEET' and 'SCALE: AS NOTED'. */
   readonly sheet: { readonly label: string; readonly scale: string }
   /** Preview-only marks. */
@@ -208,6 +214,8 @@ export interface HomeContent {
   readonly crew: SectionHead & {
     readonly approvedBy: { readonly label: string; readonly value: string }
     readonly link: Link
+    /** While no crew name or role is confirmed: no cards, and this link instead of `link`. */
+    readonly linkNoCrew: Link
   }
   /** Preview only; production leaves the section out until proof is real. */
   readonly asBuilts: SectionHead
@@ -418,6 +426,8 @@ export interface ContactFormCopy {
 }
 export interface ContactContent {
   readonly h1: string
+  /** The H1 while there is no booking calendar (the link is a HOLD and review mode is off). */
+  readonly h1NoScheduler: string
   readonly deck: Rich
   readonly book: SectionHead & {
     readonly facade: {
@@ -440,13 +450,25 @@ export interface ContactContent {
     readonly copiedLive: string
     readonly copyFailed: string
   }
-  readonly next: SectionHead & { readonly steps: readonly [Rich, Rich, Rich, Rich] }
+  readonly next: SectionHead & {
+    readonly steps: readonly [Rich, Rich, Rich, Rich]
+    /** Replaces steps[0] while there is no booking calendar. */
+    readonly firstStepNoScheduler: Rich
+  }
   /** The privacy lines live in body (Claimable). */
   readonly privacy: SectionHead & {
-    readonly processors: readonly { readonly name: string; readonly does: string }[]
+    /** `scheduler: true` rows are listed only while the booking calendar is on the page. */
+    readonly processors: readonly {
+      readonly name: string
+      readonly does: string
+      readonly scheduler?: boolean
+    }[]
     readonly retention: Held
   }
-  readonly closing: CtaBand
+  /** `bodyNoScheduler` replaces `body` while there is no booking calendar. */
+  readonly closing: CtaBand & { readonly bodyNoScheduler: Rich }
+  /** Booking notes Cal.com receives when the visitor came from a service sheet (?sheet=S-03). */
+  readonly bookingNotes: string
 }
 export interface NotFoundContent {
   readonly h1: string

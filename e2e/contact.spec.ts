@@ -1,6 +1,8 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { isProductionBuild } from './helpers/budgets'
+import { contact } from '../src/content/pages/contact'
+import { services } from '../src/content/services'
 
 /**
  * Contact behaviour (lane w2/contact): the booking facade on the preview-only
@@ -32,6 +34,7 @@ const STUB = `(function () {
       var el = typeof a.elementOrSelector === 'string' ? document.querySelector(a.elementOrSelector) : a.elementOrSelector;
       var f = document.createElement('div');
       f.setAttribute('data-cal-stub', a.calLink);
+      f.setAttribute('data-cal-notes', (a.config && a.config.notes) || '');
       if (el) el.appendChild(f);
       if (mode === 'ready') setTimeout(function () { fire('linkReady'); }, 50);
       if (mode === 'failed') setTimeout(function () { fire('linkFailed'); }, 50);
@@ -89,6 +92,23 @@ test.describe('booking facade (/kit/contact)', () => {
     )
     await expect(status(page)).toHaveText('Booked. Check your email for the invite.')
     await expect(page.locator('[data-facade="booked"]')).toBeVisible()
+  })
+
+  test('?sheet becomes the booking notes, only when the sheet resolves', async ({ page }) => {
+    await stubCal(page, 'ready')
+    const s03 = services.find((s) => s.id === 'S-03')!
+    for (const [query, notes] of [
+      [
+        '?sheet=S-03',
+        contact.bookingNotes.replace('{sheet}', 'S-03').replace('{serviceName}', s03.name),
+      ],
+      ['?sheet=nope', ''],
+      ['', ''],
+    ] as const) {
+      await page.goto(`/kit/contact${query}`)
+      await page.getByRole('button', { name: 'Show available times' }).click()
+      await expect(page.locator('[data-cal-stub]')).toHaveAttribute('data-cal-notes', notes)
+    }
   })
 
   test('after eight seconds without the calendar it points to the form', async ({ page }) => {

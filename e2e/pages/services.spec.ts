@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { test, expect } from '../fixtures'
 import { gotoTier } from '../helpers/tier'
-import { artifactsDir } from '../helpers/budgets'
+import { artifactsDir, isReviewBuild } from '../helpers/budgets'
 import { services } from '../../src/content/services'
 import { servicesPage } from '../../src/content/pages/services'
 
@@ -12,13 +12,14 @@ import { servicesPage } from '../../src/content/pages/services'
  * stacks at 390 and reflows at 320; the rail is sticky only from 1280 and
  * nothing in main is sticky below 1024; at 1280 × 800 each figure column is
  * as tall as its text column (the scrub track); price chips and N.I.C. items
- * follow the build (SHOW_HOLDS=0 is the production-mode build); every Talk
+ * follow the build (only a SHOW_HOLDS=1 build shows HOLDs); every Talk
  * link points at its sheet; the print view prints one sheet per page with
  * stills and URL suffixes (screenshot and PDF to $ARTIFACTS_DIR/print); CLS
  * at 390 stays under 0.05.
  */
 
-const PROD = process.env.SHOW_HOLDS === '0'
+/** The production look: every build without SHOW_HOLDS=1 (read from the page, not the env). */
+const isProdLook = async (page: Page) => !(await isReviewBuild(page))
 
 const noHScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
@@ -146,6 +147,7 @@ for (const width of [1023, 768, 390]) {
 
 test('price chips and N.I.C. follow the build', async ({ page }) => {
   await page.goto('/services')
+  const PROD = await isProdLook(page)
   for (const s of services.filter((x) => x.shape.price)) {
     const chip = page.locator(`section#${s.slug} [data-price-chip]`)
     await expect(chip).toHaveCount(1)
@@ -207,6 +209,7 @@ test('print: one sheet per page, stills and URL suffixes', async ({ page }, info
   }
   await expect(page.locator(`nav[aria-label="${servicesPage.rail.jump}"]`)).toBeHidden()
   const dir = artifactsDir('print')
+  const PROD = await isProdLook(page)
   const png = join(dir, `services-print${PROD ? '' : '-preview'}.png`)
   await page.screenshot({ path: png, fullPage: true })
   await info.attach('print', { path: png, contentType: 'image/png' })

@@ -1,4 +1,5 @@
 import { contact, contactUi } from '@/content/pages/contact'
+import { services } from '@/content/services'
 import type { Scheduler } from '@/lib/scheduler'
 import { RichText } from '@/components/ui/RichText'
 import { SchedulerFacade } from '@/components/contact/SchedulerFacade.client'
@@ -6,7 +7,11 @@ import { plain } from './rich'
 
 type CalScheduler = Extract<Scheduler, { provider: 'cal' }>
 
-/** The Cal.com facade with its strings rendered here, on the server (C3). */
+/**
+ * The Cal.com facade with its strings rendered here, on the server (C3). It also gets the
+ * sheet id → service name map and the notes template: on "Show available times" it reads
+ * ?sheet and, when the sheet resolves, prefills the booking notes.
+ */
 export function BookFacade({ scheduler }: { scheduler: CalScheduler }) {
   const f = contact.book.facade
   return (
@@ -33,6 +38,10 @@ export function BookFacade({ scheduler }: { scheduler: CalScheduler }) {
         bookedText: plain(f.booked),
         region: f.region,
         weekdays: contactUi.weekdays,
+      }}
+      notes={{
+        sheets: Object.fromEntries(services.map((sv) => [sv.id, sv.name])),
+        template: contact.bookingNotes,
       }}
     />
   )

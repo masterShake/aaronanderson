@@ -85,7 +85,8 @@
   --s-11: 192px;
   --page-max: 1440px;
   --page-margin: clamp(16px, 4vw, 56px);
-  --section-pad: clamp(48px, 6vw, 96px);
+  /* Tight on purpose (owner, W4): 64 px between sections on phones, 128 px at 1600 px. */
+  --section-pad: clamp(32px, 4vw, 64px);
   --cols: 4;
   --gutter: 16px;
   --header-h: 56px;

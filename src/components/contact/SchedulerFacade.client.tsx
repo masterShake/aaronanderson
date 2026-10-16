@@ -9,6 +9,7 @@ import {
 } from 'react'
 import dynamic from 'next/dynamic'
 import { LOAD } from '@/motion/timing/global'
+import { bookingNotes } from '@/lib/contact/booking'
 import s from './contact.module.css'
 
 const CalInline = dynamic(() => import('./CalInline.client'), { ssr: false })
@@ -53,12 +54,20 @@ export type FacadePhase = 'idle' | 'loading' | 'ready' | 'slow' | 'failed' | 'bo
 const subscribe = () => () => {}
 const CELLS = 42
 
+/** Booking notes from ?sheet: the sheet id → service name map and the "About {sheet} · {serviceName}" template. */
+export interface FacadeNotes {
+  sheets: Readonly<Record<string, string>>
+  template: string
+}
+
 export function SchedulerFacade({
   scheduler,
   copy,
+  notes: notesFrom,
 }: {
   scheduler: FacadeScheduler
   copy: FacadeCopy
+  notes?: FacadeNotes
 }) {
   const hydrated = useSyncExternalStore(
     subscribe,
@@ -66,6 +75,8 @@ export function SchedulerFacade({
     () => false,
   )
   const [phase, setPhase] = useState<FacadePhase>('idle')
+  // read at click time from the address bar, so the page itself stays static
+  const [notes, setNotes] = useState<string | null>(null)
   const region = useRef<HTMLDivElement>(null)
   const preconnected = useRef(false)
 
@@ -146,6 +157,7 @@ export function SchedulerFacade({
               onReady={onReady}
               onFailed={onFailed}
               onBooked={onBooked}
+              notes={notes ?? undefined}
             />
           </div>
         ) : (
@@ -159,6 +171,10 @@ export function SchedulerFacade({
                 onFocus={preconnect}
                 onClick={() => {
                   preconnect()
+                  if (notesFrom)
+                    setNotes(
+                      bookingNotes(window.location.search, notesFrom.sheets, notesFrom.template),
+                    )
                   setPhase('loading')
                 }}
               >

@@ -21,6 +21,8 @@ export function Footer() {
   const phone = fact(site.phone)
   const email = resolveHeld(site.email)
   const location = resolveHeld(site.location)
+  // No empty title-block cell: the contact cell appears once it has something in it.
+  const hasContact = Boolean(phone) || email.show !== 'omit' || location.show !== 'omit'
   const year = String(new Date().getFullYear())
   return (
     <footer className={`${s.footer} on-dark`}>
@@ -59,38 +61,40 @@ export function Footer() {
               <dd className={s.approved}>{tb.approvedBy.value}</dd>
             </div>
           </dl>
-          <dl className={`${s.cell} ${s.fields}`}>
-            {email.show !== 'omit' ? (
-              <div>
-                <dt className={s.label}>{tb.labels.email}</dt>
-                <dd>
-                  {email.show === 'text' ? (
-                    <a href={`mailto:${email.text}`}>{email.text}</a>
-                  ) : (
-                    <HeldText value={site.email} />
-                  )}
-                </dd>
-              </div>
-            ) : null}
-            {phone ? (
-              <div>
-                <dt className={s.label}>{tb.labels.phone}</dt>
-                <dd>
-                  <a href={`tel:${phone}`}>{phone}</a>
-                </dd>
-              </div>
-            ) : null}
-            {location.show !== 'omit' ? (
-              <div>
-                <dt className={s.label}>{tb.labels.location}</dt>
-                <dd>
-                  <HeldText value={site.location} />
-                </dd>
-              </div>
-            ) : null}
-          </dl>
+          {hasContact ? (
+            <dl className={`${s.cell} ${s.fields} ${s.contactCell}`}>
+              {email.show !== 'omit' ? (
+                <div>
+                  <dt className={s.label}>{tb.labels.email}</dt>
+                  <dd>
+                    {email.show === 'text' ? (
+                      <a href={`mailto:${email.text}`}>{email.text}</a>
+                    ) : (
+                      <HeldText value={site.email} />
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+              {phone ? (
+                <div>
+                  <dt className={s.label}>{tb.labels.phone}</dt>
+                  <dd>
+                    <a href={`tel:${phone}`}>{phone}</a>
+                  </dd>
+                </div>
+              ) : null}
+              {location.show !== 'omit' ? (
+                <div>
+                  <dt className={s.label}>{tb.labels.location}</dt>
+                  <dd>
+                    <HeldText value={site.location} />
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
           <div className={`${s.cell} ${s.actions}`}>
-            <BookCallButton />
+            <BookCallButton className={s.footBook} />
             <div>
               <p className={s.label}>{tb.labels.motion}</p>
               <MotionSwitch variant="footer" label={site.motion.label} />

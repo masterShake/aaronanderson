@@ -33,8 +33,18 @@ export function PageHead({
       </div>
       <GridBubbles />
       <p className={s.strip}>
-        {site.sheet.label} {sheet}
-        {page ? <> · {page.sheetTitle}</> : null} · {scale}
+        {/* each part stays whole: the strip wraps between parts, never inside one */}
+        <span className={s.stripPart}>
+          {site.sheet.label} {sheet}
+        </span>
+        {page ? (
+          <>
+            {' · '}
+            <span className={s.stripPart}>{page.sheetTitle}</span>
+          </>
+        ) : null}
+        {' · '}
+        <span className={s.stripPart}>{scale}</span>
       </p>
       <h1 id={`sheet-${sheet.toLowerCase()}-title`}>{h1}</h1>
       {deck ? <RichText value={deck} className={`lead ${s.deck}`} /> : null}

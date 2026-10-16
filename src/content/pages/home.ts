@@ -61,6 +61,7 @@ export const home: HomeContent = {
     ],
     approvedBy: { label: 'APPROVED BY', value: 'YOU' },
     link: { label: 'Meet the crew →', href: '/about' },
+    linkNoCrew: { label: 'More about us →', href: '/about' },
   },
   asBuilts: {
     id: 'as-builts',

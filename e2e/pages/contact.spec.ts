@@ -1,12 +1,16 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from '../fixtures'
 import { axe, describe as describeFindings } from '../helpers/axe'
-import { isProductionBuild } from '../helpers/budgets'
+import { isProductionBuild, isReviewBuild } from '../helpers/budgets'
+import { contact } from '../../src/content/pages/contact'
+import { site } from '../../src/content/site'
+import { fact } from '../../src/content/hold'
 
 /**
  * /contact as a page (G-03): structure, the no-JS round trip, the error and
  * success states under axe (zero findings of any impact) at 390 and 1280,
- * and, on a VERCEL_ENV=production build, the no-scheduler layout.
+ * and, in the production look (no SHOW_HOLDS=1) while the booking link is a
+ * HOLD, the no-scheduler layout.
  */
 
 let ip = 0
@@ -17,11 +21,17 @@ async function fresh(page: Page) {
 
 test('one H1, the sections in order, and the CTA band last', async ({ page, guard }) => {
   await page.goto('/contact')
+  const review = await isReviewBuild(page)
+  // the H1 promises a calendar only when there is one (or in review mode)
+  const calendar = review || (await page.locator('[data-book]').count()) > 0
   await expect(page.locator('h1')).toHaveCount(1)
-  await expect(page.locator('h1')).toHaveText('Pick a time. Bring the spreadsheet.')
+  await expect(page.locator('h1')).toHaveText(calendar ? contact.h1 : contact.h1NoScheduler)
   const ids = await page.locator('main section[id]').evaluateAll((els) => els.map((e) => e.id))
   expect(ids.at(-1)).toBe('call')
-  for (const id of ['email', 'next', 'privacy']) expect(ids).toContain(id)
+  for (const id of ['next', 'privacy']) expect(ids).toContain(id)
+  // "Or just email" shows once the address is real, or in review mode
+  if (review || fact(site.email)) expect(ids).toContain('email')
+  else expect(ids).not.toContain('email')
   expect(ids.filter((i) => i === 'book').length).toBe(1)
   // the form section is #write, or #book in production while the link is a HOLD
   await expect(page.locator('main section:is(#write, #book) form')).toHaveCount(1)
@@ -123,13 +133,26 @@ for (const width of [390, 1280]) {
   })
 }
 
-test('production build without a scheduler: #book is the form', async ({ page }) => {
-  test.skip(!(await isProductionBuild(page)), 'needs a VERCEL_ENV=production build')
+test('production look without a scheduler: #book is the form, and nothing promises a calendar', async ({
+  page,
+}) => {
+  test.skip(await isReviewBuild(page), 'the production look only (review mode shows the HOLD)')
+  test.skip(Boolean(fact(site.scheduler.url)), 'the booking link is real')
   await page.goto('/contact')
   await expect(page.locator('[data-book]')).toHaveCount(0)
   const book = page.locator('section#book')
   await expect(book).toHaveCount(1)
   await expect(book.locator('form')).toHaveCount(1)
-  await expect(book.locator('h2')).toHaveText("Tell us what's being retyped.")
+  await expect(book.locator('h2')).toHaveText(contact.form.headingNoScheduler)
   await expect(page.locator('#write')).toHaveCount(0)
+  await expect(page.locator('h1')).toHaveText(contact.h1NoScheduler)
+  // the steps, the processors and the closing say only what the page offers
+  const steps = page.locator(`#${contact.next.id} ol > li`)
+  await expect(steps.first()).toHaveText(contact.next.firstStepNoScheduler as string)
+  const scheduled = contact.privacy.processors.filter((p) => p.scheduler)
+  for (const p of scheduled)
+    await expect(page.locator(`#${contact.privacy.id} li`, { hasText: p.name })).toHaveCount(0)
+  await expect(page.locator(`#${contact.closing.id}`)).toContainText(
+    contact.closing.bodyNoScheduler as string,
+  )
 })

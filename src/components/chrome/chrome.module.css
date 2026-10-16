@@ -316,8 +316,9 @@
 }
 
 /* Between 1024 and 1365 px the bar is compact so it fits on one row with the sheet chip and
-   the switch's words (D1): the wordmark and the switch's words stack on two lines, the type
-   and the gaps tighten. 1024 is the tightest width (about 10 px to spare). */
+   the switch (D1): the type and the gaps tighten, and the switch shows its first word
+   ("Pause"; the rest stays in its accessible name). From 1180 px nothing wraps; below that
+   the wordmark is a deliberate two-line lockup, like a title-block cell. */
 @media (min-width: 1024px) and (max-width: 1365px) {
   .bar {
     gap: var(--s-2);
@@ -332,8 +333,7 @@
   }
 
   .word {
-    inline-size: min-content;
-    white-space: normal;
+    white-space: nowrap;
   }
 
   .barList {
@@ -345,13 +345,25 @@
     letter-spacing: 0.02em;
   }
 
-  .wide [data-variant='header'] > span:last-child {
-    inline-size: min-content;
-    white-space: normal;
+  .wide [data-variant='header'] [data-switch-more] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .bar .book {
     padding-inline: var(--s-3);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1179px) {
+  .word {
+    inline-size: min-content;
+    white-space: normal;
   }
 }
 
@@ -445,6 +457,21 @@
   gap: var(--s-3);
 }
 
+/* Phones: the footer's Book a call is the compact size, as in the header, so it and the CTA
+   band's button stay under D7's 5% orange share when one screen shows both. */
+@media (max-width: 639px) {
+  .actions .footBook {
+    min-height: 44px;
+    padding-inline: var(--s-4);
+    font-size: 0.8125rem;
+  }
+}
+
+/* Marks the contact cell (email, phone, location), which appears once one of them is real. */
+.contactCell {
+  min-width: 0;
+}
+
 .fields dd {
   margin: var(--s-1) 0 0;
   overflow-wrap: anywhere;
@@ -481,6 +508,13 @@
 
   .wideCell {
     grid-column: span 2;
+  }
+
+  /* No contact cell yet: the actions cell takes its column, so the top row has no empty cell. */
+  .block:not(:has(.contactCell)) .actions {
+    grid-column: span 2;
+    align-content: start;
+    gap: var(--s-6);
   }
 }
 

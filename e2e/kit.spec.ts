@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { ROUTES } from './routes'
 import { gotoTier } from './helpers/tier'
-import { isProductionBuild } from './helpers/budgets'
+import { isProductionBuild, isReviewBuild } from './helpers/budgets'
 import { site } from '../src/content/site'
 import { notFound } from '../src/content/pages/not-found'
 
@@ -97,8 +97,11 @@ test('Book a call is at least 24 by 24 at 1280 and the header has no view-transi
 test('desktop header: sheet chip and the switch words show on one row, 1024 to 1440', async ({
   page,
 }) => {
-  const out: Record<number, { rowH: number; chip: boolean; words: boolean }> = {}
-  for (const w of [1024, 1100, 1280, 1365, 1366, 1440]) {
+  const out: Record<
+    number,
+    { rowH: number; chip: boolean; words: boolean; wordLines: number; switchLines: number }
+  > = {}
+  for (const w of [1024, 1100, 1179, 1180, 1280, 1365, 1366, 1440]) {
     await page.setViewportSize({ width: w, height: 800 })
     await page.goto('/services')
     await page.evaluate(() => document.fonts.ready)
@@ -111,15 +114,67 @@ test('desktop header: sheet chip and the switch words show on one row, 1024 to 1
           r && r.width > 4 && r.height > 4 && getComputedStyle(el!).clipPath === 'none',
         )
       }
+      // rendered lines of the visible text directly inside an element (a visually hidden
+      // child is left out): its line boxes, counted by distinct tops
+      const lines = (el: Element | null) => {
+        if (!el) return 0
+        const tops = new Set<number>()
+        for (const n of el.childNodes) {
+          const range = document.createRange()
+          if (n.nodeType === Node.TEXT_NODE) range.selectNodeContents(n)
+          else if (getComputedStyle(n as Element).clipPath === 'none') range.selectNodeContents(n)
+          else continue
+          for (const r of range.getClientRects()) if (r.width > 1) tops.add(Math.round(r.top))
+        }
+        return tops.size
+      }
+      const sw = h.querySelector('label[data-variant="header"]')!
+      const label = sw.querySelector(':scope > span:last-child')!
+      const visible = [...label.childNodes]
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => n.textContent)
+        .join('')
+        .trim()
+      const barR = bar.getBoundingClientRect()
+      const overflow = [...bar.querySelectorAll('*')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .filter((el) => getComputedStyle(el).clipPath === 'none')
+        .map((el) => el.getBoundingClientRect())
+        .some((r) => r.width > 0 && (r.right > barR.right + 1 || r.left < barR.left - 1))
       return {
         rowH: Math.round(bar.getBoundingClientRect().height),
+        headerH: Math.round(h.getBoundingClientRect().height),
         minH: parseFloat(getComputedStyle(bar).minHeight),
         chip: shown(h.querySelector('a[href="/"] > :last-child')),
-        words: shown(h.querySelector('label[data-variant="header"] > span:last-child')),
+        words: shown(label),
+        visible,
+        name: (sw.textContent ?? '').replace(/\s+/g, ' ').trim(),
+        wordLines: lines(h.querySelector('a[href="/"] [data-size="header"] > span:last-child')),
+        switchLines: lines(label),
+        overflow,
+        scroll: bar.scrollWidth - bar.clientWidth,
       }
     })
-    out[w] = { rowH: m.rowH, chip: m.chip, words: m.words }
+    out[w] = {
+      rowH: m.rowH,
+      chip: m.chip,
+      words: m.words,
+      wordLines: m.wordLines,
+      switchLines: m.switchLines,
+    }
     expect(m.rowH, `one row at ${w}`).toBeLessThanOrEqual(m.minH + 1)
+    // nothing overflows, and the header stays 66 px tall or less
+    expect(m.headerH, `header height at ${w}`).toBeLessThanOrEqual(66)
+    expect(m.overflow, `nothing overflows the bar at ${w}`).toBe(false)
+    expect(m.scroll, `the bar does not scroll at ${w}`).toBeLessThanOrEqual(0)
+    // the switch keeps a visible label, and its accessible name contains it (WCAG 2.5.3)
+    expect(m.visible.length, `switch label at ${w}`).toBeGreaterThan(0)
+    expect(m.name.toLowerCase()).toContain(m.visible.toLowerCase())
+    expect(m.name.toLowerCase()).toBe(site.motion.label.toLowerCase())
+    // from 1180 px nothing wraps; below it the wordmark may be a two-line lockup
+    expect(m.switchLines, `switch label on one line at ${w}`).toBe(1)
+    if (w >= 1180) expect(m.wordLines, `wordmark on one line at ${w}`).toBe(1)
+    else expect(m.wordLines, `wordmark lockup at ${w}`).toBeLessThanOrEqual(2)
   }
   record('header-desktop', out)
   for (const [w, m] of Object.entries(out)) {
@@ -342,9 +397,10 @@ test('no green, orange only on Book a call outside figures, radius 0', async ({ 
 
 test('margins, section padding and max width follow the tokens', async ({ page }) => {
   for (const [w, margin, pad] of [
-    [390, 16, 48],
-    [1280, 51.2, 76.8],
-    [1920, 56, 96],
+    // --section-pad: clamp(32px, 4vw, 64px), tight on purpose (W4)
+    [390, 16, 32],
+    [1280, 51.2, 51.2],
+    [1920, 56, 64],
   ] as const) {
     await page.setViewportSize({ width: w, height: 800 })
     await page.goto('/how-it-works')
@@ -369,7 +425,7 @@ test('margins, section padding and max width follow the tokens', async ({ page }
 test('/kit renders every group and is noindex in preview', async ({ page, guard }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   const res = await page.goto('/kit')
-  const prod = process.env.SITE_PROD === '1'
+  const prod = process.env.SITE_PROD === '1' || (await isProductionBuild(page))
   if (prod) {
     expect(res?.status()).toBe(404)
     return
@@ -428,15 +484,24 @@ test('footer and 404 sheet lists put the plain label before the sheet number', a
 })
 
 test('production footer leaves out a contact cell with no value (D11)', async ({ page }) => {
-  test.skip(!(await isProductionBuild(page)), 'needs a VERCEL_ENV=production build')
+  test.skip(await isReviewBuild(page), 'the production look only (review mode shows the HOLDs)')
+  await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
-  const cells = page.getByRole('contentinfo').locator('dl > div')
+  const footer = page.getByRole('contentinfo')
+  const cells = footer.locator('dl > div')
   const n = await cells.count()
   for (let i = 0; i < n; i++) {
     const dd = (await cells.nth(i).locator('dd').innerText()).trim()
     const dt = (await cells.nth(i).locator('dt').innerText()).trim()
     expect(dd, `${dt} has a value`).not.toBe('')
   }
+  // no empty title-block cell: every cell has visible content
+  const empty = await footer.evaluate((f) =>
+    [...f.querySelectorAll('.wrap > div:first-child > *')]
+      .filter((c) => (c as HTMLElement).innerText.trim() === '')
+      .map((c) => c.className),
+  )
+  expect(empty).toEqual([])
 })
 
 test('links to other sheets prefetch on intent, never on viewport', async ({ page }) => {
@@ -476,7 +541,8 @@ test('term toggletip is hoverable, persistent and dismissible', async ({ page })
 test('axe: no serious or critical issues on /kit and the five sheets', async ({ page }) => {
   test.setTimeout(240_000)
   const results: Record<string, { serious: number; critical: number; ids: string[] }> = {}
-  const paths = [...ROUTES.map((r) => r.path), ...(process.env.SITE_PROD === '1' ? [] : ['/kit'])]
+  const prod = process.env.SITE_PROD === '1' || (await isProductionBuild(page))
+  const paths = [...ROUTES.map((r) => r.path), ...(prod ? [] : ['/kit'])]
   for (const path of paths)
     for (const w of [390, 1280])
       for (const tier of ['still', 'svg'] as const) {

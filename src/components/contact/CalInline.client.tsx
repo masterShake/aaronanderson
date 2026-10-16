@@ -17,6 +17,8 @@ export interface CalInlineProps {
   onReady: () => void
   onFailed: () => void
   onBooked: () => void
+  /** Prefills Cal.com's "Additional notes" (the `notes` booking field); left out when unset. */
+  notes?: string
 }
 
 const BRAND = {
@@ -38,6 +40,7 @@ export default function CalInline({
   onReady,
   onFailed,
   onBooked,
+  notes,
 }: CalInlineProps) {
   const cbs = useRef({ onReady, onFailed, onBooked })
   useEffect(() => {
@@ -77,7 +80,8 @@ export default function CalInline({
       calLink={calLink}
       calOrigin={calOrigin}
       embedJsUrl={embedJsUrl}
-      config={{ layout: 'month_view', theme: 'light' }}
+      // config keys reach the booking page as query params; a booking field prefills from its name
+      config={{ layout: 'month_view', theme: 'light', ...(notes ? { notes } : {}) }}
       style={{ width: '100%', minHeight: '100%' }}
     />
   )

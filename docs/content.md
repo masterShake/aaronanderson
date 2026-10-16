@@ -40,9 +40,12 @@ To fill it, replace the whole `hold(…)` call with the real value:
 email: 'hello@actualengineer.com',
 ```
 
-- **Preview builds** show each open HOLD as a dashed chip or cloud, so nothing is hidden.
-- **Production builds** show the HOLD's `prodFallback` instead, or leave the element out
-  when there is none. Proof (case studies, quotes, logos) stays out of production until real.
+- **Every build shows the production look** (local dev, `next start`, previews and
+  production): the HOLD's `prodFallback`, or nothing when there is none. A section whose
+  content is all held is left out, heading included. Proof (case studies, quotes, logos)
+  stays out until real.
+- **Review mode** shows each open HOLD as a dashed chip or cloud and each pending CONFIRM
+  with a mark, so nothing is hidden. Only a build with `SHOW_HOLDS=1` turns it on.
 - **Essential HOLDs** block launch: `STRICT_HOLDS=1 npm run build` fails while any remain.
   They are the email, the booking link, the call length, the S-01 and S-06 prices, and the
   crew names.
@@ -65,8 +68,8 @@ A CONFIRM marks a promise the site makes only once you agree to it:
 confirm("We don't rip out systems that work.", { id: 'nic.ripOut' })
 ```
 
-- `status: 'pending'` (the default) shows in previews with a CONFIRM mark and is left out of
-  production.
+- `status: 'pending'` (the default) shows with a CONFIRM mark in review mode and is left out
+  of every other build.
 - Add `status: 'ok'` to keep it everywhere, or `status: 'cut'` to drop it.
 - You can also reword the promise before you confirm it.
 
@@ -86,7 +89,22 @@ npm run punchlist -- --json  # the same, for tools
 npm run punchlist -- --write # regenerates PLACEHOLDERS.md, with the deployment settings
 ```
 
-Previews also show the same list at `/punch-list`.
+Every build except production also shows the same list at `/punch-list`.
+
+## Reviewing what is still open
+
+Two ways, both outside production:
+
+- **`/punch-list`:** every open HOLD and pending CONFIRM as a table, on any build that is not
+  production (`npm run dev`, `next start`, previews).
+- **Review mode:** see the tags in place on the pages.
+
+  ```sh
+  SHOW_HOLDS=1 npm run dev
+  ```
+
+  For a review build, run `SHOW_HOLDS=1 npm run build`, then `npm run start`. Without
+  `SHOW_HOLDS=1` the pages show the production look.
 
 ## Writing rules
 

@@ -4,6 +4,7 @@ import { BookCallButton } from '@/components/ui/BookCallButton'
 import { GridBubbles } from '@/components/blueprint/GridBubbles'
 import { HeroFigure } from '@/figures/hero/HeroFigure'
 import Link from 'next/link'
+import { Fragment } from 'react'
 import s from './hero/hero.module.css'
 
 /**
@@ -33,7 +34,15 @@ export function HomeHero() {
             {h.seeDrawing.label}
           </Link>
         </p>
-        <p className={s.spec}>{h.specLine}</p>
+        <p className={s.spec}>
+          {/* the line wraps between its parts, never inside one ("RIP-AND-REPLACE") */}
+          {h.specLine.split(' · ').map((part, i) => (
+            <Fragment key={part}>
+              {i ? ' · ' : null}
+              <span className={s.specPart}>{part}</span>
+            </Fragment>
+          ))}
+        </p>
       </div>
       <div className={s.heroFigure}>
         <HeroFigure />

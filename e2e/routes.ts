@@ -17,13 +17,17 @@ const heading = (text: string) =>
     'i',
   )
 
+/** Either of two H1s (Contact has a variant while there is no booking calendar). */
+const either = (a: string, b: string) =>
+  new RegExp(`${heading(a).source}|${heading(b).source}`, 'i')
+
 /** The five sheets and their H1s (read from src/content), plus the test matrix. */
 export const ROUTES = [
   { path: '/', h1: heading(home.hero.h1) },
   { path: '/services', h1: heading(servicesPage.h1) },
   { path: '/how-it-works', h1: heading(howItWorks.h1) },
   { path: '/about', h1: heading(about.h1) },
-  { path: '/contact', h1: heading(contact.h1) },
+  { path: '/contact', h1: either(contact.h1, contact.h1NoScheduler) },
 ] as const
 
 export const TIERS = ['still', 'svg', 'webgl'] as const

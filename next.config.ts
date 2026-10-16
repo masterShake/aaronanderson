@@ -13,8 +13,11 @@ import { buildCsp } from './src/lib/csp'
 /** production | preview | development on Vercel; local everywhere else. */
 const VERCEL_ENV = process.env.VERCEL_ENV ?? 'local'
 const IS_PROD_DEPLOY = VERCEL_ENV === 'production'
-/** HOLD clouds show locally and on previews; production shows the plain fallbacks. */
-const SHOW_HOLDS = process.env.SHOW_HOLDS ?? (IS_PROD_DEPLOY ? '0' : '1')
+/**
+ * Review mode (HOLD clouds, CONFIRM marks) only when the build sets SHOW_HOLDS=1. Every other
+ * build, local or deployed, shows the production look. /punch-list does not depend on it.
+ */
+const SHOW_HOLDS = process.env.SHOW_HOLDS === '1' ? '1' : '0'
 
 const scheduler = resolveScheduler(
   isHold(site.scheduler.url) ? null : site.scheduler.url,

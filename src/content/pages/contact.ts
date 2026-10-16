@@ -15,6 +15,8 @@ const retention = hold('How long messages are kept, e.g. twelve months', {
  */
 export const contact: ContactContent = {
   h1: 'Pick a time. Bring the spreadsheet.',
+  // No calendar to pick from yet: the form comes first, the call after.
+  h1NoScheduler: 'Write first. Bring the spreadsheet.',
   deck: {
     text: "A {callLength} call with the people who'd do the work. No pitch deck: tell us where the retyping happens and we'll tell you what we'd look at first.",
     vars: {},
@@ -96,6 +98,7 @@ export const contact: ContactContent = {
       { text: 'A {callLength} call.', vars: {} },
       'A short written next step, often a fixed-fee survey proposal.',
     ],
+    firstStepNoScheduler: 'You write to us.',
   },
   privacy: {
     id: 'privacy',
@@ -110,7 +113,11 @@ export const contact: ContactContent = {
     ],
     processors: [
       { name: 'Resend', does: 'delivers the messages' },
-      { name: 'Cal.com', does: 'runs the booking calendar, which loads only when you ask for it' },
+      {
+        name: 'Cal.com',
+        does: 'runs the booking calendar, which loads only when you ask for it',
+        scheduler: true,
+      },
       { name: 'Cloudflare Turnstile', does: 'checks for spam, when switched on' },
     ],
     retention,
@@ -120,7 +127,10 @@ export const contact: ContactContent = {
     // True with or without the scheduler (production hides the booking block until site.scheduler.url is real).
     h2: 'Still deciding? Write it down.',
     body: "Book a time or send a few lines, and we'll take it from there.",
+    bodyNoScheduler: "Send a few lines, and we'll take it from there.",
   },
+  // {sheet} is the sheet id, {serviceName} its name, e.g. "About S-03 · AI Workflow Automation".
+  bookingNotes: 'About {sheet} · {serviceName}',
 }
 
 /**

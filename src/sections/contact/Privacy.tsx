@@ -1,5 +1,6 @@
 import { contact } from '@/content/pages/contact'
 import { SectionHead } from '@/components/blueprint/SectionHead'
+import { noScheduler } from './scheduler'
 import s from './contact-sections.module.css'
 
 /**
@@ -13,11 +14,13 @@ export function Privacy() {
     <section id={c.id} aria-labelledby={`${c.id}-title`} className={`wrap ${s.privacy}`}>
       <SectionHead id={c.id} h2={c.h2} body={c.body} />
       <ul className={s.processors}>
-        {c.processors.map((p) => (
-          <li key={p.name}>
-            <strong>{p.name}</strong> {p.does}
-          </li>
-        ))}
+        {c.processors
+          .filter((p) => !(p.scheduler && noScheduler))
+          .map((p) => (
+            <li key={p.name}>
+              <strong>{p.name}</strong> {p.does}
+            </li>
+          ))}
       </ul>
     </section>
   )
