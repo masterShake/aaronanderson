@@ -19,6 +19,11 @@ import { inRev } from '../lib/route'
 interface Face {
   pts: Pt[]
   fill: string
+  /**
+   * A cylinder's face, drawn with elliptical arcs instead of its 24-gon (W4b, the inline
+   * budget): the top's centre and radii, and for the side band the base's centre too.
+   */
+  ell?: { c: Pt; rx: number; ry: number; base?: Pt }
 }
 
 interface Item {
@@ -30,13 +35,13 @@ interface Item {
   runs: { pts: Pt[]; h: number; joinA?: boolean; joinB?: boolean }[]
 }
 
-function footprint(p: ModelPart): { pts: Pt[]; closed: boolean; round?: boolean }[] {
+function footprint(p: ModelPart): { pts: Pt[]; closed: boolean; round?: { c: Pt; r: number } }[] {
   return p.prims.map((prim: Prim) => {
     switch (prim.t) {
       case 'rect':
         return { pts: primPts(prim), closed: true }
       case 'circle':
-        return { pts: primPts(prim, 24), closed: true, round: true }
+        return { pts: primPts(prim, 24), closed: true, round: { c: prim.c, r: prim.r } }
       case 'poly':
         return { pts: [...prim.pts], closed: prim.closed ?? false }
       default:
@@ -136,6 +141,19 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         }
         return nx * ISO.b[0] + ny * ISO.b[2] > 1e-9
       }
+      // a horizontal circle projects to an axis-aligned ellipse (screen right is level)
+      const rd = f.round
+      const ell = rd
+        ? (() => {
+            const c = P(planToWorld(rd.c, z1))
+            const e = P(planToWorld([rd.c[0] + 1, rd.c[1]], z1))
+            const g = P(planToWorld([rd.c[0], rd.c[1] + 1], z1))
+            // a unit plan step along x and along y: the ellipse's semi-axes, per unit radius
+            const rx = Math.hypot(e[0] - c[0], g[0] - c[0]) * rd.r
+            const ry = Math.hypot(e[1] - c[1], g[1] - c[1]) * rd.r
+            return { c, rx, ry, base: P(planToWorld(rd.c, z0)) }
+          })()
+        : undefined
       if (f.round) {
         // a cylinder's visible side is one smooth band (no facet lines)
         let s = 0
@@ -151,6 +169,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
                 ...ring.reverse().map((q) => P(planToWorld(q, z1))),
               ],
               fill: orange ? 'orange-dark' : 'alu-300',
+              ell,
             },
             d: 0,
           })
@@ -177,7 +196,11 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         part: p.id,
         faces: [
           ...sides.map((s) => s.face),
-          { pts: f.pts.map((q) => P(planToWorld(q, z1))), fill: orange ? 'orange' : 'alu-100' },
+          {
+            pts: f.pts.map((q) => P(planToWorld(q, z1))),
+            fill: orange ? 'orange' : 'alu-100',
+            ell: ell && { c: ell.c, rx: ell.rx, ry: ell.ry },
+          },
         ],
         runs: [],
       })
@@ -194,16 +217,33 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
   const n1 = (v: number) => num(Math.round(v * 10) / 10)
   const d = (pts: readonly Pt[], closed: boolean) =>
     `M${pts.map((q) => `${n1(q[0])} ${n1(q[1])}`).join('L')}${closed ? 'Z' : ''}`
+  /*
+   * An elliptical arc to (x, y). The parameters before the end point are joined by commas, so
+   * a later pass that shifts every "x y" pair (the hero's tall print) moves only the end point
+   * and never a radius or a flag.
+   */
+  const arc = (rx: number, ry: number, sweep: 0 | 1, x: number, y: number) =>
+    `A${n1(rx)},${n1(ry)},0,0,${sweep},${n1(x)} ${n1(y)}`
+  const ellD = (e: NonNullable<Face['ell']>): string => {
+    const [cx, cy] = e.c
+    if (!e.base)
+      // the top: two half arcs
+      return `M${n1(cx - e.rx)} ${n1(cy)}${arc(e.rx, e.ry, 0, cx + e.rx, cy)}${arc(e.rx, e.ry, 0, cx - e.rx, cy)}Z`
+    // the side band: the base's front half, up the right silhouette, the top's front half back
+    const [bx, by] = e.base
+    return `M${n1(bx - e.rx)} ${n1(by)}${arc(e.rx, e.ry, 0, bx + e.rx, by)}L${n1(cx + e.rx)} ${n1(cy)}${arc(e.rx, e.ry, 1, cx - e.rx, cy)}Z`
+  }
   const children: SvgNode[] = []
-  let i = 0
+  // the print fades in as one layer: no stagger index (the inline budget)
+  const i = 0
   for (const { it } of order) {
     for (const f of it.faces)
       children.push({
         el: 'path',
-        d: d(f.pts, true),
+        d: f.ell ? ellD(f.ell) : d(f.pts, true),
         len: 0,
         part: it.part,
-        i: i++,
+        i,
         cls: `f-${f.fill} p-018 i-cyan-dim`,
       })
     for (const r of it.runs) {
@@ -215,7 +255,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
           d: d(r.pts, false),
           len: 0,
           part: it.part,
-          i: i++,
+          i,
           cls: 'p-070 i-cyan',
         })
         continue
@@ -238,7 +278,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         d: d(band, true),
         len: 0,
         part: it.part,
-        i: i++,
+        i,
         cls: 'f-alu-300',
       })
       const up = n[1] < 0 ? 1 : -1
@@ -247,7 +287,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         d: d([band[0]!, band[1]!], false) + d([band[3]!, band[2]!], false),
         len: 0,
         part: it.part,
-        i: i++,
+        i,
         cls: 'p-018 i-cyan-dim',
       })
       // the highlight along the upper side
@@ -263,7 +303,7 @@ export function isoPrintDoc(spec: ModelSpec, o: { rev?: string; viewBox?: ViewBo
         ),
         len: 0,
         part: it.part,
-        i: i++,
+        i,
         cls: 'p-025 i-paper',
       })
     }
