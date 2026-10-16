@@ -26,6 +26,8 @@ export type Ink =
   | 'asphalt'
   | 'paper'
   | 'hold'
+  /** Fill only: a light tint of whatever panel the part sits on (scale figures). */
+  | 'tint'
 /** The HTML-level <svg> layers a figure stacks, bottom to top (class l-{layer}). */
 export type Layer = 'panel' | 'pencil' | 'ghost' | 'cad' | 'pkt' | 'iso'
 export const LAYERS: readonly Layer[] = ['panel', 'pencil', 'ghost', 'cad', 'pkt', 'iso']
@@ -55,6 +57,8 @@ export interface Part {
   dash?: 'hand-carry' | 'hidden' | 'center'
   /** Visible in these states (default: all). */
   revs?: readonly string[]
+  /** Always drawn as clean paths, even by the pencil renderer (scale figures). */
+  clean?: boolean
 }
 
 export interface Anchor {
@@ -81,6 +85,23 @@ export interface DrawingModule<L extends string = string, R extends string = str
 export type NodeKind =
   'tool' | 'ai' | 'valve' | 'store' | 'monitor' | 'report' | 'doc' | 'junction' | 'person'
 
+/**
+ * What a tool box is, drawn as a small identifying glyph inside its enclosure
+ * (symbols/library.ts toolGlyph; _finish B1). 'plain' is the bare box.
+ */
+export type ToolKind =
+  | 'plain'
+  | 'inbox'
+  | 'sheet'
+  | 'phone'
+  | 'ledger'
+  | 'chart'
+  | 'cards'
+  | 'gantt'
+  | 'folder'
+  | 'timesheet'
+  | 'payroll'
+
 export interface Port {
   side: 'n' | 'e' | 's' | 'w'
   /** 0 to 1 along the side. */
@@ -103,6 +124,8 @@ export interface GraphNode<L extends string, R extends string> {
   detail?: `S-0${1 | 2 | 3 | 4 | 5 | 6}`
   symbol?: SymbolId
   depth?: number
+  /** A tool box's glyph (graphDoc draws it when its `glyphs` option is on). */
+  tool?: ToolKind
 }
 
 /** How a hand-off moves today: retyped, forwarded, exported, or synced. */

@@ -1,0 +1,55 @@
+/* The /kit/fig showcase: a tight grid of baked symbol tiles. */
+.sheet {
+  display: grid;
+  gap: var(--s-4);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--s-4) var(--page-margin);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  display: grid;
+  /* the column, not the baked svg's own width, sets the tile size */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-1);
+  overflow: clip;
+  border: 1px solid var(--c-asphalt);
+  background: var(--c-paper);
+}
+
+.art {
+  aspect-ratio: 1;
+  min-inline-size: 0;
+  overflow: clip;
+}
+
+/* the iso print is a small plant: give it room */
+[data-showcase-group='iso'] .grid {
+  grid-template-columns: minmax(0, 480px);
+}
+
+[data-showcase-group='iso'] .art {
+  aspect-ratio: 480 / 300;
+}
+
+.art > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.id {
+  padding: 0 var(--s-1) var(--s-1);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-label);
+  overflow-wrap: anywhere;
+}

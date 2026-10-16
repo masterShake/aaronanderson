@@ -12,22 +12,34 @@ export interface RoughPreset {
   maxRandomnessOffset: number
 }
 
-export type PresetId = 'box' | 'line' | 'cloud' | 'person' | 'scribble'
+export type PresetId = 'box' | 'line' | 'cloud' | 'person' | 'scribble' | 'detail'
 
+/**
+ * W4: box, line and detail are confident single strokes. render/pencil.ts
+ * draws their straights one segment at a time, overshooting each corner a
+ * little and easing the bow off on long runs, so a long line stays straight.
+ */
 export const ROUGH: Readonly<Record<PresetId, RoughPreset>> = {
   box: {
-    roughness: 1.1,
-    bowing: 0.9,
-    disableMultiStroke: false,
-    preserveVertices: false,
-    maxRandomnessOffset: 1.6,
+    roughness: 0.9,
+    bowing: 0.8,
+    disableMultiStroke: true,
+    preserveVertices: true,
+    maxRandomnessOffset: 1.2,
   },
   line: {
-    roughness: 1.0,
-    bowing: 1.0,
-    disableMultiStroke: false,
+    roughness: 0.8,
+    bowing: 0.8,
+    disableMultiStroke: true,
     preserveVertices: true,
-    maxRandomnessOffset: 1.4,
+    maxRandomnessOffset: 1.1,
+  },
+  detail: {
+    roughness: 0.4,
+    bowing: 0.3,
+    disableMultiStroke: true,
+    preserveVertices: true,
+    maxRandomnessOffset: 0.5,
   },
   cloud: {
     roughness: 0.8,

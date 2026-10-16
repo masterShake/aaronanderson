@@ -44,7 +44,7 @@ export interface StateSpec {
 }
 
 const remapFor = (ground: StateSpec['ground']): BakeOptions['remap'] =>
-  ground === 'deep' ? { panel: 'deep' } : { panel: 'paper' }
+  ground === 'deep' ? { panel: 'deep', tint: 'tint-deep' } : { panel: 'paper' }
 
 /** A state of a drawing that is not graph-shaped: StateSpec without the graph's medium. */
 export type DocStateSpec = Omit<StateSpec, 'medium'>

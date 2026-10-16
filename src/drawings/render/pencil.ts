@@ -1,6 +1,6 @@
 import rough from 'roughjs'
 import type { Options } from 'roughjs/bin/core'
-import type { Prim } from '../types'
+import type { Prim, Pt } from '../types'
 import { primD, primPts, seedFrom } from '../lib/geometry'
 import { primLength } from '../lib/length'
 import { ROUGH, ROUGH_CAPS, type PresetId } from '../kit/rough'
@@ -92,12 +92,99 @@ export function splitMoves(d: string): string[] {
     .filter((s) => s.length > 1)
 }
 
+/** Presets drawn as straight segments with overshoot (see kit/rough.ts). */
+const STRAIGHT: ReadonlySet<PresetId> = new Set(['box', 'line', 'detail'])
+
+/**
+ * The straight segments of a rect or an unfilleted polyline, each with a flag
+ * per end: true where the end is a corner (it overshoots there). Null for
+ * anything curved.
+ */
+function straights(p: Prim): { a: Pt; b: Pt; ca: boolean; cb: boolean }[] | null {
+  let pts: Pt[]
+  let closed: boolean
+  if (p.t === 'line') {
+    pts = [p.a, p.b]
+    closed = false
+  } else if (p.t === 'rect') {
+    pts = primPts(p)
+    closed = true
+  } else if (p.t === 'poly' && !p.r) {
+    pts = [...p.pts]
+    closed = p.closed ?? false
+  } else return null
+  const n = pts.length
+  if (n < 2) return null
+  const segs = closed ? n : n - 1
+  // a corner overshoots only when it is near square (60°–120°): arrow tips and folds stay crisp
+  const square = (v: number) => {
+    const p = pts[(v - 1 + n) % n]!
+    const q = pts[v % n]!
+    const r = pts[(v + 1) % n]!
+    const ax = q[0] - p[0]
+    const ay = q[1] - p[1]
+    const bx = r[0] - q[0]
+    const by = r[1] - q[1]
+    const l = Math.hypot(ax, ay) * Math.hypot(bx, by)
+    return l > 0 && Math.abs((ax * bx + ay * by) / l) < 0.5
+  }
+  return Array.from({ length: segs }, (_, j) => ({
+    a: pts[j]!,
+    b: pts[(j + 1) % n]!,
+    ca: (closed || j > 0) && square(j),
+    cb: (closed || j < n - 2) && square(j + 1),
+  }))
+}
+
+/** A confident straight: overshoot past corners, bow eased off with length. */
+function straightStroke(
+  s: { a: Pt; b: Pt; ca: boolean; cb: boolean },
+  opts: Options,
+  detail: boolean,
+): Stroke[] {
+  const dx = s.b[0] - s.a[0]
+  const dy = s.b[1] - s.a[1]
+  const l = Math.hypot(dx, dy)
+  if (l < 0.01) return []
+  const ux = dx / l
+  const uy = dy / l
+  const ov = detail ? 0 : Math.min(2.4, l * 0.06)
+  const a: Pt = s.ca ? [s.a[0] - ux * ov, s.a[1] - uy * ov] : s.a
+  const b: Pt = s.cb ? [s.b[0] + ux * ov, s.b[1] + uy * ov] : s.b
+  const ease = Math.min(1, 80 / l)
+  const o: Options = {
+    ...opts,
+    bowing: (opts.bowing ?? 1) * ease,
+    roughness: (opts.roughness ?? 1) * (0.55 + 0.45 * ease),
+  }
+  const ds = gen
+    .line(a[0], a[1], b[0], b[1], o)
+    .sets.filter((set) => set.type === 'path')
+    .flatMap((set) => splitMoves(gen.opsToPath(set, 2)))
+  const len = (l + (s.ca ? ov : 0) + (s.cb ? ov : 0)) / Math.max(1, ds.length)
+  return ds.map((d) => ({ d, len: Math.round(len * 100) / 100 }))
+}
+
 /** Pencil strokes for a list of primitives: one path per roughjs subpath. */
 export function pencil(prims: readonly Prim[], o: PencilOptions): readonly Stroke[] {
   if (!o.seed) throw new Error('pencil(): seed must be non-zero')
   const out: Stroke[] = []
+  const preset = o.preset ?? 'line'
   prims.forEach((p, i) => {
     const opts = options(o, i)
+    const segs = STRAIGHT.has(preset) ? straights(p) : null
+    if (segs) {
+      segs.forEach((s, j) =>
+        out.push(
+          ...straightStroke(
+            s,
+            { ...opts, seed: seedFrom(`${o.seed}:${i}:${j}`) },
+            preset === 'detail',
+          ),
+        ),
+      )
+      return
+    }
     const dr = drawable(p, opts)
     const ds = dr.sets
       .filter((set) => set.type === 'path')

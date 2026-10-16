@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { labelCollisions } from '../src/drawings/lib/collide'
 
 /**
  * The drawing pipeline and the interactive schematic, on the /kit/fig harness:
@@ -244,6 +245,69 @@ test('firm drawing files, when served, are static and text-free', async ({ reque
   }
   const still = await request.get('/drawings/firm.wide.rewired.still.svg')
   expect(still.headers()['content-type']).toContain('image/svg+xml')
+})
+
+test('the kit showcase draws every scale figure, tool glyph and symbol in both media', async ({
+  page,
+  guard,
+}) => {
+  await page.goto('/kit/fig?tier=svg')
+  for (const group of ['people', 'tools', 'symbols']) {
+    const tiles = page.locator(`[data-showcase-group="${group}"] li`)
+    const n = await tiles.count()
+    expect(n, group).toBeGreaterThan(0)
+    // each id appears twice: pencil on paper and CAD on blueprint
+    expect(
+      await page.locator(`[data-showcase-group="${group}"] li[data-medium="pencil"]`).count(),
+    ).toBe(n / 2)
+    for (let i = 0; i < n; i++)
+      expect(await tiles.nth(i).locator('svg path').count(), `${group} tile ${i}`).toBeGreaterThan(
+        0,
+      )
+  }
+  await expect(page.locator('[data-showcase-group="iso"] svg path').first()).toBeAttached()
+  expect(await page.locator('[data-showcase] svg text').count()).toBe(0)
+  // every pencil scale figure is a filled cut-out (paper fill under its outline), never sticks
+  const people = page.locator('[data-showcase-group="people"] li[data-medium="pencil"]')
+  for (let i = 0; i < (await people.count()); i++)
+    expect(await people.nth(i).locator('svg path[fill="#F4F2EC"]').count()).toBeGreaterThan(4)
+  expect(guard.errors).toEqual([])
+})
+
+test('every figure title strip is one line at 390 and 1280, and nothing in it overlaps', async ({
+  page,
+}) => {
+  for (const width of [390, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const path of ['/', '/services', '/how-it-works']) {
+      await page.goto(`${path}?tier=svg`)
+      const strips = page.locator('figure[data-figure] > .strip')
+      const n = await strips.count()
+      for (let i = 0; i < n; i++) {
+        const where = `${path} strip ${i} at ${width}`
+        const state = await strips.nth(i).evaluate((el) => {
+          const title = el.querySelector('p[id$="-title"]') as HTMLElement
+          const line = parseFloat(getComputedStyle(title).lineHeight) || 16
+          const controls = el.querySelector('.controls')
+          // the title's visible parts, and every visible thing beside it in the strip
+          const parts = [
+            ...title.querySelectorAll(':scope > span:not(.sr-only)'),
+            ...[...el.children].filter((c) => c !== title && c !== controls),
+            ...(controls ? [...controls.children] : []),
+          ]
+          const labels = parts.flatMap((p, k) => {
+            const r = p.getBoundingClientRect()
+            return r.width > 1 && r.height > 1
+              ? [{ id: `${k}:${p.className}`, x: r.x, y: r.y, w: r.width, h: r.height }]
+              : []
+          })
+          return { oneLine: title.getBoundingClientRect().height <= line * 1.5, labels }
+        })
+        expect(state.oneLine, where).toBe(true)
+        expect(labelCollisions({ labels: state.labels }), where).toEqual([])
+      }
+    }
+  }
 })
 
 test('screenshots of the firm and hero harness at 390 and 1280', async ({ page, isMobile }) => {

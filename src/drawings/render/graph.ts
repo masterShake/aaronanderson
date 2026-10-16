@@ -1,4 +1,4 @@
-import type { Graph, LayoutId, Prim, Pt, SvgDoc, SvgNode, SymbolId } from '../types'
+import type { Graph, LayoutId, Prim, Pt, SvgDoc, SvgNode, SymbolId, ToolKind } from '../types'
 import { primD, seedFrom } from '../lib/geometry'
 import { drawOrder, primLength } from '../lib/length'
 import {
@@ -13,17 +13,23 @@ import {
 } from '../lib/route'
 import { isConnection } from '../lib/counts'
 import { pencil } from './pencil'
+import type { PresetId } from '../kit/rough'
 import { group, partsNodes, portCircles, strokeCls } from './cad'
 import {
   aiPrims,
   arrowhead,
   chevron,
   cloudPrim,
+  flangePrims,
+  glyphBox,
   monitorPrims,
   paperGlyph,
   placeSymbol,
   tankPrims,
+  toolGlyph,
+  toolKindOf,
   valvePrims,
+  type GlyphPlace,
 } from '../symbols'
 
 /**
@@ -51,7 +57,7 @@ function roughNodes(
   part: string,
   i: number,
   cls: string,
-  preset: 'box' | 'line' | 'cloud' | 'person' = 'line',
+  preset: PresetId = 'line',
 ): SvgNode[] {
   return pencil(prims, { seed: seedFrom(seed), preset }).map((s) => node(s.d, s.len, part, i, cls))
 }
@@ -78,6 +84,16 @@ export interface GraphDocOptions {
   medium?: Medium
   /** Chevron spacing on automatic routes (default 120 u; 0 = none). */
   chevrons?: number
+  /**
+   * Tool glyphs (_finish B1). Off by default (today's bare boxes). true draws
+   * each node's own `tool` kind; 'auto' also infers one from the node id or
+   * label key (toolKindOf). Glyphs never change a box's size or position.
+   */
+  glyphs?: boolean | 'auto'
+  /** Where glyphs sit: 'right' (default, beside a left label), 'center' or 'corner'. */
+  glyphPlace?: GlyphPlace
+  /** Flange pairs at both ends of every CAD conduit (default true). */
+  flanges?: boolean
 }
 
 /** The SvgDoc of one graph state in one family. */
@@ -99,6 +115,40 @@ export function graphDoc(
   const seed = (id: string) => `${g.id}:${g.seed}:${family}:${rev}:${id}`
   const children: SvgNode[] = []
 
+  /** A tool's identifying glyph (opt-in through o.glyphs or node.tool). */
+  const glyphNodes = (
+    n: AnyGraph['nodes'][number],
+    rc: { x: number; y: number; w: number; h: number },
+    i: number,
+    m: Medium,
+  ): SvgNode[] => {
+    if (n.kind !== 'tool' && n.kind !== 'report') return []
+    const kind: ToolKind = n.tool ?? (o.glyphs === 'auto' ? toolKindOf(n.id, n.label) : 'plain')
+    if (kind === 'plain' || !o.glyphs) return []
+    const gl = toolGlyph(kind, glyphBox(rc, o.glyphPlace ?? 'right'))
+    if (m === 'cad')
+      return [
+        cleanNode(gl.outline, `${n.id}.glyph`, i, strokeCls({ pen: '035', ink: 'cyan' })),
+        ...(gl.rules.length
+          ? [cleanNode(gl.rules, `${n.id}.glyph`, i, strokeCls({ pen: '018', ink: 'cyan' }))]
+          : []),
+      ]
+    const cls = strokeCls({ pen: '025', ink: 'pencil' })
+    return [
+      ...roughNodes(gl.outline, seed(`${n.id}.glyph`), `${n.id}.glyph`, i, cls, 'detail'),
+      ...(gl.rules.length
+        ? roughNodes(
+            gl.rules,
+            seed(`${n.id}.rules`),
+            `${n.id}.glyph`,
+            i,
+            strokeCls({ pen: '018', ink: 'pencil' }),
+            'detail',
+          )
+        : []),
+    ]
+  }
+
   if (medium === 'pencil') {
     for (const n of nodes) {
       const rc = nodeRect(n, family)
@@ -115,6 +165,7 @@ export function graphDoc(
             strokeCls({ pen: '035', ink: 'pencil' }),
             'box',
           ),
+          ...glyphNodes(n, rc, i, 'pencil'),
         ]),
       )
     }
@@ -183,6 +234,7 @@ export function graphDoc(
         const box: Prim = { t: 'rect', at: [rc.x, rc.y], size: [rc.w, rc.h] }
         kids = [
           cleanNode([box], n.id, i, strokeCls({ pen: '050', ink: 'cyan', fill: 'panel' })),
+          ...glyphNodes(n, rc, i, 'cad'),
           ...portCircles(ports, n.id, i),
         ]
       }
@@ -204,6 +256,20 @@ export function graphDoc(
         continue
       }
       const kids: SvgNode[] = [cleanNode([r.prim], r.id, i, strokeCls({ pen: '070', ink: 'cyan' }))]
+      if ((o.flanges ?? true) && r.len > 40) {
+        const inset = 7 / r.len
+        kids.push(
+          cleanNode(
+            [
+              ...flangePrims(pointAlong(r.pts, inset), directionAt(r.pts, inset), 4.5),
+              ...flangePrims(pointAlong(r.pts, 1 - inset), directionAt(r.pts, 1 - inset), 4.5),
+            ],
+            r.id,
+            i,
+            strokeCls({ pen: '035', ink: 'cyan', draw: false }),
+          ),
+        )
+      }
       const ins = instrumentsOn(r)
       const every = o.chevrons ?? 120
       if (every > 0 && !ins.ai && !ins.valve)

@@ -29,6 +29,14 @@ export function familyMin(id: FigureId): 440 | 520 | 560 {
   return 560
 }
 
+/** The title strip's demo stamp: the tag's first word shows, the rest is screen-reader only. */
+export function stampParts(tag: string | undefined): { word: string; rest: string } | null {
+  const t = tag?.trim()
+  if (!t) return null
+  const [word = t, ...rest] = t.split(/\s+/)
+  return { word, rest: rest.join(' ') }
+}
+
 export interface FigureFrameExtras {
   /** Render-time vars for the caption and long description (graph counts, for example). */
   textVars?: Readonly<Record<string, string | number>>
@@ -69,6 +77,7 @@ export function FigureFrame({
   } as CSSProperties
   const revs = copy.revs as Readonly<Record<string, string>> | undefined
   const showTable = copy.controls?.showTable
+  const stamp = stampParts(copy.tag)
   return (
     <figure
       id={dom}
@@ -92,9 +101,23 @@ export function FigureFrame({
       aria-describedby={`${dom}-desc`}
     >
       <div className={`strip ${s.strip}`}>
+        {/* one line at any width: the detail number yields first (still read out), then the
+            name truncates; the EXAMPLE or SAMPLE tag is a small stamp that never wraps */}
         <p id={`${dom}-title`} className={s.title}>
-          {copy.detail} · {copy.title}
-          {copy.tag ? <> · {copy.tag}</> : null}
+          <span className={s.detail}>
+            {copy.detail}
+            <span aria-hidden="true"> · </span>
+          </span>
+          <span className={s.name}>{copy.title}</span>
+          {stamp ? (
+            // the stamp shows the tag's first word (EXAMPLE or SAMPLE); the rest is still read
+            // out, and the footer's general notes say it in full
+            <span className={s.stamp} data-stamp="">
+              <span className="sr-only"> · </span>
+              {stamp.word}
+              {stamp.rest ? <span className="sr-only"> {stamp.rest}</span> : null}
+            </span>
+          ) : null}
         </p>
         {initialRev && (revs?.[initialRev] || !IS_PRODUCTION) ? (
           // a missing chip string shows its rev key in preview, so the gap is visible
