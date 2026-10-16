@@ -18,13 +18,17 @@
 
 .tile {
   display: grid;
+  /* the column, not the baked svg's own width, sets the tile size */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-1);
+  overflow: clip;
   border: 1px solid var(--c-asphalt);
   background: var(--c-paper);
 }
 
 .art {
   aspect-ratio: 1;
+  min-inline-size: 0;
   overflow: clip;
 }
 

@@ -216,9 +216,10 @@ overshooting corners slightly and easing the bow off on long runs.
 
 The title is one line at any width: `detail · title`, then the tag as a small square stamp
 (`[data-stamp]`), then the rev chip and the controls (which take a second row on narrow
-figures rather than squeeze the title). When space runs out the stamp trims
-first, the detail number leaves below 800 px (screen readers still hear it), and the name
-truncates last. Keep tags short (`EXAMPLE`, `SAMPLE`).
+figures rather than squeeze the title). The stamp shows only the tag's first word
+(`EXAMPLE`, `SAMPLE`) and never trims; the rest of the tag is screen-reader text
+(`stampParts` in `FigureFrame.tsx`). When space runs out the detail number leaves below
+800 px (screen readers still hear it), and the name truncates last.
 
 ## The example firm and the schematic
 

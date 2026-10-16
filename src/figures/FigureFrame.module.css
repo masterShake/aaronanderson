@@ -64,10 +64,10 @@
   flex: none;
 }
 
-/* the demo stamp: small, quiet, square, never wrapping */
+/* the demo stamp: one small, quiet, square word that never wraps or trims */
 .stamp {
-  flex: 0 1000 auto;
-  min-width: 11ch;
+  flex: none;
+  min-width: auto;
   padding: 1px 6px;
   border: 1px solid currentColor;
   color: var(--c-graphite);
