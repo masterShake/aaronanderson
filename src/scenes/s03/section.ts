@@ -27,8 +27,8 @@ export interface S03Family {
 }
 
 export const S03_FAMILY: Readonly<Record<LayoutId, S03Family>> = {
-  wide: { vb: [0, 0, 960, 720], s: 1.2, tx: -30, ty: -20 },
-  tall: { vb: [0, 0, 400, 500], s: 0.55, tx: -42, ty: 110 },
+  wide: { vb: [0, 0, 960, 720], s: 1.2, tx: -42, ty: -20 },
+  tall: { vb: [0, 0, 400, 500], s: 0.62, tx: -70.6, ty: 105 },
 }
 
 /** A design point in a family's viewBox units. */
@@ -313,8 +313,8 @@ function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill
   L(
     'floor',
     [
-      [100, S03_DESIGN.floor],
-      [780, S03_DESIGN.floor],
+      [130, S03_DESIGN.floor],
+      [740, S03_DESIGN.floor],
     ],
     false,
     '035',
@@ -452,4 +452,4 @@ export function sectionFrame(f: LayoutId): Frame {
 }
 
 /** Model bounds (design units, with depth): the 3D fit and the frustum check. */
-export const S03_BOUNDS = { x0: 100, x1: 780, y0: 110, y1: 520 } as const
+export const S03_BOUNDS = { x0: 130, x1: 740, y0: 105, y1: 520 } as const

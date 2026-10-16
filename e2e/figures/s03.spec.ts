@@ -172,7 +172,10 @@ for (const [family, width] of [
     expect(Math.round(r.box.w)).toBe(width)
     expect(r.text).toBe(0)
     expect(r.vectorEffect).toBe(false)
-    expect(r.labels.length).toBeGreaterThanOrEqual(8)
+    // one label per object: every label of the held state shows, the data card included
+    expect(r.labels.map((l) => l.key).sort()).toEqual(
+      ['card', 'hopper', 'output', 'reader', 'section', 'tolerance', 'tray'].sort(),
+    )
     for (const l of r.labels) {
       // (sub-pixel slack: rects are measured after layout rounding)
       expect(l.w, `${l.key} width`).toBeGreaterThanOrEqual(104 - 0.01)

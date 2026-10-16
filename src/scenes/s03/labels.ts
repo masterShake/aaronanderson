@@ -18,11 +18,11 @@ export type S03LabelKey = 'hopper' | 'reader' | 'tolerance' | 'tray' | 'output' 
  * tests check it. Labels away from their object get a leader (S03_LEADERS).
  */
 export const S03_LABELS: Readonly<Record<S03LabelKey, Readonly<Record<LayoutId, Pt>>>> = {
-  hopper: { wide: [140, 24], tall: [8, 8] },
-  tolerance: { wide: [430, 40], tall: [130, 124] },
+  hopper: { wide: [128, 24], tall: [8, 8] },
+  tolerance: { wide: [418, 40], tall: [130, 124] },
   card: { wide: [668, 16], tall: [250, 8] },
-  output: { wide: [720, 380], tall: [262, 226] },
-  reader: { wide: [226, 396], tall: [70, 296] },
-  tray: { wide: [540, 616], tall: [180, 402] },
-  section: { wide: [20, 628], tall: [8, 454] },
+  output: { wide: [708, 380], tall: [262, 234] },
+  reader: { wide: [214, 396], tall: [60, 318] },
+  tray: { wide: [528, 616], tall: [180, 438] },
+  section: { wide: [20, 628], tall: [8, 452] },
 }

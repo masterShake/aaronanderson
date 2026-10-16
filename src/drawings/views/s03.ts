@@ -29,7 +29,7 @@ export function sketchPrims(): { id: string; prims: Prim[] }[] {
   const { x0, y0, x1, y1 } = G.body
   const floor = S03_DESIGN.floor
   return [
-    { id: 'floor', prims: [{ t: 'line', a: [110, floor], b: [770, floor] }] },
+    { id: 'floor', prims: [{ t: 'line', a: [134, floor], b: [736, floor] }] },
     { id: 'hopper', prims: [{ t: 'poly', pts: [...G.hopper], closed: true }] },
     { id: 'body', prims: [{ t: 'rect', at: [x0, y0], size: [x1 - x0, y1 - y0] }] },
     { id: 'window', prims: [{ t: 'rect', at: [300, 250], size: [150, 70] }] },
@@ -120,18 +120,18 @@ export const S03_LEADERS: Readonly<
 > = {
   wide: {
     card: [
-      [709, 150],
-      [709, 333],
+      [697, 150],
+      [697, 318],
     ],
     tray: [
-      [660, 612],
-      [660, 521],
+      [650, 612],
+      [650, 518],
     ],
   },
   tall: {
     tray: [
-      [280, 400],
-      [280, 352],
+      [290, 436],
+      [290, 384],
     ],
   },
 }

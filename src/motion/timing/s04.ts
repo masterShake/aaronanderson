@@ -1,13 +1,15 @@
 /**
- * S-04 timing (owner: scenes-a). One flat table, read by the figure's CSS (as unitless
+ * S-04 timing (owner: svc-b). One flat table, read by the figure's CSS (as unitless
  * --s04-* vars) and its controller.
  *
  * Scrub progress p: the 2D phases end at handoffP (.50); time loops start at motionFromP.
  *   sketch .00–.25 (five pencil tiles at ±12°) · lock .25–.44 (tiles square up into the
- *   grid, machine ease) · scan .30–.42 (paper to deep, pencil to ghost) · the panel names
- *   fade in .42–.48 · the data store and its risers draw .42–.50
+ *   grid, machine ease) · scan .30–.42 (paper to deep, pencil to ghost; the ghost is gone
+ *   by .46) · the data store and its risers draw .42–.50 · the panel names fade in
+ *   .45–.50, after what they name
  * Loops (ms): packets rise up the risers from 0, one every packetEvery, until packetsTo;
- * the needles settle into IN RANGE at settleAt (needleMs, settle ease); the owner's report
+ * the needles settle on their end readings (S04_END: CHECK, IN RANGE, LOW) at settleAt
+ * (needleMs, settle ease); the owner's report
  * slides out of the printer slot over cardA–cardB. Three loops, then idle with Run again.
  * Question chips answer at once (no typewriter) and move one needle (needleMs).
  * WebGL (optional, behind SHIP.s04): hand-off in [.50, .54]; tilt to iso .54–.74; the
@@ -24,8 +26,8 @@ export const S04 = {
   lockB: 0.44,
   scanA: 0.3,
   scanB: 0.42,
-  namesA: 0.42,
-  namesB: 0.48,
+  namesA: 0.45,
+  namesB: 0.5,
   tankA: 0.42,
   tankB: 0.5,
   tiltA: 0.54,

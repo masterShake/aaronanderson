@@ -110,6 +110,22 @@ test('s04 runs three loops, settles the needles, then idles with Run again', asy
   await expect(fig).toHaveAttribute('data-schedule', 'in', { timeout: 4000 })
   await expect(fig).toHaveAttribute('data-phase', 'done', { timeout: 25_000 })
   await expect(fig.locator('[data-action="run-again"]')).toBeVisible()
+  // the three dials end on three different words (D3: LOW · IN RANGE · CHECK)
+  await expect(fig).toHaveAttribute('data-cost', 'check')
+  await expect(fig).toHaveAttribute('data-hours', 'low')
+  const shown = fig.locator('.labels [data-dial] [data-v]').filter({ visible: true })
+  await expect(shown).toHaveCount(3)
+  expect(new Set(await shown.allTextContents())).toEqual(new Set(['LOW', 'IN RANGE', 'CHECK']))
+})
+
+test('s04 question chips are square and at least 44 px tall', async ({ page }) => {
+  await gotoTier(page, '/kit/fig/s04', 'svg')
+  const fig = await ready(page)
+  const chips = fig.locator('button[data-q]')
+  for (const chip of await chips.all()) {
+    await expect(chip).toHaveCSS('border-top-left-radius', '0px')
+    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  }
 })
 
 test('s04 below 1024 px plays on entry with Replay and requests no 3D', async ({ page }) => {
