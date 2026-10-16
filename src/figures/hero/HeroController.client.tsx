@@ -4,7 +4,7 @@ import { useFigure } from '@/figures/use-figure.client'
 import type { FigureConfig } from '@/figures/types'
 import type { StageEvent } from '@/stage/types'
 import { coarsePointer } from '@/stage/probe'
-import { HERO } from '@/motion/timing/hero'
+import { HERO, HERO_ENTRY } from '@/motion/timing/hero'
 import { IS_PRODUCTION } from '@/lib/env'
 
 /**
@@ -22,6 +22,7 @@ import { IS_PRODUCTION } from '@/lib/env'
 const CONFIG: FigureConfig = {
   driver: 'time',
   stage: { scene: 'hero', load: 'hero', mode: 'timeline' },
+  gateRatio: HERO_ENTRY,
 }
 const FAMILY_MIN = 520
 

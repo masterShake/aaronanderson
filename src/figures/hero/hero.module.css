@@ -369,9 +369,11 @@
   animation-play-state: var(--gate);
 }
 
+/* structure, then detail, then the name: the glyph inks in as the outline closes, and the
+   name (HeroLabels, --tw) pops after both */
 .hero :global(.drawing .k-box .glyph) {
-  animation: fadein var(--hero-tool-dur) var(--ease-pencil)
-    calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap) + var(--hero-tool-dur) / 2)
+  animation: fadein calc(var(--hero-tool-dur) / 2) var(--ease-pencil)
+    calc(var(--hero-sketch-start) + var(--i, 0) * var(--hero-tool-gap) + var(--hero-tool-dur) * 0.8)
     both;
   animation-play-state: var(--gate);
 }
@@ -385,6 +387,14 @@
 .hero :global(.drawing .k-line .draw) {
   animation: draw var(--hero-line-dur) var(--ease-pencil)
     calc(var(--hero-line-start) + var(--i, 0) * var(--hero-line-gap)) both;
+  animation-play-state: var(--gate);
+}
+
+/* the arrowhead goes on as its line arrives */
+.hero :global(.drawing .k-line .ah) {
+  animation: draw calc(var(--hero-line-dur) / 3) var(--ease-pencil)
+    calc(var(--hero-line-start) + var(--i, 0) * var(--hero-line-gap) + var(--hero-line-dur) * 0.8)
+    both;
   animation-play-state: var(--gate);
 }
 
@@ -410,6 +420,12 @@
 /* and redraw as cut-outs at the valve, estimating and on site */
 .hero :global(.drawing .k-cut path) {
   animation: fadein var(--hero-pop-dur) var(--ease-settle) calc(var(--i, 0) * 1ms) both;
+  animation-play-state: var(--gate);
+}
+
+/* the label leaders go on with REV 1, after the scan has drawn their objects and names */
+.hero :global(.drawing .k-lead) {
+  animation: fadein var(--hero-pop-dur) linear var(--hero-decision-at) both;
   animation-play-state: var(--gate);
 }
 

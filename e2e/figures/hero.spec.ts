@@ -114,6 +114,30 @@ test('people, lines and tools come from the graph: 3 people, at most 3 hand note
   expect(await page.locator(`${FIG} svg text`).count()).toBe(0)
 })
 
+test('REV 2: the people at the valve, estimating and on site are at least 12% of the frame', async ({
+  page,
+  isMobile,
+}) => {
+  await gotoTier(page, '/', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(300)
+  await freezeAt(page, 4000)
+  const fam = isMobile ? 'tall' : 'wide'
+  const shares = await page.evaluate(
+    ({ s, fam }) => {
+      const box = document.querySelector(`${s} .box`)!.getBoundingClientRect()
+      const svg = document.querySelector(`${s} .drawing svg.l-cad[data-family="${fam}"]`)!
+      return [...svg.querySelectorAll('g.k-cut')].map(
+        (g) => g.getBoundingClientRect().height / box.height,
+      )
+    },
+    { s: FIG, fam },
+  )
+  expect(shares).toHaveLength(3)
+  for (const h of shares) expect(h).toBeGreaterThanOrEqual(0.12)
+})
+
 test('the ERASE ghost lives only in the scan beat: gone by REV 2', async ({ page }) => {
   await gotoTier(page, '/', 'svg')
   const fig = page.locator(FIG)
@@ -327,8 +351,9 @@ for (const width of [1280, 1440])
       }
       const svg = [...fig.querySelectorAll('.drawing svg.l-cad')].find((v) => v.checkVisibility())!
       const boxes = [...svg.querySelectorAll('.k-frame path[class^="f-"]')]
+        // the box rectangles (absolute, or the inline drawing's relative h/v form)
         .filter((p) =>
-          /^M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z$/.test(
+          /^M[\d.]+ [\d.]+(?:L[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z|h-?[\d.]+v-?[\d.]+h-?[\d.]+z)$/.test(
             p.getAttribute('d') ?? '',
           ),
         )
@@ -404,10 +429,9 @@ test('Pause stops every hero animation', async ({ page }) => {
   await fig.locator('input[data-motion-switch]').uncheck()
 })
 
-test('phones wait for the figure to be 40% visible before it starts', async ({
-  page,
-  isMobile,
-}) => {
+// W4b (no blank frames): the hero starts as its strip comes into view (HERO_ENTRY, 15%), so its
+// panel never enters empty; it still holds while it is out of view
+test('phones hold the hero until it starts to come into view', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'the entry gate holds below 1024 px')
   await gotoTier(page, '/', 'svg')
   const fig = page.locator(FIG)

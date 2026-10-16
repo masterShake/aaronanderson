@@ -1,5 +1,5 @@
 import type { LayoutId, ModelPart, ModelSpec, Prim, Pt, SymbolId } from '@/drawings/types'
-import { heroGraph, HERO_PERSON, type HeroTool } from '@/drawings/views/hero'
+import { heroGraph, HERO_CUT, type HeroTool } from '@/drawings/views/hero'
 import { primD } from '@/drawings/lib/geometry'
 import { symbolDef } from '@/drawings/symbols'
 import { center, instrumentsOn, nodeRect, routeGraph } from '@/drawings/lib/route'
@@ -81,7 +81,7 @@ export function buildHeroSceneData(family: LayoutId): HeroSceneData {
     symbols[p.symbol] ??= symbolDef(p.symbol as SymbolId).parts.map((part) =>
       r1(part.prims.map(primD).join('')),
     )
-  return { spec: model.spec, people: model.people, person: HERO_PERSON[family], symbols }
+  return { spec: model.spec, people: model.people, person: HERO_CUT[family], symbols }
 }
 
 export interface HeroModel {

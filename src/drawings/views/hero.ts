@@ -131,12 +131,19 @@ const PORTS: Readonly<Record<LayoutId, Partial<Record<HeroTool | 'store', P>>>> 
       r09: p('s', 0.85),
     },
     field: { r04: p('e', 0.5), r01: p('s', 0.5) },
-    inbox: { r01: p('n', 0.5), r03: p('e', 0.25), r02: p('e', 0.5) },
-    accounting: { r02: p('w', 0.5), r08: p('s', 0.5), r06: p('e', 0.5) },
+    // h02 (as found): the retyped ticket goes the long way round, under the bottom row
+    inbox: { r01: p('n', 0.5), r03: p('e', 0.25), r02: p('e', 0.5), h02: p('s', 0.6) },
+    accounting: { r02: p('w', 0.5), r08: p('s', 0.5), r06: p('e', 0.5), h02: p('s', 0.4) },
     store: { r08: p('n', 0.5), r09: p('e', 0.5), r10: p('w', 0.5) },
     report: { r10: p('w', 0.5) },
   },
 }
+
+/** The tall sketch's inbox → accounting carry: down, along under the bottom row, and up. */
+const TALL_H02_VIA: readonly Pt[] = [
+  [110, 404],
+  [290, 404],
+]
 
 /**
  * The hero graph of one family. Each family is its own graph: `at` and `size` are that
@@ -156,6 +163,9 @@ function build(family: LayoutId): Graph<FirmLabel, FirmRev> {
   })
   const routes: Route[] = g.routes.map((r) => {
     if (r.id === 'r03' || r.id === 'r04') return { ...r, ai: false, valve: false }
+    // the tall sketch fills its frame: the inbox → accounting carry dips under the bottom row
+    // (the rewired plan puts the data store there)
+    if (r.id === 'h02' && family === 'tall') return { ...r, via: TALL_H02_VIA }
     return r
   })
   const base: Graph<FirmLabel, FirmRev> = {
@@ -177,7 +187,14 @@ function build(family: LayoutId): Graph<FirmLabel, FirmRev> {
  * (75 u, 12% of the frame).
  */
 export const HERO_PERSON: Readonly<Record<LayoutId, number>> = { wide: 60, tall: 42 }
-export const HERO_SUBJECT = 1.25
+export const HERO_SUBJECT = 1.1
+
+/**
+ * The rewired people (the cut-outs at estimating, on site and the valve) are the subjects of the
+ * running machine: at least 12% of the frame's height in both families (finish standard B4),
+ * 80 u of 640 and 60 u of 480; the person at the valve HERO_SUBJECT times that.
+ */
+export const HERO_CUT: Readonly<Record<LayoutId, number>> = { wide: 80, tall: 60 }
 
 /**
  * As found on the line (at: fraction along it, wide and tall); rewired at the valve, at
@@ -185,7 +202,7 @@ export const HERO_SUBJECT = 1.25
  * so the two clouds in the centre column never touch.
  */
 const PEOPLE_PLAN = [
-  { id: 'p1', on: 'h02', at: [0.62, 0.62], symbol: 'fig.at-valve' },
+  { id: 'p1', on: 'h02', at: [0.62, 0.5], symbol: 'fig.at-valve' },
   { id: 'p2', on: 'h05', at: [0.5, 0.5], symbol: 'fig.tablet' },
   { id: 'p3', on: 'h04', at: [0.5, 0.8], symbol: 'fig.phone' },
 ] as const
@@ -196,7 +213,7 @@ const PEOPLE_PLAN = [
  */
 export const HERO_STATIONS: Readonly<Record<LayoutId, Readonly<Record<string, Pt>>>> = {
   wide: { p1: [352, 504], p2: [618, 186], p3: [222, 482] },
-  tall: { p1: [238, 280], p2: [152, 142], p3: [140, 280] },
+  tall: { p1: [238, 280], p2: [142, 144], p3: [140, 280] },
 }
 
 function people(g: Graph<FirmLabel, FirmRev>, family: LayoutId): ScaleFigure<FirmRev>[] {
@@ -238,8 +255,9 @@ export const HERO_NOTES: Readonly<
   wide: [
     { key: 'estimate', at: [400, 28] },
     { key: 'inbox', at: [194, 614] },
-    { key: 'report', at: [680, 382] },
+    // bottom right margin, under the accounting row: clear of every line in both drawings
+    { key: 'report', at: [790, 614] },
   ],
-  // the tall sketch has room for one note, in the empty band under the bottom row
-  tall: [{ key: 'inbox', at: [125, 372] }],
+  // the tall sketch has room for one note, under the carry that dips below the bottom row
+  tall: [{ key: 'inbox', at: [125, 448] }],
 }

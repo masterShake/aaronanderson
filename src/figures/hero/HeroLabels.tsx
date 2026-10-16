@@ -82,7 +82,7 @@ export function HeroLabels({ wide, tall, copy }: { wide: HeroBuild; tall: HeroBu
         const t = tall.places.find((x) => x.key === p.key)
         const style = {
           ...pos(p.at, t?.at, 'l'),
-          ...times(p.scan, p.scan, t?.scan, t?.scan),
+          ...times(p.pop, p.scan, t?.pop, t?.scan),
         } as CSSProperties
         return (
           <span key={p.key} className={`${s.lab} ${s.place}`} style={style}>
