@@ -612,11 +612,16 @@ function build(family: Fam): HeroBuild {
     const pop = Math.max(crossAt(p.rewired.at[0], W) + 120, crossAt(at[0] + LABEL_HALF, W))
     return [{ key, at, pop, scan: pop - INKED }]
   })
-  // a note goes as the scan bar reaches its left end (half a note: wide ~150 u, tall ~110 u)
+  // a note has faded out (160 ms, hero.module.css) before the scan bar reaches its left end
+  // (half a note: wide ~150 u, tall ~110 u), so the bar never touches it
   const notes = HERO_NOTES[family].map((n) => ({
     key: n.key,
     at: n.at,
-    scan: crossAt(n.at[0] - (family === 'wide' ? 150 : 110), W),
+    // (the bar starts slowly: a note at the left edge can wait for the scan to begin)
+    scan: Math.max(
+      crossAt(n.at[0] - (family === 'wide' ? 150 : 110), W) - 220,
+      HERO.scanStart - 60,
+    ),
   }))
   const reportNode = g.nodes.find((n) => n.id === 'report')!
   const rr = nodeRect(reportNode, 'wide')
