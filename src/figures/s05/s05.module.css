@@ -84,6 +84,15 @@
   --b: var(--s05-desk-to-p);
 }
 
+/* Tall: the desk scene has its own lower half, so it is set with the sketch (after the crew)
+   rather than leaving that half empty until the new hire comes. */
+@container fig (width < 440px) {
+  .fig :global(path.sc) {
+    --a: calc(var(--s05-sketch-from-p) + 4 * var(--s05-sketch-step-p));
+    --b: calc(var(--a) + var(--s05-sketch-stroke-p));
+  }
+}
+
 /* the walkthrough's checklist rows draw one after another while it plays */
 .fig :global(path.sl) {
   --a: calc(
