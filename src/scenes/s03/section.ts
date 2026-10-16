@@ -295,6 +295,15 @@ export function personPolys(): { pts: Pt[]; closed: boolean }[] {
   })
 }
 
+/**
+ * How far the tolerance gauge stands above its wide-family place, design units. On phones
+ * (tall) it rides a taller mast, so the gauge fills the panel's upper half.
+ */
+export const DIAL_LIFT: Readonly<Record<LayoutId, number>> = { wide: 0, tall: 90 }
+
+/** The gauge's centre in a family, design units. */
+export const dialC = (f: LayoutId): Pt => [G.dial.c[0], G.dial.c[1] - DIAL_LIFT[f]]
+
 /** Dial bands: in tolerance from −120° to +40°, CHECK from +40° to +120°. */
 export const DIAL = { tolFrom: -120, tolTo: 40, checkTo: 120, okDeg: -35, checkDeg: 80 } as const
 
@@ -302,7 +311,10 @@ export const DIAL = { tolFrom: -120, tolTo: 40, checkTo: 120, okDeg: -35, checkD
 export const MOVING = ['needle', 'gate', 'spoke.0', 'spoke.1'] as const
 
 /** Design-space lines and fills of the section details (everything frontFrame cannot draw). */
-function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill, 'opacity'>[] } {
+function details(f: LayoutId): {
+  lines: Omit<FrameLine, 'opacity'>[]
+  fills: Omit<FrameFill, 'opacity'>[]
+} {
   const lines: Omit<FrameLine, 'opacity'>[] = []
   const fills: Omit<FrameFill, 'opacity'>[] = []
   const L = (id: string, pts: Pt[], closed: boolean, pen: Pen, ink: FrameLine['ink'] = 'cyan') =>
@@ -366,7 +378,8 @@ function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill
   )
   F('lens', rectPts(G.lens), 'cyan')
   // tolerance dial on its stem
-  const { c, r } = G.dial
+  const { r } = G.dial
+  const c = dialC(f)
   L(
     'dial-stem',
     [
@@ -436,7 +449,7 @@ function details(): { lines: Omit<FrameLine, 'opacity'>[]; fills: Omit<FrameFill
 
 /** The section details placed in a family (the extras added to frontFrame's lines and fills). */
 export function sectionExtras(f: LayoutId): { lines: FrameLine[]; fills: FrameFill[] } {
-  const d = details()
+  const d = details(f)
   const pl = (pts: readonly Pt[]) => pts.map((p) => place(f, p))
   return {
     lines: d.lines.map((l) => ({ ...l, pts: pl(l.pts), opacity: 1 })),

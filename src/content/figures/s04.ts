@@ -9,7 +9,7 @@ import { site } from '../site'
 export const s04Figure = {
   id: 's04',
   detail: 'DETAIL 4 / S-04',
-  title: 'ONE TANK, EVERY REPORT',
+  title: 'ONE TANK',
   tag: site.exampleTag,
   caption: 'Every system drains into one data store, so every report reads the same numbers.',
   longDescription: [

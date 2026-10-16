@@ -139,15 +139,17 @@ export function runS04(
     apply(null, 0)
     settle(false)
   }
+  /** Where the loops start: motionFromP after the WebGL model, the hand-off in svg. */
+  const loopsFrom = () => (medium === 'svg' ? S04.svgLoopsP : S04.motionFromP)
   const onProgress = (v: number) => {
     p = v
     api.setProgress(v)
     if (p < S04.handoffP) {
       if (running || done) resetAll()
-    } else if (p >= S04.motionFromP && !running && !done && pinned === null) startLoops()
+    } else if (p >= loopsFrom() && !running && !done && pinned === null) startLoops()
     else if (pinned !== null) {
-      // a pinned preview past motionFromP shows the end state: readings and the report out
-      const end = p >= S04.motionFromP
+      // a pinned preview past the loop start shows the end state: readings and the report out
+      const end = p >= loopsFrom()
       apply(null, end ? 1 : 0)
       settle(end)
     }
@@ -192,7 +194,7 @@ export function runS04(
       const was = medium
       medium = 'svg'
       clearTimeout(settleTimer)
-      if (was === 'webgl' && p >= S04.motionFromP && !done && pinned === null) startLoops()
+      if (was === 'webgl' && p >= loopsFrom() && !done && pinned === null) startLoops()
     } else if (e.type === 'beat') {
       clearTimeout(settleTimer)
       if (e.beat === 'running') settleTimer = setTimeout(() => settle(true), S04.settleAt)

@@ -10,12 +10,22 @@ import {
   S03_LEADERS,
   dialHub,
   finishDetails,
+  magazine,
   placePrimS03,
   sectionLine,
   sketchPrims,
   stackSheets,
 } from '@/drawings/views/s03'
-import { DIAL, G, S03_FAMILY, place, s03Spec, sectionExtras } from '@/scenes/s03/section'
+import {
+  DIAL,
+  G,
+  S03_FAMILY,
+  dialC,
+  hatch,
+  place,
+  s03Spec,
+  sectionExtras,
+} from '@/scenes/s03/section'
 
 /**
  * The S-03 drawing files (pure; drawing.server.ts serves them):
@@ -50,7 +60,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100
 /** Moving frame parts, posed for a still: rotations about their pivots (family units). */
 function posed(f: LayoutId, state: State): Readonly<Record<string, string>> {
   if (state === 'live') return {}
-  const c = place(f, G.dial.c)
+  const c = place(f, dialC(f))
   const p = place(f, G.gate.pivot)
   const needle = state === 'held' ? DIAL.checkDeg : 0
   const gate = state === 'held' ? G.gate.deg : 0
@@ -60,8 +70,64 @@ function posed(f: LayoutId, state: State): Readonly<Record<string, string>> {
   }
 }
 
+/**
+ * Phones (tall) only: the feed magazine on the hopper, in section (cut walls with hatch, the
+ * waiting sheets, the weight plate). SVG only: the tall family never hands off to WebGL.
+ */
+function magazineNodes(f: LayoutId): SvgNode[] {
+  if (f !== 'tall') return []
+  const { walls, sheets, plate } = magazine()
+  const out: SvgNode[] = []
+  const P = (p: Prim) => placePrimS03(f, p)
+  walls.forEach((w, i) => {
+    const poly = P({ t: 'poly', pts: w, closed: true })
+    out.push(node(primD(poly), 0, `mag.wall.${i}`, 0, strokeCls({ fill: 'deep', draw: false })))
+    hatch(w, 10).forEach(([a, b], j) => {
+      const l = P({ t: 'line', a, b })
+      out.push(
+        node(
+          primD(l),
+          primLength(l),
+          `mag.hatch.${i}.${j}`,
+          0,
+          strokeCls({ pen: '025', ink: 'cyan-dim' }),
+        ),
+      )
+    })
+    out.push(
+      node(
+        primD(poly),
+        primLength(poly),
+        `mag.wall.${i}`,
+        0,
+        strokeCls({ pen: '070', ink: 'cyan' }),
+      ),
+    )
+  })
+  const paper = strokeCls({ pen: '025', ink: 'cyan', fill: 'paper', draw: false })
+  sheets.forEach((s, i) => {
+    const p = P(s)
+    out.push(node(primD(p), primLength(p), `mag.sheet.${i}`, 0, paper))
+  })
+  plate.forEach((s, i) => {
+    const p = P(s)
+    if (i === 0)
+      out.push(node(primD(p), 0, 'mag.plate', 0, strokeCls({ fill: 'deep', draw: false })))
+    out.push(
+      node(
+        primD(p),
+        primLength(p),
+        `mag.plate.${i}`,
+        0,
+        strokeCls({ pen: i ? '035' : '050', ink: 'cyan' }),
+      ),
+    )
+  })
+  return out
+}
+
 function sectionNodes(f: LayoutId, state: State): SvgNode[] {
-  const nodes = frameNodes(s03Frame(f))
+  const nodes = [...frameNodes(s03Frame(f)), ...magazineNodes(f)]
   const pose = posed(f, state)
   return nodes.map((n) => {
     if (n.el !== 'path') return n
@@ -90,7 +156,7 @@ const rectD = (f: LayoutId, [x, y, w, h]: readonly [number, number, number, numb
 function finishNodes(f: LayoutId, state: State): SvgNode[] {
   const live = state === 'live'
   const out: SvgNode[] = []
-  for (const d of finishDetails()) {
+  for (const d of finishDetails(f)) {
     const prims = d.prims.map((p) => placePrimS03(f, p))
     const path = prims.map(primD).join('')
     const len = prims.reduce((s, p) => s + primLength(p), 0)
@@ -106,7 +172,7 @@ function finishNodes(f: LayoutId, state: State): SvgNode[] {
       ),
     )
   }
-  const hub = placePrimS03(f, dialHub())
+  const hub = placePrimS03(f, dialHub(f))
   out.push(node(primD(hub), 0, 'fin.hub-dial', 2, strokeCls({ fill: 'cyan', draw: false })))
   // the batch waiting in the hopper (live only: in the stills it has gone through)
   if (live) {
@@ -188,7 +254,7 @@ function batchNodes(f: LayoutId, state: State): SvgNode[] {
 function sketchNodes(f: LayoutId, draw: boolean, ink: string): SvgNode[] {
   const out: SvgNode[] = []
   let i = 0
-  for (const s of sketchPrims()) {
+  for (const s of sketchPrims(f)) {
     const prims = s.prims.map((p) => placePrimS03(f, p))
     for (const st of pencil(prims, { seed: seedFrom(`s03:${s.id}`), preset: 'box' }))
       out.push(

@@ -23,6 +23,12 @@
 export const S04 = {
   handoffP: 0.5,
   motionFromP: 0.76,
+  /**
+   * In the svg medium nothing models between the hand-off and motionFromP, so the loops
+   * start at the hand-off: the scrub never stalls on an unchanging frame for a third of
+   * the sticky span (the names land at .42, a short hold, then the packets rise).
+   */
+  svgLoopsP: 0.5,
   sketchA: -0.23,
   sketchB: 0,
   lockA: 0.04,

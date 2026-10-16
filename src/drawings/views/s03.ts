@@ -1,5 +1,5 @@
 import type { LayoutId, Prim, Pt } from '../types'
-import { G, S03_DESIGN, S03_FAMILY, personPolys } from '@/scenes/s03/section'
+import { G, S03_DESIGN, S03_FAMILY, dialC, personPolys } from '@/scenes/s03/section'
 
 /**
  * S-03 layout (owner: scenes-b): the pencil side elevation, the section line,
@@ -24,20 +24,87 @@ export const S03_COUNTS = {
   held: S03_BATCH.filter((d) => !d.ok).length,
 } as const
 
+/**
+ * Phones (tall) only: a feed magazine standing on the hopper lip, holding the documents
+ * still to come under a weight plate. Its walls are cut like the body's. Design units.
+ */
+export const MAGAZINE = { x0: 168, x1: 292, top: -56, t: 8, plateY: 30 } as const
+
+/** The magazine's parts (design units): wall outlines, the waiting sheets, the plate. */
+export function magazine(): { walls: Pt[][]; sheets: Prim[]; plate: Prim[] } {
+  const { x0, x1, top, t, plateY } = MAGAZINE
+  const lip = G.hopper[0]![1] - 5
+  const wall = (x: number): Pt[] => [
+    [x, top],
+    [x + t, top],
+    [x + t, lip],
+    [x, lip],
+  ]
+  const sheets: Prim[] = Array.from({ length: 8 }, (_, i) => {
+    const y = plateY + 10 + i * 8
+    const tip = i % 2 ? -1 : 1
+    return {
+      t: 'poly',
+      pts: [
+        [x0 + t + 5, y + tip],
+        [x1 - t - 5, y - tip],
+        [x1 - t - 5, y - tip + 2.5],
+        [x0 + t + 5, y + tip + 2.5],
+      ],
+      closed: true,
+    }
+  })
+  const cx = (x0 + x1) / 2
+  return {
+    walls: [wall(x0), wall(x1 - t)],
+    sheets,
+    plate: [
+      { t: 'rect', at: [x0 + t + 2, plateY], size: [x1 - x0 - 2 * t - 4, 6] },
+      {
+        t: 'poly',
+        pts: [
+          [cx - 12, plateY],
+          [cx - 12, plateY - 12],
+          [cx + 12, plateY - 12],
+          [cx + 12, plateY],
+        ],
+      },
+    ],
+  }
+}
+
 /** The pencil side elevation (design units): what the visitor sees before the cut. */
-export function sketchPrims(): { id: string; prims: Prim[] }[] {
+export function sketchPrims(f: LayoutId): { id: string; prims: Prim[] }[] {
   const { x0, y0, x1, y1 } = G.body
   const floor = S03_DESIGN.floor
+  const c = dialC(f)
+  const M = MAGAZINE
+  const lip = G.hopper[0]![1] - 5
   return [
     { id: 'floor', prims: [{ t: 'line', a: [134, floor], b: [736, floor] }] },
     { id: 'hopper', prims: [{ t: 'poly', pts: [...G.hopper], closed: true }] },
+    ...(f === 'tall'
+      ? [
+          {
+            id: 'magazine',
+            prims: [
+              { t: 'rect', at: [M.x0, M.top], size: [M.x1 - M.x0, lip - M.top] },
+              {
+                t: 'rect',
+                at: [M.x0 + M.t + 4, M.plateY + 8],
+                size: [M.x1 - M.x0 - 2 * M.t - 8, 64],
+              },
+            ] as Prim[],
+          },
+        ]
+      : []),
     { id: 'body', prims: [{ t: 'rect', at: [x0, y0], size: [x1 - x0, y1 - y0] }] },
     { id: 'window', prims: [{ t: 'rect', at: [300, 250], size: [150, 70] }] },
     {
       id: 'dial',
       prims: [
-        { t: 'circle', c: G.dial.c, r: G.dial.r },
-        { t: 'line', a: [G.dial.c[0], G.dial.c[1] + G.dial.r], b: [G.dial.c[0], y0] },
+        { t: 'circle', c, r: G.dial.r },
+        { t: 'line', a: [c[0], c[1] + G.dial.r], b: [c[0], y0] },
       ],
     },
     {
@@ -162,8 +229,9 @@ const tick = (c: Pt, r0: number, r1: number, deg: number): Prim => {
  * hub; the reader's lens housing and eye; roller hubs; leg base plates; the hopper lip;
  * the output tray's bracket.
  */
-export function finishDetails(): S03Detail[] {
-  const { c, r } = G.dial
+export function finishDetails(f: LayoutId): S03Detail[] {
+  const { r } = G.dial
+  const c = dialC(f)
   const ticks = Array.from({ length: 9 }, (_, k) => tick(c, r - 3, r - 11, -120 + 30 * k))
   const hx = G.head[0] + G.head[2] / 2
   const ly = G.lens[1] + G.lens[3]
@@ -228,6 +296,19 @@ export function finishDetails(): S03Detail[] {
       prims: [ring([hx, G.head[1] + G.head[3] / 2], 6), ring([hx, G.head[1] + G.head[3] / 2], 2)],
     },
     { id: 'bezel', step: 2, pen: '070', ink: 'cyan', prims: [ring(c, r + 5)] },
+    // the tall mast stands in a foot bolted to the top wall
+    ...(f === 'tall'
+      ? [
+          {
+            id: 'mast-foot',
+            step: 2,
+            pen: '050',
+            ink: 'cyan',
+            fill: 'deep',
+            prims: [{ t: 'rect', at: [c[0] - 10, G.body.y0 - 6], size: [20, 6] }],
+          } satisfies S03Detail,
+        ]
+      : []),
     { id: 'ticks', step: 2, pen: '025', ink: 'cyan', prims: ticks },
     {
       id: 'bracket',
@@ -242,7 +323,7 @@ export function finishDetails(): S03Detail[] {
 }
 
 /** The hub drawn over the needle (after the moving parts). */
-export const dialHub = (): Prim => ring(G.dial.c, 3.5)
+export const dialHub = (f: LayoutId): Prim => ring(dialC(f), 3.5)
 
 /**
  * The batch waiting in the hopper: three sheets, top first (stack.0 feeds first), each a

@@ -35,6 +35,7 @@ import {
   S03_DESIGN,
   S03_FAMILY,
   TRAVEL,
+  dialC,
   place,
   sectionFrame,
   wallPieces,
@@ -188,7 +189,7 @@ const mod: SceneModule = {
         if (!MOVES.has(l.id)) continue
         const c: Pt =
           l.id === 'needle'
-            ? place(ctx.layout, G.dial.c)
+            ? place(ctx.layout, dialC(ctx.layout))
             : l.id === 'gate'
               ? place(ctx.layout, G.gate.pivot)
               : place(ctx.layout, G.rollers[Number(l.id.slice(-1))]!)

@@ -19,7 +19,7 @@ export type S03LabelKey = 'hopper' | 'reader' | 'tolerance' | 'tray' | 'output' 
  */
 export const S03_LABELS: Readonly<Record<S03LabelKey, Readonly<Record<LayoutId, Pt>>>> = {
   hopper: { wide: [128, 24], tall: [8, 8] },
-  tolerance: { wide: [418, 40], tall: [130, 124] },
+  tolerance: { wide: [418, 40], tall: [118, 64] },
   card: { wide: [668, 16], tall: [250, 8] },
   output: { wide: [708, 380], tall: [262, 234] },
   reader: { wide: [214, 396], tall: [60, 318] },
