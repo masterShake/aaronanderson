@@ -50,12 +50,13 @@ export const ticketFigure = {
     monitor: 'MONITOR',
     fixed: 'SYNC FAILED → FIXED',
   },
+  /** The strip's REV chip; the status (ui stamp.*) follows it where the strip has room. */
   revs: {
-    rev0: 'REV 0 · EXISTING CONDITIONS',
-    rev1: 'REV 1 · ISSUED FOR REVIEW',
-    rev2: 'REV 2 · ISSUED FOR CONSTRUCTION',
-    rev3: 'REV 3 · AS-BUILT',
-    rev4: 'REV 4 · IN SERVICE',
+    rev0: 'REV 0',
+    rev1: 'REV 1',
+    rev2: 'REV 2',
+    rev3: 'REV 3',
+    rev4: 'REV 4',
   },
   ui: {
     tape: '{h} HAND-OFFS · {r} RETYPES',

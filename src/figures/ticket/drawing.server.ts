@@ -216,6 +216,27 @@ function ticketGraphFor(family: LayoutId) {
   return { ...g, routes: g.routes.map((r) => (r.id === 'n2' ? { ...r, valve: false } : r)) }
 }
 
+/** The tail of an orthogonal polyline that lies inside a rect, cut where it enters. */
+function clip(pts: readonly Pt[], [x, y, w, h]: readonly [number, number, number, number]): Pt[] {
+  const inside = (p: Pt) => p[0] >= x && p[0] <= x + w && p[1] >= y && p[1] <= y + h
+  const out: Pt[] = []
+  for (let k = pts.length - 1; k >= 0; k--) {
+    const p = pts[k]!
+    if (inside(p)) {
+      out.unshift(p)
+      continue
+    }
+    const q = out[0]
+    if (q) {
+      const cx = Math.min(Math.max(p[0], x), x + w)
+      const cy = Math.min(Math.max(p[1], y), y + h)
+      out.unshift(p[0] === q[0] ? [p[0], cy] : [cx, p[1]])
+    }
+    break
+  }
+  return out
+}
+
 const INK_ON_PAPER = { 'i-cyan': 'i-cad', 'i-cyan-dim': 'i-cad', 'f-panel': 'f-paper' }
 const INK_ON_DEEP = { 'f-panel': 'f-deep', 'f-paper': 'f-deep' }
 
@@ -271,19 +292,30 @@ function rewired(family: LayoutId, rev: TicketRev): SvgDoc {
       : clean([rect(zx, zy, zw, zh)], 'zone', 0, strokeCls({ fill: 'deep', draw: false }))
   const kids: SvgNode[] = [panel]
 
-  // REV 2: the old route still runs beside the new one, dashed (PARALLEL RUN)
+  // REV 2: the old route still runs beside the new one (PARALLEL RUN). Its tools are the real
+  // ones, drawn in the dim pen with their glyphs (names are HTML); the hand-offs between them
+  // stay dashed, and the photo's hand-off comes in from the paper side.
   if (n === 2) {
-    const dash = strokeCls({ pen: '035', ink: 'cyan-dim', dash: 'hidden', draw: false })
+    const dimOut = strokeCls({ pen: '035', ink: 'cyan-dim', fill: 'deep', draw: false })
+    const dimDetail = strokeCls({ pen: '018', ink: 'cyan-dim', draw: false })
+    const dash = strokeCls({ pen: '025', ink: 'cyan-dim', dash: 'hidden', draw: false })
     const old: SvgNode[] = []
+    for (const id of ['r3', 'r4', 'r5', 'r6'])
+      old.push(clean([{ t: 'poly', pts: geo.old.get(id)!.pts }], `old.${id}`, 0, dash))
+    const onPanel = clip(geo.old.get('r2')!.pts, ex.zone)
+    if (onPanel.length > 1) old.push(clean([{ t: 'poly', pts: onPanel }], 'old.r2', 0, dash))
     for (const id of ['pm', 'inbox', 'office', 'po', 'accounting', 'jobCost']) {
       const rc = nodeRect(
         g.nodes.find((x) => x.id === id)!,
         family,
       )
-      old.push(clean([rect(rc.x, rc.y, rc.w, rc.h)], `old.${id}`, 0, dash))
+      old.push(clean([rect(rc.x, rc.y, rc.w, rc.h)], `old.${id}`, 0, dimOut))
+      const gl = nodeGlyph(id, rc, family)
+      if (gl) {
+        old.push(clean(gl.outline, `old.${id}.glyph`, 0, dimOut))
+        old.push(clean(gl.detail, `old.${id}.glyph`, 0, dimDetail))
+      }
     }
-    for (const id of ['r3', 'r4', 'r5', 'r6'])
-      old.push(clean([{ t: 'poly', pts: geo.old.get(id)!.pts }], `old.${id}`, 0, dash))
     kids.push(group('parallel', old, 'erase'))
   }
   kids.push(...body)

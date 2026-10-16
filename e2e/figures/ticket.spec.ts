@@ -46,6 +46,33 @@ for (const rev of ['rev1', 'rev2', 'rev3', 'rev4']) {
   })
 }
 
+/**
+ * W4b: the parallel run at REV 2 is the old tools themselves (glyph and name), never bare
+ * dashed boxes; only the hand-offs between them are dashed.
+ */
+test('rev2: the parallel run shows the old tools by name, with their glyphs', async ({ page }) => {
+  await page.goto(`${URL}&state=rev2`)
+  const fig = page.locator('#fig-ticket')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  const group = fig.locator('svg.l-cad g[data-rev="rev2"] [data-part="parallel"]')
+  for (const id of ['pm', 'inbox', 'office', 'po', 'accounting', 'jobCost']) {
+    await expect(group.locator(`path[data-part="old.${id}"]`)).toHaveCount(1)
+    await expect(group.locator(`path[data-part="old.${id}"].d-hidden`)).toHaveCount(0)
+    expect(await group.locator(`path[data-part="old.${id}.glyph"]`).count()).toBeGreaterThan(0)
+    await expect(fig.locator(`.labels [data-label="${id}"]`)).toBeVisible()
+  }
+})
+
+test('the strip keeps one row on phones', async ({ page }) => {
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto(`${URL}&state=rev2`)
+    const strip = page.locator('#fig-ticket .strip')
+    await expect(page.locator('#fig-ticket [data-rev-chip]')).toContainText('REV 2')
+    expect(await strip.evaluate((e) => e.getBoundingClientRect().height)).toBeLessThan(56)
+  }
+})
+
 test('the still tier shows the still of the current revision', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/kit/fig/ticket?state=rev2')

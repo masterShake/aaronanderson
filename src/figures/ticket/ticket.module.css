@@ -53,6 +53,22 @@
   }
 }
 
+/* tall: the photo's line runs down the sheet, so its two packets run down it too */
+.ticket:global([data-rev='rev2'][data-family='tall'])
+  :global(:is([data-part='packet.0'], [data-part='packet.1'])) {
+  animation-name: ticket-run-down;
+}
+
+@keyframes ticket-run-down {
+  from {
+    opacity: 0;
+    translate: 0 -6%;
+  }
+  10% {
+    opacity: 1;
+  }
+}
+
 /* REV 3: the documents fan out from the right edge. */
 .ticket:global([data-rev='rev3']) :global(.doc) {
   animation: ticket-fan var(--ticket-fan, 300ms) var(--ease-settle, ease) both;
@@ -146,6 +162,12 @@
   color: var(--c-graphite);
 }
 
+/* REV 2: the old tools still run beside the new line; their names print in cyan, a step
+   quieter than the new line's labels (cyan on deep is the figures' secondary text). */
+.ticket:global([data-rev='rev2']) .label[data-tone='old'] {
+  color: var(--c-cyan);
+}
+
 .label[data-tone='new'] {
   color: var(--c-blueprint);
   background: var(--c-paper);
@@ -237,6 +259,18 @@
 .ticket:global([data-rev='rev3']) .tick {
   animation: ticket-fade var(--ticket-tick, 200ms) var(--ease-ui, ease)
     calc(var(--ticket-fan, 300ms) + var(--i, 0) * var(--ticket-tick, 200ms)) both;
+}
+
+/* The still tier (Pause motion) shows the stamp and the punch-list ticks landed. */
+:global(html[data-tier='still']) .ticket:not(:global([data-user-play])) :is(.label, .tick) {
+  animation: none;
+}
+
+/* The strip's chip: REV n, then its status where the strip has room for one row. */
+@container fig (width < 640px) {
+  .chipStatus {
+    display: none;
+  }
 }
 
 /* ── Stills: one per revision and family; the current one shows ────────── */

@@ -245,7 +245,7 @@ export const TICKET_EXTRAS: Readonly<Record<LayoutId, TicketExtras>> = {
     monitor: [[226, 338], 'n2', 0.8],
     flange: 0.9,
     tags: {
-      ai: [210, 214, 90, 20],
+      ai: [218, 214, 90, 20],
       signOff: [16, 440, 168, 52],
       markup: [16, 300, 180, 48],
       punch: [16, 252, 170, 80],

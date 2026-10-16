@@ -9,14 +9,15 @@ import { test, expect } from '../fixtures'
 
 const URL = '/kit/fig/valve?tier=svg'
 
-test('plays once on entry and ends approved, with five log lines', async ({ page, guard }) => {
+test('plays once on entry and ends approved, with six log lines', async ({ page, guard }) => {
   await page.goto(URL)
   const fig = page.locator('#fig-valve')
   await expect(fig).toHaveAttribute('data-layers', 'ready')
   await expect(fig).toHaveAttribute('data-inview', '')
   expect(await fig.locator('svg text').count()).toBe(0)
   await expect(fig.locator('[data-part="pk.4"]')).toHaveCount(1)
-  await expect(fig.locator('[data-line]')).toHaveCount(5)
+  // the opening line, then one line per record
+  await expect(fig.locator('[data-line]')).toHaveCount(6)
   // let the sequence finish (VALVE.total, about 7.8 s) and check the final frame
   await page.waitForTimeout(8400)
   for (const line of await fig.locator('[data-line]').all())
@@ -36,6 +37,47 @@ test('Replay restarts the sequence for this figure only', async ({ page }) => {
   expect(Number(await last.evaluate((e) => getComputedStyle(e).opacity))).toBeLessThan(1)
   const stored = await page.evaluate(() => localStorage.getItem('ae:motion'))
   expect(stored).toBeNull()
+})
+
+/**
+ * W4b: no blank frame. Before the gate opens the panel already shows the structure (faint), and
+ * the logbook carries its header and opening line from the moment its card is there; the
+ * record lines wait for their records.
+ */
+test('before and early in the play: structure and the logbook header show', async ({ page }) => {
+  await page.goto(URL)
+  const fig = page.locator('#fig-valve')
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  await fig.getByRole('button', { name: 'Replay' }).click()
+  // freeze the restarted sequence at its first frame
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      a.pause()
+      a.currentTime = 0
+    }
+  })
+  const opacity = (sel: string) =>
+    fig
+      .locator(sel)
+      .first()
+      .evaluate((e) => Number(getComputedStyle(e).opacity))
+  for (const part of ['tray.box', 'cabinet', 'logbook.card', 'valve.body'])
+    expect(await opacity(`svg.l-cad path[data-part="${part}"]`)).toBeGreaterThan(0.3)
+  expect(await opacity('[data-label="logbook"]')).toBeGreaterThan(0.3)
+  expect(await opacity('[data-line="0"]')).toBe(1)
+  expect(await opacity('[data-line="1"]')).toBe(0)
+})
+
+test('Pause motion (still tier) shows every label and log line', async ({ page }) => {
+  await page.goto('/kit/fig/valve?tier=still')
+  const fig = page.locator('#fig-valve')
+  await expect(fig).toHaveAttribute('data-phase', 'still')
+  for (const k of ['incoming', 'approved', 'logbook'])
+    await expect
+      .poll(() => fig.locator(`[data-label="${k}"]`).evaluate((e) => getComputedStyle(e).opacity))
+      .toBe('1')
+  for (const line of await fig.locator('[data-line]').all())
+    await expect.poll(() => line.evaluate((e) => getComputedStyle(e).opacity)).toBe('1')
 })
 
 /**
@@ -105,16 +147,20 @@ for (const [path, width] of [
   })
 }
 
-test('reduced motion rests on the final frame and offers Play the drawing', async ({ page }) => {
+test('reduced motion rests on the final frame and offers Play', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/kit/fig/valve')
   const fig = page.locator('#fig-valve')
   await expect(fig).toHaveAttribute('data-phase', 'still')
   await expect(fig.locator('img.still-img:visible')).toHaveCount(1)
   await expect(fig.locator('[data-label="approved"]')).toBeVisible()
-  const play = fig.getByRole('button', { name: 'Play the drawing' })
+  // one button at a time: Play on the still, Replay once it has played
+  await expect(fig.getByRole('button', { name: 'Replay' })).toBeHidden()
+  const play = fig.getByRole('button', { name: 'Play', exact: true })
   await expect(play).toBeVisible()
   await play.click()
   await expect(fig).toHaveAttribute('data-layers', 'ready')
   await expect(fig).toHaveAttribute('data-user-play', '')
+  await expect(fig.getByRole('button', { name: 'Replay' })).toBeVisible()
+  await expect(play).toBeHidden()
 })

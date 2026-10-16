@@ -12,7 +12,8 @@ type Fam = 'wide' | 'tall'
 /** Where the sheet and its title block sit, per family (user units). */
 function plan(family: Fam) {
   const [, , w, h] = family === 'wide' ? WIDE : TALL
-  const m = family === 'wide' ? 120 : 52
+  // the sheet fills most of the cloud (finish standard B3), clear of the delta tag
+  const m = family === 'wide' ? 72 : 42
   const x1 = w - m
   const y1 = h - m
   const bw = family === 'wide' ? 240 : 112

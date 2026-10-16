@@ -28,8 +28,11 @@ export const valveFigure = {
     approved: 'APPROVED',
     logbook: 'LOGBOOK',
   },
-  controls: { replay: 'Replay', playDrawing: 'Play the drawing' },
+  // short, so the strip stays on one row on phones (W4b)
+  controls: { replay: 'Replay', playDrawing: 'Play' },
   ui: {
+    /** The logbook's opening line, printed with its header before any record passes. */
+    'log.open': 'LINE OPEN',
     'log.filed': 'IN RANGE · FILED',
     'log.held': 'OUT OF RANGE · HELD',
     'log.approved': 'APPROVED · FILED',
