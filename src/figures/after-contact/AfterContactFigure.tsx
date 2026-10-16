@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { afterContactFigure as copy } from '@/content/figures/after-contact'
+import { afterContactFigure as base } from '@/content/figures/after-contact'
 import { drawingSrc } from '@/drawings/files'
 import {
   AFTER_CONTACT_VIEWBOX,
@@ -19,9 +19,17 @@ import s from './after-contact.module.css'
  * conduits, CAD on blueprint-deep; names are HTML, centred in each node's
  * plate. Plays once on entry: the drawing inks on, your node joins ours, and
  * a record runs the route to the signed next step.
- * Named export, no required props: /kit/fig/[id] renders it.
+ * Named export, no required props: /kit/fig/[id] renders it. `noScheduler` (contact page
+ * without a booking calendar) names the first node "you write" instead of "you book or write".
  */
-export function AfterContactFigure() {
+export function AfterContactFigure({ noScheduler = false }: { noScheduler?: boolean }) {
+  const copy = noScheduler
+    ? {
+        ...base,
+        longDescription: [base.ui.longNoScheduler],
+        labels: { ...base.labels, you: base.ui.youNoScheduler },
+      }
+    : base
   const at = afterContactLabels()
   const keys = Object.keys(copy.labels) as AfterContactLabel[]
   return (

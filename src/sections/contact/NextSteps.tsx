@@ -20,7 +20,7 @@ export function NextSteps() {
           <RichText key={i} value={st} as="li" />
         ))}
       </ol>
-      <AfterContactFigure />
+      <AfterContactFigure noScheduler={noScheduler} />
     </section>
   )
 }

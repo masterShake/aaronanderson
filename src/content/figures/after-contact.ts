@@ -24,5 +24,9 @@ export const afterContactFigure = {
     theirNode: 'YOUR COMPANY',
     received: 'RECEIVED',
     sooner: 'Want to talk sooner? Book a call.',
+    /** The first node and description while there is no booking calendar (contact noScheduler). */
+    youNoScheduler: 'YOU WRITE',
+    longNoScheduler:
+      'Four nodes in a line: you write, we reply, we talk, and you get a short written next step.',
   },
 } satisfies FigureCopy
