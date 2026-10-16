@@ -99,6 +99,11 @@
   opacity: calc(1 - var(--print));
 }
 
+/* The gauge's dial on the plan fades out just before the hand-off (the decal has none). */
+.s06 :global(.drawing .l-cad path.s06-pdial) {
+  opacity: clamp(0, (var(--s06-handoff-p) - 0.01 - var(--p, 1)) / 0.03, 1);
+}
+
 .s06 :global(.drawing .l-iso) {
   opacity: var(--print);
 }
@@ -159,9 +164,17 @@
 }
 
 @container fig (width < 440px) {
-  /* the tall store circle is narrower than its name */
-  .s06.s06 .planName:is([data-wide-only], [data-key='sym.store']) {
+  .s06.s06 .planName[data-wide-only] {
     display: none;
+  }
+
+  /* the tall store circle is narrower than its name on one line: one word per line, centred */
+  .s06.s06 .planName[data-key='sym.store'] {
+    inline-size: min-content;
+    padding: 0;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
   }
 }
 

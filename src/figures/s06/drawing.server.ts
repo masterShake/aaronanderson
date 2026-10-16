@@ -56,6 +56,42 @@ function dialNodes(m: S06Model, family: LayoutId, first: number): SvgNode[] {
   ]
 }
 
+/**
+ * The gauge's dial on the CAD plan (seen from above): an inner bezel ring, nine ticks and the
+ * needle in range. It shows while the plan holds and fades out just before the hand-off
+ * (s06.module.css), so the plan at p .15 still matches the WebGL decal line for line.
+ */
+function planDial(m: S06Model): SvgNode[] {
+  const gauge = m.spec.parts.find((p) => p.id === 'gauge')
+  const prim = gauge?.prims[0]
+  if (prim?.t !== 'circle') return []
+  const [cx, cy] = prim.c
+  const P = (deg: number, k: number): Pt => {
+    const a = (deg * Math.PI) / 180
+    return [cx + Math.sin(a) * prim.r * k, cy - Math.cos(a) * prim.r * k]
+  }
+  const seg = (a: Pt, b: Pt) => `M${num(a[0])} ${num(a[1])}L${num(b[0])} ${num(b[1])}`
+  const ring = Array.from({ length: 33 }, (_, i) => P(i * 11.25, 0.8))
+  const node = (d: string, i: number, cls: string): SvgNode => ({
+    el: 'path',
+    d,
+    len: 0,
+    part: 'gauge.plan-dial',
+    i,
+    cls: `${cls} s06-pdial`,
+  })
+  return [
+    node(`M${ring.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}`, 0, 'p-018 i-cyan'),
+    node(
+      Array.from({ length: 9 }, (_, i) => seg(P(-120 + i * 30, 0.56), P(-120 + i * 30, 0.72))).join(
+        '',
+      ) + seg(P(0, 0), P(14, 0.6)),
+      1,
+      'p-025 i-cyan',
+    ),
+  ]
+}
+
 const glyphD = (pts: readonly Pt[]) => `M${pts.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}`
 const glyphInk = (id: string) => (id === 'glyph.report' ? 'asphalt' : null)
 
@@ -127,7 +163,11 @@ function make(family: LayoutId, rev: string): SvgDoc {
           },
         ],
       },
-      { layer: 'cad', rev, children: [...frameNodes(planFrame(m.spec)), ...planGlyphs(m)] },
+      {
+        layer: 'cad',
+        rev,
+        children: [...frameNodes(planFrame(m.spec)), ...planGlyphs(m), ...planDial(m)],
+      },
     ],
   }
 }
