@@ -1,17 +1,62 @@
+import type { CSSProperties } from 'react'
 import { notFoundFigure as copy } from '@/content/figures/not-found'
-import { RevisionCloud } from '@/components/blueprint/RevisionCloud'
 import { FigureFrame } from '@/figures/FigureFrame'
+import { primD } from '@/drawings/lib/geometry'
+import { cloudPrim, deltaTag } from '@/drawings/symbols'
 
 const WIDE = [0, 0, 960, 540] as const
 const TALL = [0, 0, 400, 400] as const
 
-/** An empty sheet frame (asphalt, 2 u) with a title-block cell at the bottom right. */
-function EmptySheet({ w, h, family }: { w: number; h: number; family: 'wide' | 'tall' }) {
-  const m = w * 0.14
-  const cellW = w * 0.24
-  const cellH = h * 0.12
+type Fam = 'wide' | 'tall'
+
+/** Where the sheet and its title block sit, per family (user units). */
+function plan(family: Fam) {
+  const [, , w, h] = family === 'wide' ? WIDE : TALL
+  const m = family === 'wide' ? 120 : 52
   const x1 = w - m
   const y1 = h - m
+  const bw = family === 'wide' ? 240 : 112
+  const bh = family === 'wide' ? 70 : 52
+  return { w, h, m, x1, y1, bx: x1 - bw, by: y1 - bh, bw, bh }
+}
+
+/**
+ * The empty sheet: a frame with an inner border, the title block (a project
+ * strip over the sheet-number cell, with three ruled rows on its left), border
+ * ticks, and the redline revision cloud around it all with its delta tag.
+ * Static (B12 item 7: no draw-on), so the still tier shows the same drawing.
+ */
+function Sheet({ family }: { family: Fam }) {
+  const p = plan(family)
+  const { w, h, m, x1, y1, bx, by, bw, bh } = p
+  const i = family === 'wide' ? 10 : 6
+  const split = by + bh * 0.38
+  const col = bx + bw * (family === 'wide' ? 0.42 : 0.001)
+  const ticks: string[] = []
+  const n = family === 'wide' ? 6 : 4
+  for (let k = 1; k < n; k++) {
+    const x = m + ((x1 - m) * k) / n
+    ticks.push(`M${x} ${m}V${m + i}M${x} ${y1 - i}V${y1}`)
+  }
+  for (let k = 1; k < 4; k++) {
+    const y = m + ((y1 - m) * k) / 4
+    ticks.push(`M${m} ${y}H${m + i}M${x1 - i} ${y}H${x1}`)
+  }
+  const rows =
+    family === 'wide'
+      ? [1, 2]
+          .map((k) => {
+            const y = split + ((by + bh - split) * k) / 3
+            return `M${bx} ${y}H${col}`
+          })
+          .join('')
+      : ''
+  const inset = family === 'wide' ? 18 : 10
+  const cloud = cloudPrim(
+    { x: inset, y: inset, w: w - inset * 2, h: h - inset * 2 },
+    { seed: family === 'wide' ? 7 : 11 },
+  )
+  const delta = deltaTag([inset + 10, inset + 12], family === 'wide' ? 22 : 18)
   return (
     <svg
       viewBox={`0 0 ${w} ${h}`}
@@ -22,8 +67,27 @@ function EmptySheet({ w, h, family }: { w: number; h: number; family: 'wide' | '
     >
       <path
         className="pen-070 ink-asphalt"
-        d={`M${m} ${m}H${x1}V${y1}H${m}Z M${x1 - cellW} ${y1}V${y1 - cellH}H${x1} M${x1 - cellW * 0.45} ${y1}V${y1 - cellH}`}
+        d={`M${m} ${m}H${x1}V${y1}H${m}Z M${bx} ${y1}V${by}H${x1}`}
         fill="none"
+        stroke="currentColor"
+      />
+      <path
+        className="pen-035 ink-asphalt"
+        d={`M${m + i} ${m + i}H${x1 - i}V${by}M${bx} ${y1 - i}H${m + i}V${m + i} M${bx} ${split}H${x1}${family === 'wide' ? `M${col} ${split}V${y1}` : ''}`}
+        fill="none"
+        stroke="currentColor"
+      />
+      <path
+        className="pen-018 ink-graphite"
+        d={`${ticks.join('')}${rows}`}
+        fill="none"
+        stroke="currentColor"
+      />
+      <path className="pen-070 ink-redline" d={primD(cloud)} fill="none" stroke="currentColor" />
+      <path
+        className="pen-050 ink-redline"
+        d={primD(delta)}
+        fill="var(--c-paper)"
         stroke="currentColor"
       />
     </svg>
@@ -33,17 +97,43 @@ function EmptySheet({ w, h, family }: { w: number; h: number; family: 'wide' | '
 function Drawing() {
   return (
     <>
-      <EmptySheet w={WIDE[2]} h={WIDE[3]} family="wide" />
-      <EmptySheet w={TALL[2]} h={TALL[3]} family="tall" />
-      <RevisionCloud width={WIDE[2]} height={WIDE[3]} tone="redline" />
+      <Sheet family="wide" />
+      <Sheet family="tall" />
+    </>
+  )
+}
+
+const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
+
+/** The sheet number in its cell (left blank: the sheet is missing). */
+function Labels() {
+  const pw = plan('wide')
+  const pt = plan('tall')
+  const at = (wide: readonly [number, number], tall: readonly [number, number]): CSSProperties =>
+    ({
+      '--lx': pct(wide[0], pw.w),
+      '--ly': pct(wide[1], pw.h),
+      '--lxt': pct(tall[0], pt.w),
+      '--lyt': pct(tall[1], pt.h),
+    }) as CSSProperties
+  const splitW = pw.by + pw.bh * 0.38
+  const splitT = pt.by + pt.bh * 0.38
+  return (
+    <>
+      <span
+        data-label="sheet"
+        style={at([pw.bx + pw.bw * 0.42 + 12, splitW + 10], [pt.bx + 8, splitT + 6])}
+      >
+        {copy.labels.sheet}
+      </span>
     </>
   )
 }
 
 /**
  * The 404 figure (D6, §6.10b): a redline revision cloud around an empty sheet
- * frame. Static (B12 item 7: no draw-on), so the still tier shows the same
- * drawing. The cloud itself is the drawings lane's RevisionCloud.
+ * frame with its title block, the sheet number left blank. No hand note.
+ * Static, so the still tier shows the same drawing.
  */
 export function NotFoundFigure() {
   return (
@@ -54,6 +144,7 @@ export function NotFoundFigure() {
       driver="time"
       drawing={<Drawing />}
       still={<Drawing />}
+      labels={<Labels />}
     />
   )
 }

@@ -10,13 +10,27 @@ import { ValveController } from './ValveController.client'
 import s from './valve.module.css'
 
 /**
- * DETAIL 2 / P-00: where the machine stops and a person signs. An SVG detail
- * on deep: paperwork passes an AI reader and a tolerance needle; the record
- * outside tolerance is diverted to the sign-off valve, approved by a person,
- * and rejoins. Plays once on entry; the logbook (HTML) prints as it goes.
+ * DETAIL 2 / P-00: where the machine stops and a person signs. A detail
+ * drawing on deep: records leave an in-tray, pass an AI reader and a
+ * tolerance gauge, and are filed in the system of record; the one outside
+ * tolerance goes down a branch to the sign-off valve and waits for a person.
+ * Plays once on entry; the logbook (HTML) prints as it goes.
  */
 
 const pct = (v: number, of: number) => Math.round((v / of) * 100000) / 1000
+
+/** When each label pops: right after the detail pass of the object it names (--i in the drawing). */
+const AFTER: Readonly<Record<string, number>> = {
+  incoming: 9,
+  reader: 10,
+  tolerance: 11,
+  inRange: 11,
+  valve: 12,
+  record: 13,
+  logbook: 15,
+}
+const popAt = (k: string) =>
+  k === 'approved' ? VALVE.approvedAt : (AFTER[k] ?? 15) * VALVE.stagger + VALVE.draw + 40
 
 function Tag({ k, children, className }: { k: string; children: ReactNode; className?: string }) {
   const w = VALVE_LAYOUT.wide
@@ -30,6 +44,7 @@ function Tag({ k, children, className }: { k: string; children: ReactNode; class
     '--lxt': pct(b[0], t.viewBox[2]),
     '--lyt': pct(b[1], t.viewBox[3]),
     '--lwt': pct(b[2], t.viewBox[2]),
+    '--t': `${popAt(k)}ms`,
   } as CSSProperties
   return (
     <span className={`${s.label} ${className ?? ''}`.trim()} data-label={k} style={style}>

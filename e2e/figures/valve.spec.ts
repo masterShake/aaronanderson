@@ -17,8 +17,8 @@ test('plays once on entry and ends approved, with five log lines', async ({ page
   expect(await fig.locator('svg text').count()).toBe(0)
   await expect(fig.locator('[data-part="pk.4"]')).toHaveCount(1)
   await expect(fig.locator('[data-line]')).toHaveCount(5)
-  // let the sequence finish (4.6 s) and check the final frame
-  await page.waitForTimeout(5200)
+  // let the sequence finish (VALVE.total, about 7.8 s) and check the final frame
+  await page.waitForTimeout(8400)
   for (const line of await fig.locator('[data-line]').all())
     await expect.poll(() => line.evaluate((e) => getComputedStyle(e).opacity)).toBe('1')
   await expect(fig.locator('[data-label="approved"]')).toBeVisible()

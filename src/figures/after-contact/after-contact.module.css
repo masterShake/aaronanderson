@@ -1,16 +1,158 @@
-/* After-contact figure: CAD on blueprint-deep; labels in light ink. */
+/*
+ * After-contact figure: CAD on blueprint-deep; names in light ink inside each
+ * node's plate. Plays once on entry (useFigure gates it; --gate pauses it until
+ * then). The base is the finished drawing: every animation ends there, so
+ * no-JS, reduced motion and the still tier show it whole. Times come from
+ * AFTER_CONTACT (--ac-*); the record's stops mirror
+ * src/drawings/graphs/after-contact.ts (250 user units between nodes wide, 146 tall).
+ */
 .fig :global(.box) {
   --panel: var(--c-blueprint-deep);
 }
 
-.fig :global(.drawing) {
-  color: var(--c-cyan);
+.fig.fig :global(.box path.f-deep) {
+  fill: var(--c-blueprint-deep);
 }
 
-/* each name sits centred inside its node (lx/ly are the node centres) */
+.fig.fig :global(.box path.f-orange) {
+  fill: var(--c-orange);
+}
+
+.fig {
+  --hop: -250px 0px;
+  --hop2: -500px 0px;
+  --hop3: -750px 0px;
+}
+
+.fig:global([data-family='tall']) {
+  --hop: 0px -146px;
+  --hop2: 0px -292px;
+  --hop3: 0px -438px;
+}
+
+:global(html[data-js]) .fig:not(:global([data-inview])) {
+  --gate: paused;
+}
+
+/* ── Draw-on: enclosures, glyphs and plates, conduits, the join (--i) ───── */
+.fig:global([data-run]) :global(.l-cad path.draw) {
+  animation: ac-draw var(--ac-draw, 520ms) cubic-bezier(0.65, 0, 0.35, 1)
+    calc(var(--i, 0) * var(--ac-stagger, 100ms)) both;
+  animation-play-state: var(--gate);
+}
+
+.fig:global([data-run]) :global(.l-cad path:not(.draw):not(.rec)) {
+  animation: ac-fade var(--ac-draw, 520ms) cubic-bezier(0.65, 0, 0.35, 1)
+    calc(var(--i, 0) * var(--ac-stagger, 100ms)) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ac-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes ac-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* SNAP: your node joins ours; the join's flanges close up. */
+.fig :global(.join) {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.fig:global([data-run]) :global(.l-cad .join) {
+  animation: ac-snap var(--ac-snap, 280ms) var(--ease-machine, ease) var(--ac-snap-at, 1640ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ac-snap {
+  0% {
+    scale: 1.08 1;
+  }
+  60% {
+    scale: 0.97 1;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+.fig:global([data-run][data-family='tall']) :global(.l-cad .join) {
+  animation-name: ac-snap-tall;
+}
+
+@keyframes ac-snap-tall {
+  0% {
+    scale: 1 1.12;
+  }
+  60% {
+    scale: 1 0.96;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* FLOW: the record runs the route at constant speed, pausing in each node. */
+.fig :global(.rec) {
+  opacity: 0;
+}
+
+.fig:global([data-run]) :global(.rec) {
+  animation: ac-run var(--ac-run, 3400ms) linear var(--ac-run-at, 1980ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ac-run {
+  0% {
+    opacity: 0;
+    translate: var(--hop3);
+  }
+  0.1% {
+    opacity: 1;
+  }
+  24.5%,
+  37.7% {
+    translate: var(--hop2);
+  }
+  62.2%,
+  75.5% {
+    translate: var(--hop);
+  }
+  99.9% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* The written next step is signed as the record arrives. */
+.fig:global([data-run]) :global(.l-cad path.sign) {
+  animation: ac-draw var(--ac-sign, 420ms) cubic-bezier(0.65, 0, 0.35, 1) var(--ac-sign-at, 5320ms)
+    both;
+  animation-play-state: var(--gate);
+}
+
+/* ── Names: centred in each node's plate, after the plate is drawn ──────── */
 .fig.fig .label {
   inline-size: max-content;
-  max-inline-size: 15%;
+  max-inline-size: calc(var(--lw, 15) * 1%);
   translate: -50% -50%;
   color: var(--c-label-on-deep);
   text-align: center;
@@ -19,5 +161,16 @@
 }
 
 .fig.fig:global([data-family='tall']) .label {
-  max-inline-size: 34%;
+  max-inline-size: calc(var(--lwt, 40) * 1%);
+}
+
+.fig:global([data-run]) .label {
+  animation: ac-pop var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes ac-pop {
+  from {
+    opacity: 0;
+  }
 }
