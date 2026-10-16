@@ -83,6 +83,21 @@ test('the still tier shows the still of the current revision', async ({ page }) 
   await expect(visible).toHaveAttribute('data-rev', 'rev2')
 })
 
+test('the phone step stills letter their names; the figure keeps bare tall stills', async ({
+  request,
+}) => {
+  for (let i = 0; i < 5; i++) {
+    const lettered = await (await request.get(`/drawings/ticket.tall.rev${i}.still.svg`)).text()
+    const bare = await (await request.get(`/drawings/ticket.tall.rev${i}.bare.still.svg`)).text()
+    // names are pen strokes, never <text>, and the bare still has none of them
+    expect(lettered).not.toMatch(/<text|vector-effect/)
+    expect(bare).not.toMatch(/<text|vector-effect/)
+    const paths = (s: string) => (s.match(/<path /g) ?? []).length
+    // one path per lettered name: at least the five names every revision shows
+    expect(paths(lettered), `rev${i}`).toBeGreaterThanOrEqual(paths(bare) + 5)
+  }
+})
+
 test('drawing files are static and text-free', async ({ request }) => {
   for (const fam of ['wide', 'tall']) {
     const res = await request.get(`/drawings/ticket.${fam}.json`)

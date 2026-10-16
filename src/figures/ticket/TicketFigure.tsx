@@ -20,7 +20,9 @@ import s from './ticket.module.css'
  * as the steps P-01 to P-05 scroll by (the frozen step driver sets data-rev
  * when a step crosses 55% of the viewport). Layers load lazily; CSS shows the
  * groups, labels and stills of the current revision. Labels are an HTML
- * overlay, positioned in percent of the box, and wrap inside their tag.
+ * overlay, positioned in percent of the box, and wrap inside their tag. The
+ * tall stills here are the bare ones: the lettered tall stills (names drawn in
+ * the still) are for the phone steps, which have no HTML labels.
  */
 
 type Tone = 'ink' | 'old' | 'new' | 'red' | 'hand' | 'doc' | 'stamp'
@@ -139,7 +141,8 @@ function tags(): Tag[] {
   for (const fam of FAMILIES)
     ex[fam].docs.forEach(([key, [x, y, w]], i) => {
       const found = out.find((o) => o.key === `doc${i}`)
-      const box: Box = [x + 8, y + 18, w - 14]
+      // the name sits in the sheet's title zone, clear of the folded corner
+      const box: Box = [x + 8, y + 7, w - 18]
       if (found) found.at[fam] = box
       else
         out.push({
@@ -191,7 +194,10 @@ export function TicketFigure({ className }: { className?: string } = {}) {
     TICKET_REVS.map((rev) => (
       <img
         key={`${fam}.${rev}`}
-        src={drawingSrc('ticket', `${fam}.${rev}.still.svg`)}
+        src={drawingSrc(
+          'ticket',
+          fam === 'tall' ? `tall.${rev}.bare.still.svg` : `${fam}.${rev}.still.svg`,
+        )}
         alt=""
         loading="lazy"
         className="still-img"

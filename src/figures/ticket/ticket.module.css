@@ -20,6 +20,32 @@
 .ticket:global([data-rev='rev4']) :global(.l-cad g[data-rev]:not([data-rev='rev4'])) {
   opacity: 0;
   visibility: hidden;
+  /* the outgoing revision holds until the incoming one is fully in: the deep panel never
+     cross-fades to a washed-out half tone (W4c dense check) */
+  transition-delay: var(--ticket-rev-switch, 600ms);
+}
+
+/* REV 2 on: the blueprint sheet wipes in from the right at full ink, so the deep panel never
+   fades over paper as a washed-out half tone. An outgoing deep revision holds, then fades
+   (under the incoming one), and its wipe resets once it is gone. */
+.ticket.ticket.ticket
+  :global(.l-cad g:is([data-rev='rev2'], [data-rev='rev3'], [data-rev='rev4'])) {
+  clip-path: inset(0 0 0 100%);
+  transition:
+    opacity var(--ticket-rev-switch, 600ms) var(--ease-machine, ease)
+      var(--ticket-rev-switch, 600ms),
+    visibility var(--ticket-rev-switch, 600ms) var(--ticket-rev-switch, 600ms),
+    clip-path 0s calc(var(--ticket-rev-switch, 600ms) * 2);
+}
+
+.ticket.ticket.ticket:global([data-rev='rev2']) :global(.l-cad g[data-rev='rev2']),
+.ticket.ticket.ticket:global([data-rev='rev3']) :global(.l-cad g[data-rev='rev3']),
+.ticket.ticket.ticket:global([data-rev='rev4']) :global(.l-cad g[data-rev='rev4']) {
+  clip-path: inset(0);
+  transition:
+    opacity 0s,
+    visibility 0s,
+    clip-path var(--ticket-rev-switch, 600ms) var(--ease-machine, ease);
 }
 
 /* REV 1: the tracing paper slides in from the right. */
@@ -127,9 +153,13 @@
   overflow-wrap: normal;
   font-size: clamp(10px, 1.6cqi, 12px);
   color: var(--c-asphalt);
+  /* incoming names land as their revision's drawing settles (labels after their objects) */
   transition:
-    opacity var(--ticket-rev-switch, 600ms) var(--ease-machine, ease),
-    visibility var(--ticket-rev-switch, 600ms);
+    opacity calc(var(--ticket-rev-switch, 600ms) / 2) var(--ease-machine, ease)
+      calc(var(--ticket-rev-switch, 600ms) / 2),
+    visibility calc(var(--ticket-rev-switch, 600ms) / 2) calc(var(--ticket-rev-switch, 600ms) / 2),
+    color var(--dur-ui, 200ms) var(--ease-machine, ease) var(--ticket-rev-switch, 600ms),
+    background-color var(--dur-ui, 200ms) var(--ease-machine, ease) var(--ticket-rev-switch, 600ms);
 }
 
 @container fig (width < 560px) {
@@ -155,6 +185,9 @@
 .ticket:global([data-rev='rev4']) .label:not([data-revs~='rev4']) {
   opacity: 0;
   visibility: hidden;
+  /* outgoing names leave quickly, before the next revision's arrive */
+  transition-duration: var(--dur-ui, 200ms);
+  transition-delay: 0ms;
 }
 
 /* Under the tracing paper, the old drawing's words fade with it. */
