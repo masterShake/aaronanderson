@@ -1,25 +1,24 @@
 import type { CSSProperties } from 'react'
 import { strataFigure as copy } from '@/content/figures/strata'
-import { drawingSrc } from '@/drawings/files'
-import type { LayoutId } from '@/drawings/types'
-import { STRATA_LAYOUT, STRATA_REV, strataLabelAt } from '@/drawings/views/strata'
+import { STRATA_LAYOUT, strataDoc, strataLabelAt } from '@/drawings/views/strata'
 import { FigureFrame } from '@/figures/FigureFrame'
-import { LazyDrawing } from '@/figures/LazyDrawing.client'
+import { InlineDrawing } from '@/figures/InlineDrawing'
 import s from './strata.module.css'
 
 /**
  * The strata on About (DETAIL 1 / G-02; owner: home-about): a section cut
- * through field, office and code. Static (no draw-on, no controller): the base
- * state is the finished drawing, and the still stands in until the layers
- * arrive. The band annotations (HOLDs) sit beside the figure in the section.
+ * through field, office and code. Static (no draw-on, no controller), so it is
+ * drawn inline on the server, both families, like the hero: the finished
+ * drawing is in the first paint at every tier, with no layer bundle and no
+ * still image to fetch. On phones it sits in the first screen, where a lazy
+ * still was the page's LCP element (W4b A1). The band annotations (HOLDs) sit
+ * beside the figure in the section.
  */
 
-const FAMILIES: readonly LayoutId[] = ['wide', 'tall']
 const KEYS = ['section', 'code', 'office', 'field'] as const
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
 
 export function StrataFigure() {
-  const src = (f: string) => drawingSrc('strata', f)
   const labels = copy.labels as Readonly<Record<string, string>>
   const [, , ww, wh] = STRATA_LAYOUT.wide.viewBox
   const [, , tw, th] = STRATA_LAYOUT.tall.viewBox
@@ -30,24 +29,9 @@ export function StrataFigure() {
       layouts={{ wide: STRATA_LAYOUT.wide.viewBox, tall: STRATA_LAYOUT.tall.viewBox }}
       driver="input"
       className={s.strata}
-      drawing={
-        <LazyDrawing
-          src={src('wide.json')}
-          tallSrc={src('tall.json')}
-          stillSrc={src(`wide.${STRATA_REV}.still.svg`)}
-        />
-      }
-      still={FAMILIES.map((fam) => (
-        // static SVG stills from /drawings/[file]; next/image would add nothing
-        <img
-          key={fam}
-          src={src(`${fam}.${STRATA_REV}.still.svg`)}
-          alt=""
-          loading="lazy"
-          className="still-img"
-          data-family={fam}
-        />
-      ))}
+      drawing={<InlineDrawing doc={strataDoc('wide')} tall={strataDoc('tall')} />}
+      // the inline drawing is its own still (strata.module.css keeps it on the still tier)
+      still={null}
       labels={KEYS.map((k) => {
         const w = strataLabelAt('wide', k)
         const t = strataLabelAt('tall', k)

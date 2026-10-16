@@ -1,12 +1,16 @@
-/* The strata: static. Until the layers arrive, the still stands in. */
+/* The strata: static and inline, so its drawing is the still at every tier and in print.
+   Outranks motion.css (still tier and phase) and print.css, which hide .drawing for the
+   figures that swap in a still image. */
 
-.strata:not([data-layers='ready']) :global(.still-wrap) {
+:global(html[data-tier='still']) .strata.strata:global(.fig) :global(.box) > :global(.drawing),
+.strata.strata:global(.fig[data-phase='still']) :global(.box) > :global(.drawing) {
   display: block;
 }
 
-.strata :global(.still-wrap) > img {
-  position: absolute;
-  inset: 0;
+@media print {
+  .strata.strata:global(.fig) :global(.box) > :global(.drawing) {
+    display: block !important;
+  }
 }
 
 /* band names sit on a paper chip over the hatch */
