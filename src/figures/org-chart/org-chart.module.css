@@ -34,15 +34,21 @@
   visibility: visible;
 }
 
-/* the chain erases as the panel goes deep, quickly, as its titles leave with it */
+/* the chain erases as the panel goes deep, over the time the new cards take to ink in: the
+   two cross, so the panel is never empty mid-change (W4b: no blank frame) */
 .org[data-toggle='ours'] :global(.drawing .l-pencil) {
   opacity: 0;
-  transition: opacity var(--dur-ui, 200ms) var(--ease-machine, ease);
+  transition: opacity var(--org-ink) var(--ease-machine, ease);
 }
 
-/* ours: the cards ink in, then the wire draws on, then everything on it */
+/* ours: the cards ink in with their people, then the wire draws on, then everything on it */
 .org[data-toggle='ours'] :global(.l-cad g.k-card .draw) {
   animation: org-draw var(--org-ink) var(--ease-machine, ease) both;
+}
+
+.org[data-toggle='ours'] :global(.l-cad g.person) {
+  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--org-ink) * 0.25);
 }
 
 .org[data-toggle='ours'] :global(.l-cad g.k-wire .draw) {
@@ -51,20 +57,27 @@
 }
 
 .org[data-toggle='ours'] :global(.l-cad g.k-wire path:not(.draw)),
-.org[data-toggle='ours'] :global(.l-cad g.k-wire path[data-part='wire.flange']),
-.org[data-toggle='ours'] :global(.l-cad g.person) {
+.org[data-toggle='ours'] :global(.l-cad g.k-wire path[data-part='wire.flange']) {
   animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
   animation-delay: calc(var(--org-wire) + var(--org-wire-dur) * 0.6);
-}
-
-.org[data-toggle='ours'] :global(.l-cad g.person) {
-  animation-delay: calc(var(--org-ink) * 0.5);
 }
 
 /* chain: each card and hand-off comes back in reading order */
 .org[data-toggle='chain'] :global(.l-pencil path) {
   animation: org-fade var(--org-ink) var(--ease-pencil, ease) both;
   animation-delay: calc(var(--i, 0) * var(--org-stagger));
+}
+
+/* The reveal's first switch to the chain happens off screen: no fade-in there, so the
+   chain is already whole when it scrolls in (OrgChartToggle.client.tsx, data-quiet). */
+.org.org[data-quiet] :global(.l-pencil path),
+.org.org[data-quiet] :global(.labels) > .node,
+.org.org[data-quiet] :global(.labels) > .note {
+  animation: none;
+}
+
+.org.org[data-quiet] :global(.box) {
+  transition: none;
 }
 
 /* the packets: one stream down the wire, constant FLOW speed, FLOW loops, then a still */

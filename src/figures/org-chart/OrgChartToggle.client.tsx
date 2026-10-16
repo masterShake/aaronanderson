@@ -39,23 +39,27 @@ export function OrgChartToggle({
   const [value, setValue] = useState(initial)
   const touched = useRef(false)
 
-  // mirror the state onto the figure: data-toggle and data-rev, the chip
+  // mirror the state onto the figure: data-toggle and data-rev, the chip. Leaving the reveal's
+  // quiet start happens in the same frame as the switch, so the chain never replays its fade
   useEffect(() => {
     const fig = document.getElementById(figure)
     if (!fig) return
+    if (value !== from) delete fig.dataset.quiet
     fig.dataset.toggle = value
     fig.dataset.rev = value
     const chip = fig.querySelector<HTMLElement>('[data-rev-chip]')
     if (chip && chips[value]) chip.textContent = chips[value]
-  }, [figure, value, chips])
+  }, [figure, value, from, chips])
 
-  // the one-time reveal: chain while off screen, then ours once half visible
+  // the one-time reveal: chain while off screen (already whole, with no fade-in: data-quiet),
+  // then ours once half visible
   useEffect(() => {
     const fig = document.getElementById(figure)
     const html = document.documentElement
     if (!fig || html.dataset.motion !== 'run' || html.dataset.tier === 'still') return
     const r = fig.getBoundingClientRect()
     if (r.top < innerHeight && r.bottom > 0) return
+    fig.dataset.quiet = ''
     setValue(from)
     let timer: ReturnType<typeof setTimeout> | null = null
     const io = new IntersectionObserver(
@@ -72,6 +76,7 @@ export function OrgChartToggle({
     return () => {
       io.disconnect()
       if (timer) clearTimeout(timer)
+      delete fig.dataset.quiet
     }
   }, [figure, from, initial, delay, threshold])
 
