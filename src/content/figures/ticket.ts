@@ -4,7 +4,8 @@ import { site } from '../site'
 /**
  * The delivery ticket on How It Works, DETAIL 1 / P-00 (owner: how). It
  * revises from REV 0 to REV 4 as the steps scroll by. Render-time vars {h} and
- * {r} (hand-offs and retypes) come from counts(graph). Hand notes: 2 of 12.
+ * {r} (hand-offs and retypes) come from counts(graph). No hand notes (the
+ * W4 finish standard keeps them to the hero and the firm schematic).
  */
 export const ticketFigure = {
   id: 'ticket',
@@ -48,10 +49,6 @@ export const ticketFigure = {
     'doc.guideline': 'AI-USE GUIDELINE',
     monitor: 'MONITOR',
     fixed: 'SYNC FAILED → FIXED',
-  },
-  notes: {
-    photo: 'Blurry photo',
-    po: 'Which PO?',
   },
   revs: {
     rev0: 'REV 0 · EXISTING CONDITIONS',

@@ -2,8 +2,8 @@ import type { FigureCopy } from '../types'
 
 /**
  * The 404 figure (owner: howcontact). Static: a revision cloud around an
- * empty sheet frame and its title block, the sheet number left blank. Hand
- * notes: 1 of the site's 12.
+ * empty sheet frame and its title block, the sheet number left blank. No hand
+ * notes (the W4 finish standard keeps them to the hero and the firm schematic).
  */
 export const notFoundFigure = {
   id: 'not-found',
@@ -13,8 +13,5 @@ export const notFoundFigure = {
   longDescription: ['An empty sheet frame with a blank title block, ringed by a revision cloud.'],
   labels: {
     sheet: 'SHEET —',
-  },
-  notes: {
-    missing: 'Not in the set',
   },
 } satisfies FigureCopy

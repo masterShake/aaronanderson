@@ -9,12 +9,12 @@ const TALL = [0, 0, 400, 400] as const
 
 type Fam = 'wide' | 'tall'
 
-/** Where the sheet, its title block and the margin note sit, per family (user units). */
+/** Where the sheet and its title block sit, per family (user units). */
 function plan(family: Fam) {
   const [, , w, h] = family === 'wide' ? WIDE : TALL
   const m = family === 'wide' ? 120 : 52
   const x1 = w - m
-  const y1 = h - m * (family === 'wide' ? 1.05 : 1.15)
+  const y1 = h - m
   const bw = family === 'wide' ? 240 : 112
   const bh = family === 'wide' ? 70 : 52
   return { w, h, m, x1, y1, bx: x1 - bw, by: y1 - bh, bw, bh }
@@ -105,21 +105,16 @@ function Drawing() {
 
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
 
-/** The sheet number in its cell and the one margin note. */
+/** The sheet number in its cell (left blank: the sheet is missing). */
 function Labels() {
   const pw = plan('wide')
   const pt = plan('tall')
-  const at = (
-    k: string,
-    wide: readonly [number, number],
-    tall: readonly [number, number],
-  ): CSSProperties =>
+  const at = (wide: readonly [number, number], tall: readonly [number, number]): CSSProperties =>
     ({
       '--lx': pct(wide[0], pw.w),
       '--ly': pct(wide[1], pw.h),
       '--lxt': pct(tall[0], pt.w),
       '--lyt': pct(tall[1], pt.h),
-      '--tilt': k === 'note' ? '-3deg' : '0deg',
     }) as CSSProperties
   const splitW = pw.by + pw.bh * 0.38
   const splitT = pt.by + pt.bh * 0.38
@@ -127,16 +122,9 @@ function Labels() {
     <>
       <span
         data-label="sheet"
-        style={at('sheet', [pw.bx + pw.bw * 0.42 + 12, splitW + 10], [pt.bx + 8, splitT + 6])}
+        style={at([pw.bx + pw.bw * 0.42 + 12, splitW + 10], [pt.bx + 8, splitT + 6])}
       >
         {copy.labels.sheet}
-      </span>
-      <span
-        className="hand"
-        data-label="note"
-        style={at('note', [pw.m + 8, pw.y1 + 16], [pt.m + 2, pt.y1 + 10])}
-      >
-        {copy.notes.missing}
       </span>
     </>
   )
@@ -144,7 +132,7 @@ function Labels() {
 
 /**
  * The 404 figure (D6, §6.10b): a redline revision cloud around an empty sheet
- * frame with its title block, the sheet number left blank and one margin note.
+ * frame with its title block, the sheet number left blank. No hand note.
  * Static, so the still tier shows the same drawing.
  */
 export function NotFoundFigure() {

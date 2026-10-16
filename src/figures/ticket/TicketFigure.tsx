@@ -97,8 +97,6 @@ function tags(): Tag[] {
   add('parallel', copy.labels.parallel, 'new', ['rev2'])
   add('monitor', copy.labels.monitor, 'new', ['rev4'])
   add('fixed', copy.labels.fixed, 'new', ['rev4'])
-  add('photoNote', copy.notes.photo, 'hand', ['rev0'])
-  add('poNote', copy.notes.po, 'hand', ['rev0'])
   const t0 = tally('rev0')
   const t2 = tally('rev2')
   add('tape', <RichText value={copy.ui.tape} vars={t0} as="span" />, 'ink', OLD)
@@ -140,7 +138,7 @@ function tags(): Tag[] {
   for (const fam of FAMILIES)
     ex[fam].docs.forEach(([key, [x, y, w]], i) => {
       const found = out.find((o) => o.key === `doc${i}`)
-      const box: Box = [x + 8, y + 18, w - 24]
+      const box: Box = [x + 8, y + 18, w - 14]
       if (found) found.at[fam] = box
       else
         out.push({
