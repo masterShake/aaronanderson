@@ -340,11 +340,11 @@ const CORE = {
       ],
     },
     people: [
-      { id: 'p1', symbol: 'fig.at-valve', at: [344, 520] },
-      { id: 'p2', symbol: 'fig.tablet', at: [562, 176] },
-      { id: 'p3', symbol: 'fig.phone', at: [212, 400] },
+      { id: 'p1', symbol: 'fig.at-valve', at: [352, 504] },
+      { id: 'p2', symbol: 'fig.tablet', at: [618, 186] },
+      { id: 'p3', symbol: 'fig.phone', at: [222, 482] },
     ],
-    person: 48,
+    person: 60,
   },
   tall: {
     spec: {
@@ -623,11 +623,11 @@ const CORE = {
       ],
     },
     people: [
-      { id: 'p1', symbol: 'fig.at-valve', at: [225, 288] },
-      { id: 'p2', symbol: 'fig.tablet', at: [152, 120] },
-      { id: 'p3', symbol: 'fig.phone', at: [152, 240] },
+      { id: 'p1', symbol: 'fig.at-valve', at: [238, 280] },
+      { id: 'p2', symbol: 'fig.tablet', at: [152, 142] },
+      { id: 'p3', symbol: 'fig.phone', at: [140, 280] },
     ],
-    person: 40,
+    person: 46,
   },
 }
 

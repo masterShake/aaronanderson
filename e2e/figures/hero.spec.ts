@@ -99,7 +99,7 @@ test('storyboard: sketch, scan, REV 1 at the decision, the mechanism, then the i
   await expect(iso).toHaveCSS('opacity', '1')
 })
 
-test('people, lines and tools come from the graph: 3 people, at most 4 hand notes', async ({
+test('people, lines and tools come from the graph: 3 people, at most 3 hand notes', async ({
   page,
   isMobile,
 }) => {
@@ -109,8 +109,28 @@ test('people, lines and tools come from the graph: 3 people, at most 4 hand note
   await expect(svg.locator('g.k-person')).toHaveCount(3)
   await expect(svg.locator('g.k-box')).toHaveCount(isMobile ? 6 : 7)
   await expect(svg.locator('g.k-line')).toHaveCount(isMobile ? 8 : 9)
-  expect(await page.locator(`${FIG} .note`).count()).toBeLessThanOrEqual(4)
+  // finish standard A4: the AS FOUND sketch carries at most 3 notes
+  expect(await page.locator(`${FIG} .note`).count()).toBeLessThanOrEqual(3)
   expect(await page.locator(`${FIG} svg text`).count()).toBe(0)
+})
+
+test('the ERASE ghost lives only in the scan beat: gone by REV 2', async ({ page }) => {
+  await gotoTier(page, '/', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(300)
+  const ghost = () =>
+    page.evaluate(
+      (s) =>
+        [...document.querySelectorAll(`${s} .drawing svg.l-pencil`)]
+          .filter((v) => v.checkVisibility())
+          .map((v) => Number(getComputedStyle(v).opacity)),
+      FIG,
+    )
+  await freezeAt(page, 2400)
+  expect(Math.max(...(await ghost()))).toBeGreaterThan(0)
+  await freezeAt(page, 3700)
+  expect(Math.max(...(await ghost()))).toBe(0)
 })
 
 test('every tool box is at least 104 × 36 CSS px at 520 px (wide) and 360 px (tall)', async ({
@@ -280,56 +300,79 @@ for (const [tier, width] of [
   })
 }
 
-/** craft-13: REV 2 at 1280 (svg): the report's name is dark on its orange box, REPORT WRITES
- * ITSELF sits under the box, spec lines sit on a chip, and APPROVED clears every tool box. */
-test('REV 2 mechanism @1280: report text off the orange, APPROVED clear of the boxes', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 800 })
-  await gotoTier(page, '/', 'svg')
-  const fig = page.locator(FIG)
-  await fig.scrollIntoViewIfNeeded()
-  await page.evaluate(() => document.fonts.ready.then(() => undefined))
-  await page.waitForTimeout(300)
-  await freezeAt(page, 4000)
-  const r = await page.evaluate((s) => {
-    const fig = document.querySelector<HTMLElement>(s)!
-    const rect = (el: Element) => {
-      const q = el.getBoundingClientRect()
-      return [q.left, q.top, q.right, q.bottom]
-    }
-    const svg = [...fig.querySelectorAll('.drawing svg.l-cad')].find((v) => v.checkVisibility())!
-    const boxes = [...svg.querySelectorAll('.k-frame path[class^="f-"]')]
-      .filter((p) =>
-        /^M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z$/.test(
-          p.getAttribute('d') ?? '',
-        ),
+/** craft-13 (W4 finish): REV 2 at 1280 and 1440 (svg): every tool's name sits inside its box on
+ * one line (the file name never breaks), the report's name is dark on its orange box, no two
+ * labels touch, and APPROVED clears every tool box and the sign-off label. */
+for (const width of [1280, 1440])
+  test(`REV 2 mechanism @${width}: names inside their boxes, labels apart, APPROVED clear`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await gotoTier(page, '/', 'svg')
+    const fig = page.locator(FIG)
+    await fig.scrollIntoViewIfNeeded()
+    await page.evaluate(() => document.fonts.ready.then(() => undefined))
+    await page.waitForTimeout(300)
+    await freezeAt(page, 4000)
+    const r = await page.evaluate((s) => {
+      const fig = document.querySelector<HTMLElement>(s)!
+      const rect = (el: Element | Range) => {
+        const q = el.getBoundingClientRect()
+        return [q.left, q.top, q.right, q.bottom]
+      }
+      const text = (el: Element) => {
+        const rg = document.createRange()
+        rg.selectNodeContents(el.firstChild ?? el)
+        return { at: rect(rg), lines: rg.getClientRects().length }
+      }
+      const svg = [...fig.querySelectorAll('.drawing svg.l-cad')].find((v) => v.checkVisibility())!
+      const boxes = [...svg.querySelectorAll('.k-frame path[class^="f-"]')]
+        .filter((p) =>
+          /^M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z$/.test(
+            p.getAttribute('d') ?? '',
+          ),
+        )
+        .map((p) => ({ orange: p.classList.contains('f-orange'), at: rect(p) }))
+      const shown = [...fig.querySelectorAll<HTMLElement>('.labels > span')].filter(
+        (el) => getComputedStyle(el).visibility === 'visible' && el.textContent?.trim(),
       )
-      .map((p) => ({ orange: p.classList.contains('f-orange'), at: rect(p) }))
-    const specs = [...fig.querySelectorAll<HTMLElement>('.labels [class*="spec"]')]
-    const report = specs.find((el) => /report writes itself/i.test(el.textContent ?? ''))!
-    const approved = [...fig.querySelectorAll('.labels [class*="approved"]')][0]!
-    const name = fig.querySelector('.labels [data-anchor="tool.report"]')!
-    return {
-      boxes,
-      report: rect(report),
-      specBg: specs.map((el) => getComputedStyle(el).backgroundColor),
-      approved: rect(approved),
-      nameColor: getComputedStyle(name).color,
+      const tools = [...fig.querySelectorAll<HTMLElement>('.labels [data-anchor^="tool."]')].map(
+        (el) => ({ key: el.dataset.anchor!, ...text(el) }),
+      )
+      const approved = fig.querySelector('.labels [class*="approved"]')!
+      const signoff = fig.querySelector('.labels [data-anchor="sym.valve"]')!
+      const name = fig.querySelector('.labels [data-anchor="tool.report"]')!
+      return {
+        boxes,
+        tools,
+        labels: shown.map((el) => ({ what: el.textContent!.trim(), at: rect(el) })),
+        approved: rect(approved),
+        signoff: rect(signoff),
+        nameColor: getComputedStyle(name).color,
+      }
+    }, FIG)
+    const hit = (a: number[], b: number[]) =>
+      Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!) > 0.5 &&
+      Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!) > 0.5
+    const inside = (a: number[], b: number[]) =>
+      a[0]! >= b[0]! - 0.5 && a[1]! >= b[1]! - 0.5 && a[2]! <= b[2]! + 0.5 && a[3]! <= b[3]! + 0.5
+    expect(r.boxes.length).toBeGreaterThanOrEqual(7)
+    // the label-on-deep tone is light; on orange the name must be the dark ink
+    const [cr, cg, cb] = r.nameColor.match(/\d+/g)!.map(Number)
+    expect(0.2126 * cr! + 0.7152 * cg! + 0.0722 * cb!).toBeLessThan(100)
+    const bad: string[] = []
+    for (const t of r.tools) {
+      if (!r.boxes.some((b) => inside(t.at, b.at))) bad.push(`${t.key}: outside its box`)
+      if (t.key === 'tool.estimate' && t.lines > 1) bad.push(`${t.key}: breaks`)
+      if (t.key === 'tool.report' && !inside(t.at, r.boxes.find((b) => b.orange)!.at))
+        bad.push('report name off its box')
     }
-  }, FIG)
-  const hit = (a: number[], b: number[]) =>
-    Math.min(a[2]!, b[2]!) - Math.max(a[0]!, b[0]!) > 0.5 &&
-    Math.min(a[3]!, b[3]!) - Math.max(a[1]!, b[1]!) > 0.5
-  const orange = r.boxes.find((b) => b.orange)!
-  expect(r.boxes.length).toBeGreaterThanOrEqual(7)
-  // the label-on-deep tone is light; on orange the name must be the dark ink
-  const [cr, cg, cb] = r.nameColor.match(/\d+/g)!.map(Number)
-  expect(0.2126 * cr! + 0.7152 * cg! + 0.0722 * cb!).toBeLessThan(100)
-  expect(r.report[1]!).toBeGreaterThanOrEqual(orange.at[3]! - 0.5)
-  for (const bg of r.specBg) expect(bg).not.toBe('rgba(0, 0, 0, 0)')
-  expect(r.boxes.filter((b) => hit(r.approved, b.at))).toEqual([])
-})
+    for (const [i, a] of r.labels.entries())
+      for (const b of r.labels.slice(i + 1)) if (hit(a.at, b.at)) bad.push(`${a.what} × ${b.what}`)
+    expect(bad).toEqual([])
+    expect(r.boxes.filter((b) => hit(r.approved, b.at))).toEqual([])
+    expect(hit(r.approved, r.signoff)).toBe(false)
+  })
 
 test('Pause stops every hero animation', async ({ page }) => {
   await gotoTier(page, '/', 'svg')

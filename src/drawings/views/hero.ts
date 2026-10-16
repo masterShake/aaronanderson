@@ -9,7 +9,7 @@ import type {
   ScaleFigure,
 } from '../types'
 import { firmGraph, type FirmLabel, type FirmRev } from '../graphs/firm'
-import { applyView, instrumentsOn, nodeRect, pointAlong, routeGraph } from '../lib/route'
+import { applyView, pointAlong, routeGraph } from '../lib/route'
 
 /**
  * The hero's view of the example firm (D2 A): seven tools, nine hand-carry
@@ -168,45 +168,45 @@ function build(family: LayoutId): Graph<FirmLabel, FirmRev> {
     notes: [],
     clouds: [],
   }
-  return { ...base, people: people(base) }
+  return { ...base, people: people(base, family) }
 }
 
-/** Figure height in user units (k = height / 64 for placeSymbol); 48 u is 26 CSS px at 520 px. */
-export const HERO_PERSON: Readonly<Record<LayoutId, number>> = { wide: 48, tall: 40 }
+/**
+ * Figure height in user units (k = height / 64 for placeSymbol): 60 u is 9% of the wide frame.
+ * The person at the sign-off valve is the subject there and stands HERO_SUBJECT times taller
+ * (75 u, 12% of the frame).
+ */
+export const HERO_PERSON: Readonly<Record<LayoutId, number>> = { wide: 60, tall: 46 }
+export const HERO_SUBJECT = 1.25
 
 /** As found on the line; rewired at the valve, at estimating and on site. */
 const PEOPLE_PLAN = [
-  { id: 'p1', on: 'h02', at: 0.62, station: { valveOf: 'r02' } },
-  { id: 'p2', on: 'h05', at: 0.5, station: { beside: 'estimate' } },
-  { id: 'p3', on: 'h04', at: 0.5, station: { beside: 'field' } },
+  { id: 'p1', on: 'h02', at: 0.62, symbol: 'fig.at-valve' },
+  { id: 'p2', on: 'h05', at: 0.5, symbol: 'fig.tablet' },
+  { id: 'p3', on: 'h04', at: 0.5, symbol: 'fig.phone' },
 ] as const
 
-function people(g: Graph<FirmLabel, FirmRev>): ScaleFigure<FirmRev>[] {
+/**
+ * Where the rewired people stand (feet), per family: in clear space by their station, never on
+ * a route or a box. p1 faces the valve's handwheel (drawn mirrored).
+ */
+export const HERO_STATIONS: Readonly<Record<LayoutId, Readonly<Record<string, Pt>>>> = {
+  wide: { p1: [352, 504], p2: [618, 186], p3: [222, 482] },
+  tall: { p1: [238, 280], p2: [152, 142], p3: [140, 280] },
+}
+
+function people(g: Graph<FirmLabel, FirmRev>, family: LayoutId): ScaleFigure<FirmRev>[] {
   const found = routeGraph(g, 'asFound', 'wide', { bend: 0 })
-  const rewired = routeGraph(g, 'rewired', 'wide')
   return PEOPLE_PLAN.flatMap((p) => {
     const line = found.get(p.on)
     if (!line) return []
     const q = pointAlong(line.pts, p.at)
-    let st: Pt
-    if ('valveOf' in p.station) {
-      const s = instrumentsOn(rewired.get(p.station.valveOf)!).station!
-      st = [Math.round(s[0]), Math.round(s[1])]
-    } else {
-      const id = p.station.beside
-      const n = g.nodes.find((x) => x.id === id)!
-      const rc = nodeRect(n, 'wide')
-      st = [Math.round(rc.x + rc.w - 18), Math.round(rc.y + rc.h + 4 + 40)]
-    }
     return [
       {
         id: p.id,
         poses: {
           asFound: { symbol: 'fig.carrying-paper', at: [Math.round(q[0]), Math.round(q[1])] },
-          rewired: {
-            symbol: p.id === 'p1' ? 'fig.at-valve' : p.id === 'p2' ? 'fig.tablet' : 'fig.phone',
-            at: st,
-          },
+          rewired: { symbol: p.symbol, at: HERO_STATIONS[family][p.id]! },
         },
       },
     ]
@@ -224,18 +224,18 @@ export function heroGraph(family: LayoutId): Graph<FirmLabel, FirmRev> {
 /** Where the rewired people stand that have a place label. */
 export const HERO_PLACES = { p2: 'place.estimating', p3: 'place.site' } as const
 
-/** Hand notes: tool they sit by (the note key in content) and its side of the box. */
+/**
+ * Hand notes (at most 3, finish standard A4): the tool they belong to and where they sit, in
+ * clear margin space (viewBox units, the note's centre), never touching a box, line or label.
+ */
 export const HERO_NOTES: Readonly<
-  Record<LayoutId, readonly { key: 'estimate' | 'inbox' | 'field' | 'report'; side: 'n' | 's' }[]>
+  Record<LayoutId, readonly { key: 'estimate' | 'inbox' | 'report'; at: Pt }[]>
 > = {
   wide: [
-    { key: 'estimate', side: 'n' },
-    { key: 'inbox', side: 'n' },
-    { key: 'field', side: 'n' },
-    { key: 'report', side: 's' },
+    { key: 'estimate', at: [400, 28] },
+    { key: 'inbox', at: [194, 614] },
+    { key: 'report', at: [680, 382] },
   ],
-  tall: [
-    { key: 'estimate', side: 's' },
-    { key: 'field', side: 's' },
-  ],
+  // the tall sketch has room for one note, in the empty band under the bottom row
+  tall: [{ key: 'inbox', at: [125, 372] }],
 }

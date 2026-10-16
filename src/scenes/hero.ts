@@ -21,6 +21,7 @@ import { HERO } from '@/motion/timing/hero'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
+import { modelDecor, plate, type DecorLine } from './model/decor'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { lineMat, segments } from '@/stage/runtime/kit/lines'
 import { extrudePoly, extrudeRect, setExtrude } from '@/stage/runtime/kit/extrude'
@@ -125,6 +126,11 @@ const mod: SceneModule = {
     const anchors = new Map<string, Object3D>()
     const bounds: Vector3[] = []
     const frame = spec.parts.flatMap((p) => partLines(p))
+    // the tool glyphs, plates, screws and the instruments' detail: drawn by the CAD SVG too
+    const deco = modelDecor(spec)
+    const decoAll: LiteLine[] = [...Object.values(deco.tools).flat(), ...deco.instruments].map(
+      (l) => ({ id: '', pts: l.pts, closed: l.closed, pen: '035', ink: 'cyan' }),
+    )
     let packets: PacketField | null = null
     let plans: PacketPlan[] = []
     let level: Mesh | null = null
@@ -176,7 +182,7 @@ const mod: SceneModule = {
       if (!g) return
       g.setTransform(cv.width / vb[2], 0, 0, cv.height / vb[3], -vb[0] * s, -vb[1] * s)
       g.lineCap = g.lineJoin = 'round'
-      for (const l of frame) {
+      for (const l of [...frame, ...decoAll]) {
         g.beginPath()
         trace(g, l)
         g.strokeStyle = l.ink === 'orange' ? COLOR.orange : COLOR.cyan
@@ -201,6 +207,29 @@ const mod: SceneModule = {
       parent.add(o)
       return m
     }
+
+    /** Segment positions (6 numbers each) into a detail line set on `parent`. */
+    const addSegs = (pos: number[], color: string, order: number, parent: Object3D) => {
+      const m = lineMat({ color, width: 1, a2c: true })
+      const o = segments(pos, m)
+      o.renderOrder = 10 + order
+      own.push({ geometry: o.geometry })
+      lines.push({ m, pen: '035', o })
+      parent.add(o)
+    }
+    const addDecor = (
+      ls: readonly DecorLine[],
+      y: number,
+      color: string,
+      order: number,
+      parent: Object3D,
+    ) =>
+      addSegs(
+        ls.flatMap((l) => linePositions(l.pts, l.closed, y)),
+        color,
+        order,
+        parent,
+      )
 
     function addPart(p: ModelPart, order: number) {
       {
@@ -241,16 +270,41 @@ const mod: SceneModule = {
           own.push({ geometry: geo })
           const l = partLines(p)[i]!
           for (const y of [0, top]) mkLine(l, y, order, mesh)
+          // the decor sits on the top face, engraved in a darker tone than the edges
+          const d = deco.tools[p.id]
+          if (d) addDecor(d, top + 0.2, orange ? COLOR.asphalt : COLOR.graphite, order, mesh)
           setExtrude(mesh, 0)
           solids.push({ mesh, face, order })
           three.add(mesh)
+          if (i) return
+          const [cx, cz] = centre(p)
+          const t = top + 0.2
+          if (p.kind === 'valve') {
+            // bonnet stem and a handwheel above the body: it reads as a valve from any side
+            const h = top * 1.3
+            const R = top * 0.8
+            const pos = [cx, t, cz, cx, t + h, cz]
+            for (let j = 0; j < 16; j++) {
+              const a = (j * Math.PI) / 8
+              const b = ((j + 1) * Math.PI) / 8
+              pos.push(cx + R * Math.cos(a), t + h, cz + R * Math.sin(a))
+              pos.push(cx + R * Math.cos(b), t + h, cz + R * Math.sin(b))
+            }
+            pos.push(cx - R, t + h, cz, cx + R, t + h, cz, cx, t + h, cz - R, cx, t + h, cz + R)
+            addSegs(pos, COLOR.asphalt, order, mesh)
+          } else if (p.id === 'ai' && c.t === 'circle')
+            // the reading lens on the AI reader's top
+            addDecor(deco.instruments.slice(0, 2), t, COLOR.cyan, order, mesh)
         })
         if (p.anchor) {
           const a = new Object3D()
-          const [cx, cz] = centre(p)
-          // the AI reader's label below it, the valve's above it (they sit close in plan)
+          const q = p.prims[0]!
+          // a tool's label sits on its name plate (right of the glyph)
+          const [cx, cz] =
+            q.t === 'rect' ? plate([q.at[0], q.at[1], q.size[0], q.size[1]]).c : centre(p)
+          // the AI reader's label below it, the valve's above its handwheel (close in plan)
           const [dx, dy, dz] =
-            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [14, 34, -24] : [0, 6, 0]
+            p.id === 'ai' ? [-12, -top, 34] : p.id === 'valve' ? [14, 40, -24] : [0, 1, 0]
           a.position.set(cx + dx, z0 + top + dy, cz + dz)
           anchors.set(p.anchor, a)
           three.add(a)
@@ -344,7 +398,8 @@ const mod: SceneModule = {
         if (!sym) continue
         const c = makeCutout(
           { viewBox: [0, 0, 40, 72], d: sym },
-          data.person * 1.25,
+          // the person at the valve is the subject of the approval: larger than the others
+          data.person * (p.id === 'p1' ? 1.6 : 1.25),
           p.at,
           ctx.renderer,
         )

@@ -7,8 +7,9 @@ import s from './hero.module.css'
 /**
  * The hero's HTML labels (aria-hidden; the long description carries the meaning). Each label
  * carries its plan centre for both families (--lx/--ly, --lxt/--lyt, percent numbers), its iso
- * print position (--jx/--jy, --jxt/--jyt) and its times (--t pop, --ts scan crossing).
- * data-anchor is the label key the 3D scene projects (--ix/--iy).
+ * print position (--jx/--jy, --jxt/--jyt), a tool's name plate width (--pw, --pwt) and its
+ * times (--t pop, --ts scan crossing). data-anchor is the label key the 3D scene projects
+ * (--ix/--iy).
  */
 
 type Copy = typeof heroFigure
@@ -16,18 +17,8 @@ const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
 const [, , WW, WH] = HERO_VIEWBOX.wide
 const [, , TW, TH] = HERO_VIEWBOX.tall
 
-const SUB: Readonly<Record<string, 'sym.ai-sub' | 'sym.valve-sub' | 'sym.store-sub'>> = {
-  'sym.ai': 'sym.ai-sub',
-  'sym.valve': 'sym.valve-sub',
-  'sym.store': 'sym.store-sub',
-}
-
-const SPEC = {
-  estimate: 'spec.estimate',
-  inbox: 'spec.inbox',
-  field: 'spec.field',
-  report: 'spec.report',
-} as const
+/** Only the AI reader keeps a sub-line (D2 A: "AI READER · reads, never signs"). */
+const SUB: Readonly<Record<string, 'sym.ai-sub'>> = { 'sym.ai': 'sym.ai-sub' }
 
 function pos(
   w: readonly [number, number] | undefined,
@@ -56,6 +47,8 @@ export function HeroLabels({ wide, tall, copy }: { wide: HeroBuild; tall: HeroBu
         const style = {
           ...pos(l.at, t?.at, 'l'),
           ...pos(l.iso, t?.iso, 'j'),
+          ...(l.w ? { '--pw': pct(l.w, WW) } : {}),
+          ...(t?.w ? { '--pwt': pct(t.w, TW) } : {}),
           '--t': `${l.pop}ms`,
           '--ts': `${l.scan}ms`,
         } as CSSProperties
@@ -91,7 +84,7 @@ export function HeroLabels({ wide, tall, copy }: { wide: HeroBuild; tall: HeroBu
           ...pos(n.at, t?.at, 'l'),
           '--t': `calc(var(--hero-notes-at) + ${j} * var(--hero-note-gap))`,
           '--ts': `${n.scan}ms`,
-          '--tilt': `${j % 2 ? 2 : -3}deg`,
+          '--tilt': `${j % 2 ? 1.5 : -2}deg`,
         } as CSSProperties
         return (
           <span
@@ -101,7 +94,6 @@ export function HeroLabels({ wide, tall, copy }: { wide: HeroBuild; tall: HeroBu
             style={style}
           >
             <span className={`note ${s.note}`}>{copy.notes[n.key]}</span>
-            <span className={s.spec}>{L[SPEC[n.key]]}</span>
           </span>
         )
       })}
