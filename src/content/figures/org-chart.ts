@@ -21,6 +21,8 @@ export const orgChartFigure = {
     analyst: 'ANALYST',
     builder: 'THE PERSON WHO BUILDS IT',
     builders: 'THE PEOPLE WHO BUILD IT',
+    /** The dimension on the one wire (ours). */
+    wire: 'ONE WIRE',
   },
   notes: {
     lost: 'Context lost',

@@ -1,89 +1,156 @@
-import type { Graph, GraphNode, GraphRoute, Pt } from '../types'
+import type { LayoutId, Pt, SymbolId, ViewBox } from '../types'
 
 /**
  * The org chart on About (DETAIL 2 / G-02; pages-drawings §6.9; owner:
- * home-about), drawn as a one-line graph in two states:
- *   chain (paper, pencil): YOU → ACCOUNT MANAGER → PROJECT MANAGER → ANALYST →
- *     THE PERSON WHO BUILDS IT, each joint a hand-carry with a paper glyph;
- *   ours (blueprint-deep, CAD): YOU, one conduit, THE PEOPLE WHO BUILD IT.
- * Wide is horizontal (960 × 320); tall is vertical (400 × 600). YOU and the
- * builders stand in the same place in both states. Label keys point into
- * src/content/figures/org-chart.ts `labels`; the hand note is `notes.lost`.
+ * home-about): who your question passes through, drawn as an org chart of
+ * people in two states.
+ *   chain (paper, pencil): five cards, YOU → ACCOUNT MANAGER → PROJECT
+ *     MANAGER → ANALYST → THE PERSON WHO BUILDS IT, each joint a hand-carry
+ *     with a sheet of paper on it;
+ *   ours (blueprint-deep, CAD): YOU and THE PEOPLE WHO BUILD IT, joined by one
+ *     flanged wire with packets on it.
+ * Each card holds an architect's scale figure over a title rule; the title is
+ * HTML (keys into src/content/figures/org-chart.ts `labels`). YOU and the
+ * builders keep their places in both states. Wide runs left to right
+ * (960 × 380); tall runs top to bottom (400 × 700). Geometry only: the drawing
+ * is built in src/figures/org-chart/drawing.server.ts.
  */
 
 export type OrgLabel = 'you' | 'account' | 'pm' | 'analyst' | 'builder' | 'builders' | 'lost'
 export type OrgRev = 'chain' | 'ours'
 export const ORG_REVS: readonly OrgRev[] = ['chain', 'ours']
 
-const BOX: readonly [number, number] = [152, 72]
-const BOX_TALL: readonly [number, number] = [232, 60]
-const XS = [96, 288, 480, 672, 864]
-const Y = 150
-const X_TALL = 200
-const YS_TALL = [56, 178, 300, 422, 544]
+export interface OrgRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
 
-const node = (
-  id: string,
-  label: OrgLabel,
-  slot: number,
-  revs?: readonly OrgRev[],
-): GraphNode<OrgLabel, OrgRev> & { sizeTall: readonly [number, number] } => ({
-  id,
-  kind: 'tool',
-  label,
-  at: [XS[slot]! - BOX[0] / 2, Y - BOX[1] / 2],
-  atTall: [X_TALL - BOX_TALL[0] / 2, YS_TALL[slot]! - BOX_TALL[1] / 2],
-  size: BOX,
-  sizeTall: BOX_TALL,
-  ports: {},
-  ...(revs ? { revs } : {}),
-})
+export interface OrgCard {
+  id: Exclude<OrgLabel, 'lost'>
+  slot: number
+  revs: readonly OrgRev[]
+  /** The people in the card: pose and where their feet stand (per family). */
+  people: readonly SymbolId[]
+}
 
-const NODES: GraphNode<OrgLabel, OrgRev>[] = [
-  node('you', 'you', 0),
-  node('account', 'account', 1, ['chain']),
-  node('pm', 'pm', 2, ['chain']),
-  node('analyst', 'analyst', 3, ['chain']),
-  node('builder', 'builder', 4, ['chain']),
-  node('builders', 'builders', 4, ['ours']),
-]
-
-const hop = (id: string, from: string, to: string): GraphRoute<OrgLabel, OrgRev> => ({
-  id,
-  from: `${from}.${id}`,
-  to: `${to}.${id}`,
-  kind: 'hand-carry',
-  mode: 'forward',
-  manual: true,
-  revs: ['chain'],
-})
-
-const ROUTES: GraphRoute<OrgLabel, OrgRev>[] = [
-  hop('c1', 'you', 'account'),
-  hop('c2', 'account', 'pm'),
-  hop('c3', 'pm', 'analyst'),
-  hop('c4', 'analyst', 'builder'),
+export const ORG_CARDS: readonly OrgCard[] = [
+  { id: 'you', slot: 0, revs: ['chain', 'ours'], people: ['fig.standing'] },
+  { id: 'account', slot: 1, revs: ['chain'], people: ['fig.phone'] },
+  { id: 'pm', slot: 2, revs: ['chain'], people: ['fig.carrying-paper'] },
+  { id: 'analyst', slot: 3, revs: ['chain'], people: ['fig.tablet'] },
+  { id: 'builder', slot: 4, revs: ['chain'], people: ['fig.survey'] },
   {
-    id: 'wire',
-    from: 'you.wire',
-    to: 'builders.wire',
-    kind: 'conduit',
-    replaces: ['c1', 'c2', 'c3', 'c4'],
+    id: 'builders',
+    slot: 4,
     revs: ['ours'],
+    people: ['fig.hardhat-field', 'fig.survey', 'fig.tablet'],
   },
 ]
 
-/** The hand note, by the middle joint of the chain. */
-const LOST_AT: Pt = [404, 214]
-const LOST_AT_TALL: Pt = [212, 354]
+interface Layout {
+  viewBox: ViewBox
+  /** Card rect by slot. */
+  card(slot: number): OrgRect
+  /** The title area of a card (HTML label). */
+  title(r: OrgRect): OrgRect
+  /** Where the card's people stand (feet) and their scale, for n people. */
+  feet(r: OrgRect, n: number): { at: readonly Pt[]; k: number }
+  /** The hand-off joint between two neighbouring cards: from, to. */
+  hop(a: OrgRect, b: OrgRect): readonly [Pt, Pt]
+  /** The hand note's top-left corner. */
+  note: Pt
+  /** How far the wire's dimension line stands off the wire (ours). */
+  dimOff: Pt
+}
 
-export const orgChartGraph: Graph<OrgLabel, OrgRev> = {
-  id: 'org-chart',
-  viewBox: { wide: [0, 0, 960, 320], tall: [0, 0, 400, 600] },
-  designWidth: { wide: 960, tall: 400 },
-  revs: ORG_REVS,
-  nodes: NODES,
-  routes: ROUTES,
-  notes: [{ key: 'lost', at: LOST_AT, atTall: LOST_AT_TALL, rotate: -3 }],
-  seed: 2207,
+/**
+ * The dimension on the wire (ours): a line parallel to the wire, offset by
+ * dimOff, with extension lines back to the wire's ends; its label ("ONE
+ * WIRE") centres on it.
+ */
+export function wireDim(family: LayoutId, a: Pt, b: Pt) {
+  const [ox, oy] = ORG_LAYOUT[family].dimOff
+  const p: Pt = [a[0] + ox, a[1] + oy]
+  const q: Pt = [b[0] + ox, b[1] + oy]
+  const sx = Math.sign(ox)
+  const sy = Math.sign(oy)
+  // extension lines start a little off the wire and run just past the dimension line
+  const ext = [
+    [
+      [a[0] + sx * 6, a[1] + sy * 6],
+      [p[0] + sx * 6, p[1] + sy * 6],
+    ],
+    [
+      [b[0] + sx * 6, b[1] + sy * 6],
+      [q[0] + sx * 6, q[1] + sy * 6],
+    ],
+  ] as const
+  const mid: Pt = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
+  return { line: [p, q] as const, ext, mid }
+}
+
+const W_CARD = 148
+const W_PITCH = 191
+const W_FIRST = 98
+
+/** Person scale: the kit's figures are 64 artboard units tall at k = 1. */
+const PERSON = 64
+
+export const ORG_LAYOUT: Readonly<Record<LayoutId, Layout>> = {
+  wide: {
+    viewBox: [0, 0, 960, 380],
+    card: (slot) => ({ x: W_FIRST + slot * W_PITCH - W_CARD / 2, y: 64, w: W_CARD, h: 236 }),
+    title: (r) => ({ x: r.x, y: r.y + r.h - 64, w: r.w, h: 64 }),
+    feet: (r, n) => {
+      const k = n > 1 ? 1.5 : 1.95
+      const y = r.y + r.h - 76
+      const cx = r.x + r.w / 2
+      const step = 38
+      return {
+        k,
+        at: Array.from({ length: n }, (_, i) => [cx + (i - (n - 1) / 2) * step, y] as Pt),
+      }
+    },
+    hop: (a, b) => [
+      [a.x + a.w, a.y + 86],
+      [b.x, b.y + 86],
+    ],
+    note: [505, 316],
+    dimOff: [0, -48],
+  },
+  tall: {
+    viewBox: [0, 0, 400, 700],
+    card: (slot) => ({ x: 36, y: 22 + slot * 136, w: 328, h: 104 }),
+    title: (r) => ({ x: r.x + 112, y: r.y, w: r.w - 112, h: r.h }),
+    feet: (r, n) => {
+      const k = n > 1 ? 1.05 : 1.3
+      const y = r.y + r.h - 8
+      const cx = r.x + 56
+      const step = 26
+      return {
+        k,
+        at: Array.from({ length: n }, (_, i) => [cx + (i - (n - 1) / 2) * step, y] as Pt),
+      }
+    },
+    hop: (a, b) => [
+      [a.x + 56, a.y + a.h],
+      [b.x + 56, b.y],
+    ],
+    note: [108, 404],
+    dimOff: [64, 0],
+  },
+}
+
+/** The scale-figure height in viewBox units at scale k. */
+export const orgPersonHeight = (k: number) => PERSON * k
+
+export const cardsIn = (rev: OrgRev) => ORG_CARDS.filter((c) => c.revs.includes(rev))
+
+/** The one wire's ends (ours): from YOU's card to the builders' card. */
+export function wireEnds(family: LayoutId): readonly [Pt, Pt] {
+  const L = ORG_LAYOUT[family]
+  const slot = (id: string) => ORG_CARDS.find((c) => c.id === id)!.slot
+  return L.hop(L.card(slot('you')), L.card(slot('builders')))
 }

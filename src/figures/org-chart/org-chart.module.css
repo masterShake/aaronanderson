@@ -1,8 +1,22 @@
 /*
  * The org chart: data-toggle on the figure is chain (pencil on paper) or ours
- * (CAD on blueprint-deep, scanned in left to right). Static drawings: until
- * the layers arrive, the matching still stands in. Labels sit over the boxes.
+ * (CAD on blueprint-deep). Static drawings, until the layers arrive the
+ * matching still stands in. Titles sit in the cards' title strips.
+ *
+ * Chain → ours plays once per change: the chain's pencil erases, the panel
+ * goes deep, YOU and the builders' cards ink in, the one wire draws on from
+ * you to them, its titles arrive with their cards, then packets run along the
+ * wire for FLOW loops and stop on a clean still. Ours → chain: the pencil
+ * comes back, card by card. Paused motion gets the finished frame at once.
  */
+
+.org {
+  --org-stagger: var(--pencil-stagger-max, 70ms);
+  --org-ink: var(--dur-sheet, 420ms);
+  --org-wire: calc(var(--dur-sheet, 420ms) * 0.8);
+  --org-wire-dur: var(--dur-state, 900ms);
+  --org-flow: calc(var(--dur-state, 900ms) * 1.6);
+}
 
 .org[data-toggle='ours'] :global(.box) {
   --panel: var(--c-blueprint-deep);
@@ -12,29 +26,113 @@
   transition: background-color var(--dur-state, 900ms) var(--ease-machine, ease);
 }
 
-.org :global(.drawing .l-cad) {
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path var(--dur-state, 900ms) var(--ease-machine, ease);
+.org :global(.drawing :is(.l-cad, .l-pkt)) {
+  visibility: hidden;
 }
 
-.org[data-toggle='ours'] :global(.drawing .l-cad) {
-  clip-path: inset(0);
+.org[data-toggle='ours'] :global(.drawing :is(.l-cad, .l-pkt)) {
+  visibility: visible;
 }
 
-.org :global(.drawing .l-pencil) {
-  transition: opacity var(--dur-ui, 200ms) linear;
-}
-
+/* the chain erases as the panel goes deep */
 .org[data-toggle='ours'] :global(.drawing .l-pencil) {
   opacity: 0;
+  transition: opacity var(--org-ink) var(--ease-machine, ease);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .org :global(.box),
-  .org :global(.drawing .l-cad),
-  .org :global(.drawing .l-pencil) {
-    transition: none;
+/* ours: the cards ink in, then the wire draws on, then everything on it */
+.org[data-toggle='ours'] :global(.l-cad g.k-card .draw) {
+  animation: org-draw var(--org-ink) var(--ease-machine, ease) both;
+}
+
+.org[data-toggle='ours'] :global(.l-cad g.k-wire .draw) {
+  animation: org-draw var(--org-wire-dur) var(--ease-machine, ease) both;
+  animation-delay: var(--org-wire);
+}
+
+.org[data-toggle='ours'] :global(.l-cad g.k-wire path:not(.draw)),
+.org[data-toggle='ours'] :global(.l-cad g.person) {
+  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--org-wire) + var(--org-wire-dur) * 0.6);
+}
+
+.org[data-toggle='ours'] :global(.l-cad g.person) {
+  animation-delay: calc(var(--org-ink) * 0.5);
+}
+
+/* chain: each card and hand-off comes back in reading order */
+.org[data-toggle='chain'] :global(.l-pencil path) {
+  animation: org-fade var(--org-ink) var(--ease-pencil, ease) both;
+  animation-delay: calc(var(--i, 0) * var(--org-stagger));
+}
+
+/* the packets: one stream down the wire, constant FLOW speed, FLOW loops, then a still */
+.org :global(.l-pkt path.pk) {
+  opacity: 0;
+  stroke-linecap: round;
+  stroke-dasharray: calc(5 / var(--len, 100)) calc(100 / var(--len, 100));
+}
+
+.org[data-toggle='ours'] :global(.l-pkt path.pk) {
+  animation: org-flow var(--flow-loop, 6000ms) linear var(--org-flow) var(--flow-loops, 3) none;
+}
+
+@keyframes org-draw {
+  from {
+    stroke-dashoffset: 1;
   }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes org-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* one loop moves 840 units (FLOW.speed × FLOW.loop), a whole number of packet spacings */
+@keyframes org-flow {
+  from {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    opacity: 1;
+    stroke-dashoffset: calc(-840 / var(--len, 100));
+  }
+}
+
+/* titles arrive with their cards */
+.org[data-toggle] :global(.labels) > .node {
+  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--org-ink) * 0.5);
+}
+
+.org[data-toggle='chain'] :global(.labels) > .node {
+  animation-delay: calc(var(--i, 0) * var(--org-stagger) + var(--org-ink) * 0.5);
+}
+
+.org[data-toggle='chain'] :global(.labels) > .note {
+  animation: org-fade var(--org-ink) var(--ease-pencil, ease) both;
+  animation-delay: calc(var(--org-ink) + var(--org-stagger) * 6);
+}
+
+:global(html[data-motion='paused']) .org :global(.l-pkt) {
+  display: none;
+}
+
+:global(html[data-motion='paused']) .org *,
+:global(html[data-motion='paused']) .org :global(.drawing *) {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Elements tied to one state */
@@ -53,18 +151,20 @@
   inset: 0;
 }
 
-/* Box labels: centered in the box, wrapping inside it */
+/* Card titles: centered in the card's title strip, wrapping between words */
 .org :global(.labels) > .node {
   display: flex;
   align-items: center;
   justify-content: center;
   width: calc(var(--lw) * 1%);
   height: calc(var(--lh) * 1%);
-  padding: 2px 6px;
-  font-size: 0.6875rem;
+  padding: 2px 8px;
+  font-size: clamp(0.5625rem, 1.15cqi, 0.75rem);
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.04em;
   text-align: center;
+  text-wrap: balance;
   white-space: normal;
   color: var(--c-asphalt);
 }
@@ -77,7 +177,31 @@
   .org :global(.labels) > .node {
     width: calc(var(--lwt) * 1%);
     height: calc(var(--lht) * 1%);
+    justify-content: flex-start;
+    padding: 2px 12px;
+    font-size: clamp(0.6875rem, 3.2cqi, 0.8125rem);
+    text-align: left;
   }
+}
+
+/* the wire's dimension: centred over its line (wide), or beside it (tall) */
+.org :global(.labels) > .dim {
+  translate: -50% calc(-100% - 4px);
+  font-size: clamp(0.625rem, 1.15cqi, 0.75rem);
+  letter-spacing: 0.08em;
+  color: var(--c-label-on-deep);
+}
+
+@container fig (width < 560px) {
+  .org :global(.labels) > .dim {
+    translate: 6px -50%;
+  }
+}
+
+.org[data-toggle='ours'] :global(.labels) > .dim,
+.org[data-toggle='ours'] :global(.l-cad g.k-dim) {
+  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
+  animation-delay: calc(var(--org-wire) + var(--org-wire-dur));
 }
 
 .org :global(.labels) > .note {
