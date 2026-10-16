@@ -1,6 +1,7 @@
 import 'server-only'
 import type { LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
-import { docsBuilder, frameNodes, isoPrintDoc, modelBounds } from '@/drawings/render'
+import { cad, docsBuilder, frameNodes, isoPrintDoc, modelBounds } from '@/drawings/render'
+import { s06Glyphs } from '@/scenes/model/s06-data'
 import { planFrame } from '@/drawings/lib/frame'
 import { fitIso, isoToViewBox, planToWorld } from '@/drawings/lib/iso'
 import { num } from '@/drawings/lib/geometry'
@@ -12,7 +13,8 @@ import { buildS06Model, partTop, S06_VIEWBOX, type S06Model } from '@/drawings/v
  *   s06.{family}.plan.still.svg  the rewired plan on blueprint-deep
  *   s06.{family}.print.still.svg the iso print with every month added (the still tier)
  * The print adds the monitor's dial on the gauge's top face: a paper face, nine ticks, a
- * needle in the blue IN RANGE arc (the same dial the WebGL scene draws).
+ * needle in the blue IN RANGE arc (the same dial the WebGL scene draws). The plan and the print
+ * both carry each tool's glyph (s06Glyphs), as the WebGL decal and model do.
  */
 
 /** The dial on the gauge's top face, projected like the print. */
@@ -54,6 +56,39 @@ function dialNodes(m: S06Model, family: LayoutId, first: number): SvgNode[] {
   ]
 }
 
+const glyphD = (pts: readonly Pt[]) => `M${pts.map((q) => `${num(q[0])} ${num(q[1])}`).join('L')}`
+const glyphInk = (id: string) => (id === 'glyph.report' ? 'asphalt' : null)
+
+/** The tool glyphs on the CAD plan (cyan; dark on the orange report), drawn with their boxes. */
+function planGlyphs(m: S06Model): SvgNode[] {
+  return s06Glyphs(m.spec.parts).map((g) => {
+    const c = cad([{ t: 'poly', pts: g.pts }])
+    return {
+      el: 'path',
+      d: c.d,
+      len: c.len,
+      part: g.id,
+      i: g.i,
+      cls: `draw p-025 i-${glyphInk(g.id) ?? 'cyan'}`,
+    }
+  })
+}
+
+/** The tool glyphs on the print's box tops (blueprint on aluminium; dark on the orange report). */
+function printGlyphs(m: S06Model, family: LayoutId, first: number): SvgNode[] {
+  const vb = S06_VIEWBOX[family]
+  const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec))
+  const top = new Map(m.spec.parts.map((p) => [`glyph.${p.id}`, partTop(p).z]))
+  return s06Glyphs(m.spec.parts).map((g, j) => ({
+    el: 'path',
+    d: glyphD(g.pts.map((q) => isoToViewBox(planToWorld(q, top.get(g.id) ?? 0), vb, fit))),
+    len: 0,
+    part: g.id,
+    i: first + j,
+    cls: `p-025 i-${glyphInk(g.id) ?? 'cad'}`,
+  }))
+}
+
 function make(family: LayoutId, rev: string): SvgDoc {
   const m = buildS06Model(family)
   const vb = S06_VIEWBOX[family]
@@ -61,11 +96,18 @@ function make(family: LayoutId, rev: string): SvgDoc {
     const iso = isoPrintDoc(m.spec)
     return {
       viewBox: vb,
-      groups: iso.groups.map((g) => ({
-        ...g,
-        rev,
-        children: [...g.children, ...dialNodes(m, family, g.children.length)],
-      })),
+      groups: iso.groups.map((g) => {
+        const dial = dialNodes(m, family, g.children.length)
+        return {
+          ...g,
+          rev,
+          children: [
+            ...g.children,
+            ...dial,
+            ...printGlyphs(m, family, g.children.length + dial.length),
+          ],
+        }
+      }),
     }
   }
   return {
@@ -85,7 +127,7 @@ function make(family: LayoutId, rev: string): SvgDoc {
           },
         ],
       },
-      { layer: 'cad', rev, children: frameNodes(planFrame(m.spec)) },
+      { layer: 'cad', rev, children: [...frameNodes(planFrame(m.spec)), ...planGlyphs(m)] },
     ],
   }
 }

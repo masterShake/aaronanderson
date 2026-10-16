@@ -22,7 +22,7 @@ import type { ModelPart, Pen, Pt } from '@/drawings/types'
 import { S06 } from '@/motion/timing/s06'
 import { COLOR } from '@/styles/tokens'
 import { HERO_DATA } from './model/data'
-import { S06_EXTRA } from './model/s06-data'
+import { S06_EXTRA, s06Glyphs } from './model/s06-data'
 import { isSolid, outline, partLines, quarterLater, type LiteLine } from './model/frame-lite'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
@@ -115,6 +115,7 @@ const mod: SceneModule = {
     const months = new Map<string, number>()
     const bounds: Vector3[] = []
     const frame = parts.filter((p) => !monthOf(p)).flatMap((p) => partLines(p))
+    const glyphs = s06Glyphs(parts)
     const labels: LabelMap = new Map()
     let w = 1
     let h = 1
@@ -163,6 +164,14 @@ const mod: SceneModule = {
         trace(g, l)
         g.strokeStyle = l.ink === 'orange' ? COLOR.orange : COLOR.cyan
         g.lineWidth = ctx.strokePx(l.pen) / rig.scale
+        g.stroke()
+      }
+      // the tool glyphs, as the CAD plan draws them
+      g.lineWidth = ctx.strokePx('025') / rig.scale
+      for (const gl of glyphs) {
+        g.beginPath()
+        gl.pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])))
+        g.strokeStyle = gl.id === 'glyph.report' ? COLOR.asphalt : COLOR.cyan
         g.stroke()
       }
       tex.needsUpdate = true
@@ -259,6 +268,31 @@ const mod: SceneModule = {
           solids.push({ mesh, face, order, month })
           three.add(mesh)
           if (p.id === 'gauge') dial(mesh, centre(p), outline(c).pts, top, order)
+          // the tool's glyph on its top face (blueprint; dark on the orange report)
+          const pos: number[] = []
+          for (const gl of glyphs)
+            if (gl.id === `glyph.${p.id}`)
+              for (let j = 1; j < gl.pts.length; j++)
+                pos.push(
+                  gl.pts[j - 1]![0],
+                  top + 0.4,
+                  gl.pts[j - 1]![1],
+                  gl.pts[j]![0],
+                  top + 0.4,
+                  gl.pts[j]![1],
+                )
+          if (pos.length) {
+            const m = lineMat({
+              color: orange ? COLOR.asphalt : COLOR.blueprint,
+              width: 1,
+              a2c: true,
+            })
+            const o = segments(pos, m)
+            o.renderOrder = 10 + order
+            own.push({ geometry: o.geometry })
+            lines.push({ m, pen: '025', o })
+            mesh.add(o)
+          }
         })
         if (p.anchor) {
           // every labelled part (the hero's tools and store, the flange, the gauge and the month
