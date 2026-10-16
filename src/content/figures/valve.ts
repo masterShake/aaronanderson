@@ -1,17 +1,20 @@
 import type { FigureCopy } from '../types'
+import { site } from '../site'
 
 /**
- * The sign-off valve detail, DETAIL 2 / P-00 (owner: how). Plays once on
- * entry; the logbook lines print as each event happens. No hand notes.
+ * The sign-off detail, DETAIL 2 / P-00 (owner: howcontact). Plays once on
+ * entry; the logbook lines print as each record is filed or held. The log
+ * entries are sample data (stamped SAMPLE). No hand notes.
  */
 export const valveFigure = {
   id: 'valve',
   detail: 'DETAIL 2 / P-00',
-  title: 'THE SIGN-OFF VALVE',
-  caption: 'Records pass a tolerance needle. One outside tolerance waits for a person.',
+  title: 'SIGN-OFF VALVE',
+  tag: site.sampleTag,
+  caption: 'Records pass a tolerance gauge. One outside tolerance waits for a person.',
   longDescription: [
-    'Paperwork flows from left to right, past an AI reader and a tolerance dial, into the system of record.',
-    'The first records pass inside tolerance and are filed. The next falls below the mark, is diverted to the sign-off valve, and rejoins the line once a person approves it. Each step is written in the logbook.',
+    'Paperwork flows from an in-tray, past an AI reader and a tolerance gauge, into the system of record.',
+    'The first records read inside tolerance and are filed. The next falls outside it, is sent down a branch to the sign-off valve, and goes on only once a person approves it. Each step is written in the logbook.',
   ],
   labels: {
     incoming: 'INCOMING PAPERWORK',
@@ -21,14 +24,14 @@ export const valveFigure = {
     tolerance: 'TOLERANCE',
     inRange: 'IN RANGE',
     valve: 'SIGN-OFF',
-    'valve-sub': 'a person decides (HV)',
+    'valve-sub': 'a person decides',
     approved: 'APPROVED',
     logbook: 'LOGBOOK',
   },
   controls: { replay: 'Replay', playDrawing: 'Play the drawing' },
   ui: {
-    'log.filed': 'READ · IN TOLERANCE · FILED',
-    'log.held': 'READ · BELOW TOLERANCE · HELD FOR A PERSON',
-    'log.approved': 'APPROVED BY A PERSON · FILED',
+    'log.filed': 'IN RANGE · FILED',
+    'log.held': 'OUT OF RANGE · HELD',
+    'log.approved': 'APPROVED · FILED',
   },
 } satisfies FigureCopy

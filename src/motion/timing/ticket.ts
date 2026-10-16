@@ -19,29 +19,60 @@ export const TICKET = {
 } as const
 
 /**
- * The sign-off detail (owner: how; timing/index.ts re-exports this file, so it
- * lives here). Plays once on entry, 4600 ms in all (pages-drawings §6.8): three
- * packets pass inside tolerance, the fourth falls below the mark, is diverted
- * to the valve, approved by a person and rejoins. Times in ms from the start.
+ * The sign-off detail (owner: howcontact; timing/index.ts re-exports this
+ * file, so it lives here). Plays once on entry, about 7.8 s in all:
+ * - the drawing inks on: structure, connections, details (stagger × --i), then labels;
+ * - a hold, then three records run the line at constant speed and are filed;
+ * - the fourth reads out of range, goes down the branch and waits at the valve;
+ * - the person turns the wheel, APPROVED lands, the record goes on and is filed.
+ * Times in ms from the start. Packet runs move at 0.4 user units per ms, so the
+ * tall family (a shorter line) has its own run lengths and log times.
  */
 export const VALVE = {
-  total: 4600,
-  run: 900,
-  p1: 0,
-  p2: 700,
-  p3: 1400,
-  p4: 2300,
-  p4Run: 2300,
-  needleAt: 2600,
-  needleDur: 300,
-  flapAt: 2700,
-  flapDur: 1400,
-  wheelAt: 3500,
-  wheelDur: 300,
-  approvedAt: 3800,
-  log1: 900,
-  log2: 1600,
-  log3: 2300,
-  log4: 3000,
-  log5: 4400,
+  total: 7800,
+  draw: 480,
+  stagger: 80,
+  p1: 2300,
+  p2: 2900,
+  p3: 3500,
+  p4: 4400,
+  run: 1690,
+  runTall: 1420,
+  divert: 3385,
+  divertTall: 3485,
+  needleAt: 2300,
+  needleAtTall: 2070,
+  needleDur: 5000,
+  wheelAt: 6000,
+  wheelDur: 500,
+  approvedAt: 6600,
+  log1: 3800,
+  log2: 4400,
+  log3: 5000,
+  log4: 5760,
+  log5: 7600,
+  log1Tall: 3520,
+  log2Tall: 4120,
+  log3Tall: 4720,
+  log4Tall: 5520,
+  log5Tall: 7300,
+} as const
+
+/**
+ * After you reach out (Contact, DETAIL 1 / G-03; owner: howcontact, kept here
+ * beside VALVE since timing/index.ts re-exports this file). Plays once on
+ * entry: the four enclosures ink on (stagger × --i), then their glyphs and
+ * names, our two conduits, then the join from your node to ours with a SNAP.
+ * A record then runs the route at constant speed, pausing in each node, and
+ * the signature on the written next step inks in orange as it arrives.
+ */
+export const AFTER_CONTACT = {
+  draw: 520,
+  stagger: 100,
+  snapAt: 1640,
+  snap: 280,
+  runAt: 1980,
+  run: 3400,
+  signAt: 5320,
+  sign: 420,
 } as const

@@ -8,13 +8,17 @@ import {
 } from '@/drawings/graphs/after-contact'
 import { FigureFrame } from '@/figures/FigureFrame'
 import { LazyDrawing } from '@/figures/LazyDrawing.client'
+import { AFTER_CONTACT } from '@/motion/timing/ticket'
+import { cssVars } from '@/motion/timing-css'
 import { AfterContactController } from './AfterContactController.client'
 import s from './after-contact.module.css'
 
 /**
- * DETAIL 1 / G-03: what happens after you reach out. Four nodes joined by
- * conduits, CAD on blueprint-deep; labels are HTML. A time-driven figure
- * with nothing to play beyond the draw-on, so it settles on its still.
+ * DETAIL 1 / G-03: what happens after you reach out. Four nodes (you book
+ * or write, we reply, the call, a written next step) joined by flanged
+ * conduits, CAD on blueprint-deep; names are HTML, centred in each node's
+ * plate. Plays once on entry: the drawing inks on, your node joins ours, and
+ * a record runs the route to the signed next step.
  * Named export, no required props: /kit/fig/[id] renders it.
  */
 export function AfterContactFigure() {
@@ -26,6 +30,7 @@ export function AfterContactFigure() {
       copy={copy}
       layouts={AFTER_CONTACT_VIEWBOX}
       driver="time"
+      vars={cssVars(AFTER_CONTACT, 'ac')}
       className={s.fig}
       drawing={
         <LazyDrawing
@@ -34,7 +39,7 @@ export function AfterContactFigure() {
           stillSrc={drawingSrc('after-contact', 'wide.flow.still.svg')}
         />
       }
-      labels={keys.map((k) => (
+      labels={keys.map((k, i) => (
         <span
           key={k}
           data-anchor={k}
@@ -45,6 +50,9 @@ export function AfterContactFigure() {
               '--ly': at[k].ly,
               '--lxt': at[k].lxt,
               '--lyt': at[k].lyt,
+              '--lw': at[k].lw,
+              '--lwt': at[k].lwt,
+              '--t': `${(4 + i) * AFTER_CONTACT.stagger + AFTER_CONTACT.draw}ms`,
             } as CSSProperties
           }
         >

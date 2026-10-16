@@ -3,7 +3,8 @@
  * The drawing's base is the final frame; every animation starts from the
  * beginning of the sequence with fill "both", so no-JS, reduced motion and the
  * still tier show the finished drawing. Times come from VALVE (--valve-*).
- * Rotation origins and packet offsets mirror src/drawings/views/valve.ts.
+ * Packet offsets, rotation origins and keyframe stops mirror
+ * src/drawings/views/valve.ts (packets move at 0.4 user units per ms).
  */
 
 .valve :global(.box) {
@@ -19,38 +20,37 @@
   fill: var(--c-paper);
 }
 
-/* Packets: capsules, 5 CSS px thick. */
-.valve :global(.pk) {
-  stroke-width: calc(var(--k) * 5px);
+.valve.valve :global(.box path.f-orange) {
+  fill: var(--c-orange);
 }
 
-/* Per family: rotation origins and how far each packet travels. */
+/* Per family: rotation origins, packet start offsets, run lengths and log times. */
 .valve {
-  --o-needle: 420px 150px;
-  --o-flap: 520px 150px;
-  --o-wheel: 600px 264.4px;
-  --flap-turn: 90deg;
-  --run: -552px 0px;
-  --w0: -396px -140px;
-  --w1: -80px -140px;
-  --w2: -80px 0px;
-  --w4: 80px 0px;
-  --w5: 80px -140px;
-  --w6: 156px -140px;
+  --o-needle: 430px 84px;
+  --spin: 0.12 1;
+  --start: -596px 0px;
+  --run-dur: var(--valve-run, 1690ms);
+  --divert-dur: var(--valve-divert, 3385ms);
+  --needle-at: var(--valve-needle-at, 2300ms);
+  --log1: var(--valve-log1);
+  --log2: var(--valve-log2);
+  --log3: var(--valve-log3);
+  --log4: var(--valve-log4);
+  --log5: var(--valve-log5);
 }
 
 .valve:global([data-family='tall']) {
-  --o-needle: 200px 204px;
-  --o-flap: 200px 252px;
-  --o-wheel: 349.2px 330px;
-  --flap-turn: -90deg;
-  --run: 0px -416px;
-  --w0: -130px -258px;
-  --w1: -130px -78px;
-  --w2: 0px -78px;
-  --w4: 0px 78px;
-  --w5: -130px 78px;
-  --w6: -130px 158px;
+  --o-needle: 302px 290px;
+  --spin: 1 0.12;
+  --start: 0px -488px;
+  --run-dur: var(--valve-run-tall, 1420ms);
+  --divert-dur: var(--valve-divert-tall, 3485ms);
+  --needle-at: var(--valve-needle-at-tall, 2070ms);
+  --log1: var(--valve-log1-tall);
+  --log2: var(--valve-log2-tall);
+  --log3: var(--valve-log3-tall);
+  --log4: var(--valve-log4-tall);
+  --log5: var(--valve-log5-tall);
 }
 
 /* Wait until the figure is half in view (useFigure sets data-inview). */
@@ -58,123 +58,30 @@
   --gate: paused;
 }
 
-.valve :global([data-part='needle']) {
-  transform-box: view-box;
-  transform-origin: var(--o-needle);
-}
-
-.valve :global([data-part='flap']) {
-  transform-box: view-box;
-  transform-origin: var(--o-flap);
-}
-
-.valve :global([data-part='wheel']) {
-  transform-box: view-box;
-  transform-origin: var(--o-wheel);
-}
-
-/* ── The sequence ───────────────────────────────────────────────────────── */
-.valve:global([data-run]) :global(:is([data-part='pk.1'], [data-part='pk.2'], [data-part='pk.3'])) {
-  animation: valve-run var(--valve-run, 900ms) linear var(--valve-p1, 0ms) both;
+/* ── Draw-on: structure, connections, details (--i), ease-in-out cubic ──── */
+.valve:global([data-run]) :global(.l-cad path.draw) {
+  animation: valve-draw var(--valve-draw, 480ms) cubic-bezier(0.65, 0, 0.35, 1)
+    calc(var(--i, 0) * var(--valve-stagger, 80ms)) both;
   animation-play-state: var(--gate);
 }
 
-.valve:global([data-run]) :global([data-part='pk.2']) {
-  animation-delay: var(--valve-p2, 700ms);
+.valve:global([data-run]) :global(.l-cad path:not(.draw)) {
+  animation: valve-fade var(--valve-draw, 480ms) cubic-bezier(0.65, 0, 0.35, 1)
+    calc(var(--i, 0) * var(--valve-stagger, 80ms)) both;
+  animation-play-state: var(--gate);
 }
 
-.valve:global([data-run]) :global([data-part='pk.3']) {
-  animation-delay: var(--valve-p3, 1400ms);
-}
-
-@keyframes valve-run {
+@keyframes valve-draw {
   0% {
+    stroke-dashoffset: 1;
     opacity: 0;
-    translate: var(--run);
   }
-  4% {
+  2% {
     opacity: 1;
   }
   100% {
+    stroke-dashoffset: 0;
     opacity: 1;
-    translate: 0 0;
-  }
-}
-
-.valve:global([data-run]) :global([data-part='pk.4']) {
-  animation: valve-divert var(--valve-p4-run, 2300ms) linear var(--valve-p4, 2300ms) both;
-  animation-play-state: var(--gate);
-}
-
-@keyframes valve-divert {
-  0% {
-    opacity: 0;
-    translate: var(--w0);
-  }
-  3% {
-    opacity: 1;
-  }
-  17%,
-  30% {
-    translate: var(--w1);
-  }
-  43% {
-    translate: var(--w2);
-  }
-  52%,
-  65% {
-    translate: 0 0;
-  }
-  74% {
-    translate: var(--w4);
-  }
-  82% {
-    translate: var(--w5);
-  }
-  92% {
-    opacity: 1;
-    translate: var(--w6);
-  }
-  100% {
-    opacity: 0;
-    translate: var(--w6);
-  }
-}
-
-.valve:global([data-run]) :global([data-part='needle']) {
-  animation: valve-needle var(--valve-needle-dur, 300ms) var(--ease-machine, ease)
-    var(--valve-needle-at, 2600ms) both;
-  animation-play-state: var(--gate);
-}
-
-@keyframes valve-needle {
-  from {
-    rotate: 80deg;
-  }
-}
-
-.valve:global([data-run]) :global([data-part='flap']) {
-  animation: valve-flap var(--valve-flap-dur, 1400ms) var(--ease-machine, ease)
-    var(--valve-flap-at, 2700ms) both;
-  animation-play-state: var(--gate);
-}
-
-@keyframes valve-flap {
-  20%,
-  80% {
-    rotate: var(--flap-turn);
-  }
-}
-
-.valve:global([data-run]) :global([data-part='wheel']) {
-  animation: valve-wheel var(--valve-wheel-dur, 300ms) var(--ease-machine, ease)
-    var(--valve-wheel-at, 3500ms) both;
-  animation-play-state: var(--gate);
-}
-
-@keyframes valve-wheel {
-  from {
-    rotate: -90deg;
   }
 }
 
@@ -185,31 +92,257 @@
   }
 }
 
-.valve:global([data-run]) .approved {
-  animation: valve-fade var(--dur-ui, 200ms) var(--ease-ui, ease) var(--valve-approved-at, 3800ms)
-    both;
+/* Labels arrive with or after their objects (--t from the figure). */
+.valve:global([data-run]) .label {
+  animation: valve-pop var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
   animation-play-state: var(--gate);
 }
 
+@keyframes valve-pop {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+/* ── Records: FLOW, linear at constant speed ───────────────────────────── */
+.valve :global(.pk) {
+  opacity: 0;
+}
+
+.valve:global([data-run]) :global(:is([data-part='pk.1'], [data-part='pk.2'], [data-part='pk.3'])) {
+  animation: valve-run var(--run-dur) linear var(--valve-p1, 2300ms) both;
+  animation-play-state: var(--gate);
+}
+
+.valve:global([data-run]) :global([data-part='pk.2']) {
+  animation-delay: var(--valve-p2, 2900ms);
+}
+
+.valve:global([data-run]) :global([data-part='pk.3']) {
+  animation-delay: var(--valve-p3, 3500ms);
+}
+
+/* the straight run ends at the cabinet inlet (88 % wide, 86 % tall), then the record is filed */
+@keyframes valve-run {
+  0% {
+    opacity: 0;
+    translate: var(--start);
+  }
+  3% {
+    opacity: 1;
+  }
+  87% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+.valve:global([data-run]) :global([data-part='pk.4']) {
+  animation: valve-divert var(--divert-dur) linear var(--valve-p4, 4400ms) both;
+  animation-play-state: var(--gate);
+}
+
+.valve:global([data-run][data-family='tall']) :global([data-part='pk.4']) {
+  animation-name: valve-divert-tall;
+}
+
+/* tee 26 %, down 34.1 %, valve 40 %, held to 73.9 %, riser 83.5 %, up 91.6 %, inlet 94.1 % */
+@keyframes valve-divert {
+  0% {
+    opacity: 0;
+    translate: -596px 0px;
+  }
+  3% {
+    opacity: 1;
+  }
+  26% {
+    translate: -244px 0px;
+  }
+  34.1% {
+    translate: -244px 110px;
+  }
+  40%,
+  73.9% {
+    translate: -164px 110px;
+  }
+  83.5% {
+    translate: -34px 110px;
+  }
+  91.6% {
+    translate: -34px 0px;
+  }
+  94.1% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* tee 17.9 %, left 27.7 %, valve 32 %, held to 71.7 %, down 76 %, right 85.8 %, inlet 94.3 % */
+@keyframes valve-divert-tall {
+  0% {
+    opacity: 0;
+    translate: 0px -488px;
+  }
+  3% {
+    opacity: 1;
+  }
+  17.9% {
+    translate: 0px -238px;
+  }
+  27.7% {
+    translate: -136px -238px;
+  }
+  32%,
+  71.7% {
+    translate: -136px -178px;
+  }
+  76% {
+    translate: -136px -118px;
+  }
+  85.8% {
+    translate: 0px -118px;
+  }
+  94.3% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* ── The needle: a small swing for each record in range, then out of range ─ */
+.valve :global([data-part='needle']) {
+  transform-box: view-box;
+  transform-origin: var(--o-needle);
+}
+
+.valve:global([data-run]) :global([data-part='needle']) {
+  animation: valve-needle var(--valve-needle-dur, 5000ms) linear var(--needle-at) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes valve-needle {
+  0%,
+  10% {
+    rotate: 0deg;
+  }
+  13% {
+    rotate: 12deg;
+  }
+  17% {
+    rotate: -4deg;
+  }
+  20%,
+  23% {
+    rotate: 0deg;
+  }
+  25.5% {
+    rotate: -10deg;
+  }
+  29% {
+    rotate: 4deg;
+  }
+  32%,
+  35% {
+    rotate: 0deg;
+  }
+  37.5% {
+    rotate: 9deg;
+  }
+  41% {
+    rotate: -3deg;
+  }
+  44%,
+  53% {
+    rotate: 0deg;
+  }
+  57%,
+  88% {
+    rotate: -68deg;
+  }
+  94% {
+    rotate: 4deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+/* ── The person turns the wheel; APPROVED lands ─────────────────────────── */
+.valve :global(.wheel) {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.valve:global([data-run]) :global(.l-cad .wheel) {
+  animation: valve-wheel var(--valve-wheel-dur, 500ms) var(--ease-machine, ease)
+    var(--valve-wheel-at, 6000ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes valve-wheel {
+  25%,
+  75% {
+    scale: var(--spin);
+  }
+  50% {
+    scale: 1 1;
+  }
+}
+
+.valve:global([data-run]) .approved {
+  animation: valve-stamp var(--dur-stamp, 240ms) var(--ease-machine, ease)
+    var(--valve-approved-at, 6600ms) both;
+  animation-play-state: var(--gate);
+}
+
+@keyframes valve-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.6;
+    rotate: -10deg;
+  }
+  70% {
+    opacity: 1;
+    scale: 0.94;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: -4deg;
+  }
+}
+
 .valve:global([data-run]) .logLine {
-  animation: valve-fade var(--dur-ui, 200ms) var(--ease-ui, ease) var(--valve-log1, 900ms) both;
+  animation: valve-fade var(--dur-ui, 200ms) var(--ease-ui, ease) var(--log1, 3800ms) both;
   animation-play-state: var(--gate);
 }
 
 .valve:global([data-run]) .logLine[data-line='2'] {
-  animation-delay: var(--valve-log2, 1600ms);
+  animation-delay: var(--log2, 4400ms);
 }
 
 .valve:global([data-run]) .logLine[data-line='3'] {
-  animation-delay: var(--valve-log3, 2300ms);
+  animation-delay: var(--log3, 5000ms);
 }
 
 .valve:global([data-run]) .logLine[data-line='4'] {
-  animation-delay: var(--valve-log4, 3000ms);
+  animation-delay: var(--log4, 5760ms);
 }
 
 .valve:global([data-run]) .logLine[data-line='5'] {
-  animation-delay: var(--valve-log5, 4400ms);
+  animation-delay: var(--log5, 7600ms);
 }
 
 /* ── Labels and the logbook ─────────────────────────────────────────────── */
@@ -244,21 +377,22 @@
 
 .approved {
   justify-self: start;
-  padding: 2px 6px;
-  border: 1.5px solid var(--c-label-on-deep);
+  padding: 2px 8px;
+  border: 2px solid var(--c-orange);
   background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+  font-weight: 600;
+  rotate: -4deg;
 }
 
-/* the log prints small, one row per line where the card allows (it is the widest label) */
+/* the log prints small inside the drawn card, clear of its spine */
 .logbook {
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid var(--c-cyan-dim);
-  background: var(--c-blueprint-deep);
+  gap: 2px;
+  padding: 2px 4px 4px 6px;
 }
 
 .valve .label.logbook {
-  font-size: clamp(9px, 1.3cqi, 11px);
+  font-size: clamp(9px, 1.25cqi, 13px);
   letter-spacing: 0.02em;
 }
 
@@ -268,8 +402,12 @@
 
 .log {
   margin: 0;
-  padding-inline-start: 2.4em;
+  padding-inline-start: 2.6em;
   list-style: decimal-leading-zero;
+}
+
+.logLine {
+  white-space: nowrap;
 }
 
 /* a narrow wide drawing has room for the last three lines only (numbers kept by value) */
