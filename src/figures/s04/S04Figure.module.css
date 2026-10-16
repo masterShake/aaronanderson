@@ -55,8 +55,10 @@
   opacity: calc(min(var(--sc) * 40, 1) * min((1 - var(--sc)) * 40, 1));
 }
 
+/* The pencil tiles erase to a ghost under the scan, then the ghost goes too: nothing
+   sketchy stays under the finished panel. */
 .s04.s04 :global(svg.l-ghost) {
-  opacity: 1;
+  opacity: calc(1 - clamp(0, (var(--p, 1) - var(--s04-scan-b)) / 0.04, 1));
   -webkit-mask-image: linear-gradient(
     90deg,
     rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
@@ -95,6 +97,12 @@
 .s04.s04 :global(.box svg .f-redline) {
   fill: var(--c-redline);
 }
+.s04.s04 :global(.box svg .f-orange) {
+  fill: var(--c-orange);
+}
+.s04.s04 :global(.box svg .f-cyan) {
+  fill: var(--c-cyan);
+}
 
 /* Sketch: tiles draw on, staggered by --i. */
 .s04 :global(.w-sk) {
@@ -123,23 +131,37 @@
   --b: calc(var(--s04-tank-b) - 0.03 + var(--i) * 0.01);
 }
 
-/* Needles: straight up is IN RANGE; none chosen is LOW. */
+/* Riser flanges come once their riser is drawn. */
+.s04 :global(.w-fl) {
+  --a: calc(var(--s04-tank-b) - 0.02);
+  --b: var(--s04-tank-b);
+}
+
+/* Needles: drawn straight up (IN RANGE); at rest they lie on the stop, below LOW, until the
+   loops settle them on their readings. */
 .s04 :global(.needle) {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  rotate: -80deg;
+  rotate: -118deg;
   transition: rotate var(--s04-needle-ms, 600ms) var(--ease-settle, ease);
 }
 
-.s04[data-cost='in'] :global([data-part='needle.cost']),
-.s04[data-schedule='in'] :global([data-part='needle.schedule']),
-.s04[data-hours='in'] :global([data-part='needle.hours']) {
+/* (the group turns, not the path inside it, which carries the same data-part) */
+.s04[data-cost='low'] :global(.needle[data-part='needle.cost']),
+.s04[data-schedule='low'] :global(.needle[data-part='needle.schedule']),
+.s04[data-hours='low'] :global(.needle[data-part='needle.hours']) {
+  rotate: -80deg;
+}
+
+.s04[data-cost='in'] :global(.needle[data-part='needle.cost']),
+.s04[data-schedule='in'] :global(.needle[data-part='needle.schedule']),
+.s04[data-hours='in'] :global(.needle[data-part='needle.hours']) {
   rotate: 0deg;
 }
 
-.s04[data-cost='check'] :global([data-part='needle.cost']),
-.s04[data-schedule='check'] :global([data-part='needle.schedule']),
-.s04[data-hours='check'] :global([data-part='needle.hours']) {
+.s04[data-cost='check'] :global(.needle[data-part='needle.cost']),
+.s04[data-schedule='check'] :global(.needle[data-part='needle.schedule']),
+.s04[data-hours='check'] :global(.needle[data-part='needle.hours']) {
   rotate: 80deg;
 }
 
@@ -203,12 +225,25 @@
   /* the e-machine curve, written out (a label is not a .pv path) */
   --lp: clamp(0, (var(--p, 1) - var(--a)) / (var(--b) - var(--a)), 1);
   --e: calc(var(--lp) * var(--lp) * (3 - 2 * var(--lp)));
+  /* its tile's outline is drawn (.w-sk ends at sketch-a + .03 i + .07) */
+  --drawn: clamp(0, (var(--p, 1) - var(--s04-sketch-a) - var(--i, 0) * 0.03 - 0.07) * 40, 1);
+
+  /* the name sits in the tile's top band, clear of its glyph */
+  place-items: start center;
+  padding-block-start: 8px;
 }
 
+/* A tile's name goes with its pencil, under the scan: gone before the panel's names come,
+   so no tile name ever sits on a finished instrument. */
 .tlt {
-  --a: var(--s04-names-a);
-  --b: var(--s04-names-b);
-  opacity: calc(1 - var(--e));
+  --a: calc(var(--s04-scan-a) + 0.06);
+  --b: var(--s04-scan-b);
+  opacity: calc(var(--drawn) * (1 - var(--e)));
+}
+
+/* No label before the drawing is in (svg tier). */
+.s04:not(:global([data-layers='ready'])):not(:global([data-phase='still'])) :global(.labels) {
+  opacity: 0;
 }
 
 .dn,
@@ -226,10 +261,12 @@
   font-size: 0.6875rem;
 }
 
+/* The store's name comes once its outline is drawn. */
 .st {
-  --a: var(--s04-tank-a);
+  --a: calc(var(--s04-tank-b) - 0.02);
   --b: var(--s04-tank-b);
   color: var(--c-label-on-deep);
+  font-size: 0.6875rem;
 }
 
 .rp {
@@ -238,7 +275,7 @@
   font-size: 0.6875rem;
 }
 
-@container fig (width < 440px) {
+@container fig (width < 640px) {
   .rp {
     font-size: 0.5625rem;
     letter-spacing: 0;
@@ -252,14 +289,11 @@
   visibility: visible;
 }
 
-/* The reading word under each dial follows its needle. */
+/* The reading word under each dial follows its needle; no word while it rests. */
 .rd > [data-v] {
   display: none;
 }
 
-.s04:not([data-cost]) .rd[data-dial='cost'] > [data-v='low'],
-.s04:not([data-schedule]) .rd[data-dial='schedule'] > [data-v='low'],
-.s04:not([data-hours]) .rd[data-dial='hours'] > [data-v='low'],
 .s04[data-cost='in'] .rd[data-dial='cost'] > [data-v='in'],
 .s04[data-schedule='in'] .rd[data-dial='schedule'] > [data-v='in'],
 .s04[data-hours='in'] .rd[data-dial='hours'] > [data-v='in'],
@@ -272,15 +306,19 @@
   display: block;
 }
 
-/* The still image's needles are IN RANGE. */
-:global(html[data-tier='still']) .s04:not(:global([data-user-play])) .rd > [data-v],
-.s04:global([data-phase='still']) .rd > [data-v] {
-  display: none;
+/* The still image's needles are on their end readings (S04_END), before any script. */
+.s04:global([data-phase='still']):not([data-cost]) .rd[data-dial='cost'] > [data-end],
+.s04:global([data-phase='still']):not([data-schedule]) .rd[data-dial='schedule'] > [data-end],
+.s04:global([data-phase='still']):not([data-hours]) .rd[data-dial='hours'] > [data-end] {
+  display: block;
 }
 
-:global(html[data-tier='still']) .s04:not(:global([data-user-play])) .rd > [data-v='in'],
-.s04:global([data-phase='still']) .rd > [data-v='in'] {
-  display: block;
+/* The dial that answers the asked question is the focal thing: an orange rule under its name. */
+.s04[data-focus='cost'] .dn[data-anchor='dial.cost'],
+.s04[data-focus='schedule'] .dn[data-anchor='dial.schedule'],
+.s04[data-focus='hours'] .dn[data-anchor='dial.hours'] {
+  text-decoration: underline 3px var(--c-orange);
+  text-underline-offset: 4px;
 }
 
 /* ── Question chips and the answer card (below the box) ─────────────────── */
@@ -292,10 +330,10 @@
 }
 
 .chip {
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px var(--s-3);
   border: 1px solid var(--c-asphalt);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--c-paper);
   color: var(--c-asphalt);
   font-family: var(--ff-ui);
@@ -314,12 +352,6 @@
   outline-offset: var(--focus-offset);
 }
 
-@media (pointer: coarse) {
-  .chip {
-    min-height: 44px;
-  }
-}
-
 /* forced colors drop the pressed fill: a heavier border marks it instead (padding keeps size) */
 @media (forced-colors: active) {
   .chip[aria-pressed='true'] {
@@ -332,24 +364,18 @@
   padding: var(--s-2) var(--s-3) var(--s-3);
 }
 
+/* The answer card appears at once (D3: no typewriter, no fade). */
 .answer {
   display: none;
   padding: var(--s-2) var(--s-3);
   border: 1px solid var(--c-asphalt);
   background: var(--c-paper);
-  animation: s04-in var(--dur-micro, 120ms) var(--ease-ui, ease) both;
 }
 
 .answer[data-on],
 :global(html[data-tier='still']) .s04:not([data-asked]) .answer[data-first],
 .s04:global([data-phase='still']):not([data-asked]) .answer[data-first] {
   display: block;
-}
-
-@keyframes s04-in {
-  from {
-    opacity: 0;
-  }
 }
 
 .stamp {
@@ -367,6 +393,14 @@
 .text {
   margin: 0;
   font-size: var(--fs-small);
+}
+
+/* The still tier offers Play the drawing, so Replay is not offered there (as on S-03). */
+:global(html[data-tier='still'])
+  .s04:not(:global([data-user-play]))
+  :global([data-action='replay']),
+.s04:global([data-phase='still']:not([data-user-play])) :global([data-action='replay']) {
+  display: none;
 }
 
 .runAgain {

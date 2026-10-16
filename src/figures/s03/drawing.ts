@@ -1,4 +1,4 @@
-import type { DrawingBuilder, LayoutId, Pt, SvgDoc, SvgNode, ViewBox } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Prim, Pt, SvgDoc, SvgNode, ViewBox } from '@/drawings/types'
 import { frontFrame } from '@/drawings/lib/frame'
 import { primD, seedFrom } from '@/drawings/lib/geometry'
 import { primLength } from '@/drawings/lib/length'
@@ -6,7 +6,15 @@ import { toStillSvg } from '@/drawings/lib/svg-string'
 import { frameNodes, pencil } from '@/drawings/render'
 import { STILL_K, bundle } from '@/drawings/render'
 import { strokeCls } from '@/drawings/render/cad'
-import { placePrimS03, sectionLine, sketchPrims } from '@/drawings/views/s03'
+import {
+  S03_LEADERS,
+  dialHub,
+  finishDetails,
+  placePrimS03,
+  sectionLine,
+  sketchPrims,
+  stackSheets,
+} from '@/drawings/views/s03'
 import { DIAL, G, S03_FAMILY, place, s03Spec, sectionExtras } from '@/scenes/s03/section'
 
 /**
@@ -76,6 +84,66 @@ const rectD = (f: LayoutId, [x, y, w, h]: readonly [number, number, number, numb
     d: `M${pts.map((q) => `${fmt(q[0])} ${fmt(q[1])}`).join('L')}Z`,
     len: 2 * (w + h) * S03_FAMILY[f].s,
   }
+}
+
+/** The finishing details (SVG only): bezel, ticks, lens housing, hubs, plates, bracket. */
+function finishNodes(f: LayoutId, state: State): SvgNode[] {
+  const live = state === 'live'
+  const out: SvgNode[] = []
+  for (const d of finishDetails()) {
+    const prims = d.prims.map((p) => placePrimS03(f, p))
+    const path = prims.map(primD).join('')
+    const len = prims.reduce((s, p) => s + primLength(p), 0)
+    if (d.fill)
+      out.push(node(path, 0, `fin.${d.id}`, d.step, strokeCls({ fill: d.fill, draw: false })))
+    out.push(
+      node(
+        path,
+        len,
+        `fin.${d.id}`,
+        d.step,
+        strokeCls({ pen: d.pen, ink: d.ink, draw: live, extra: live ? 'pv' : '' }),
+      ),
+    )
+  }
+  const hub = placePrimS03(f, dialHub())
+  out.push(node(primD(hub), 0, 'fin.hub-dial', 2, strokeCls({ fill: 'cyan', draw: false })))
+  // the batch waiting in the hopper (live only: in the stills it has gone through)
+  if (live) {
+    const paper = strokeCls({ pen: '025', ink: 'cyan', fill: 'paper', draw: false })
+    stackSheets().forEach((sheet, i) => {
+      const p = placePrimS03(f, sheet)
+      out.push({
+        el: 'g',
+        part: `stack.${i}`,
+        children: [node(primD(p), primLength(p), `stack.${i}`, 1, paper)],
+      })
+    })
+  }
+  return out
+}
+
+/** Leader lines from labels to their objects (thin pen, a dot at the object). */
+function leaderNodes(f: LayoutId, state: State): SvgNode[] {
+  const live = state === 'live'
+  return Object.entries(S03_LEADERS[f]).map(([key, [a, b]], j): SvgNode => {
+    const line: Prim = { t: 'line', a, b }
+    const dot: Prim = { t: 'circle', c: b, r: 2.5 }
+    return {
+      el: 'g',
+      part: `leader.${key}`,
+      children: [
+        node(
+          primD(line),
+          primLength(line),
+          `leader.${key}`,
+          j,
+          strokeCls({ pen: '025', ink: 'cyan-dim', draw: live, extra: live ? 'pv' : '' }),
+        ),
+        node(primD(dot), 0, `leader.${key}.dot`, j, strokeCls({ fill: 'cyan-dim', draw: false })),
+      ],
+    }
+  })
 }
 
 /** Documents, cards, the lamp and the stamp. Live: at rest (CSS moves them); stills: posed. */
@@ -187,19 +255,22 @@ export function s03Doc(f: LayoutId): SvgDoc {
       { layer: 'ghost', rev: 'ghost', children: sketchNodes(f, false, 'paper') },
       { layer: 'pencil', rev: 'cut', children: cutNodes(f) },
       { layer: 'cad', rev: 'section', children: sectionNodes(f, 'live') },
+      { layer: 'cad', rev: 'finish', children: finishNodes(f, 'live') },
+      { layer: 'cad', rev: 'leader', children: leaderNodes(f, 'live') },
       { layer: 'pkt', rev: 'batch', children: batchNodes(f, 'live') },
     ],
   }
 }
 
-/** A still: the section on blueprint with the pencil ghost, at HELD or after approval. */
+/** A still: the finished section on blueprint (no pencil ghost), at HELD or after approval. */
 export function s03StillDoc(f: LayoutId, state: 'held' | 'approved'): SvgDoc {
   const vb = S03_FAMILY[f].vb
   return {
     viewBox: vb,
     groups: [
-      { layer: 'ghost', children: sketchNodes(f, false, 'paper') },
       { layer: 'cad', children: sectionNodes(f, state) },
+      { layer: 'cad', children: finishNodes(f, state) },
+      { layer: 'cad', children: leaderNodes(f, state) },
       { layer: 'pkt', children: batchNodes(f, state) },
     ],
   }
@@ -217,7 +288,6 @@ export const s03Drawing: DrawingBuilder = {
       k: STILL_K[family],
       ground: 'deep',
       remap: { panel: 'deep' },
-      opacity: { ghost: 0.22 },
     })
   },
 }

@@ -1,5 +1,5 @@
 'use client'
-import { S04_DIALS, S04_QUESTIONS, s04Mech, type S04Question } from '@/drawings/views/s04'
+import { S04_DIALS, S04_END, S04_QUESTIONS, s04Mech, type S04Question } from '@/drawings/views/s04'
 import { GATE } from '@/motion/timing/global'
 import { S04 } from '@/motion/timing/s04'
 import { drivePlay, driveScroll } from '@/motion/scroll-driver'
@@ -75,8 +75,9 @@ export function runS04(
     if (r) root.setAttribute(`data-${dial}`, r)
     else root.removeAttribute(`data-${dial}`)
   }
+  /** The needles settle on their end readings (three different words), or go back to rest. */
   const settle = (on: boolean) => {
-    for (const d of S04_DIALS) if (!chosen.has(d)) setReading(d, on ? 'in' : null)
+    for (const d of S04_DIALS) if (!chosen.has(d)) setReading(d, on ? S04_END[d] : null)
   }
   const apply = (rise: readonly number[] | null, card: number) => {
     const len = g().riser
@@ -167,6 +168,8 @@ export function runS04(
   else if (pinned !== null) onProgress(pinned)
   else if (document.documentElement.dataset.tier !== 'still')
     offs.push(gate(root, GATE.entry, playFromStart))
+  // the still tier shows the finished state: the needles on their end readings
+  if (root.dataset.phase === 'still') settle(true)
   if (NOT_PROD && pinned !== null) {
     // Preview only: the gate tests scrub the pinned harness with `ae:progress` events.
     const onP = (e: Event) => onProgress(Number((e as CustomEvent<number>).detail))
@@ -210,6 +213,8 @@ export function runS04(
       if (a.dataset.a === q) a.dataset.on = ''
       else delete a.dataset.on
     root.dataset.asked = q
+    // the dial that answers is the focal thing now (an orange mark on its name)
+    root.dataset.focus = dial
   }
 
   const onClick = (ev: MouseEvent) => {

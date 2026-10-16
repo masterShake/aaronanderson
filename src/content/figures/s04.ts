@@ -2,7 +2,7 @@ import type { FigureCopy } from '../types'
 import { site } from '../site'
 
 /**
- * S-04 Data & Dashboards, DETAIL 4 / S-04 (owner: scenes-a). Dials read words,
+ * S-04 Data & Dashboards, DETAIL 4 / S-04 (owner: svc-b). Dials read words,
  * never numbers. The question chips write scripted SAMPLE answers into a
  * polite live region, instantly. Answers contain no digits. No hand notes.
  */
@@ -14,7 +14,7 @@ export const s04Figure = {
   caption: 'Every system drains into one data store, so every report reads the same numbers.',
   longDescription: [
     'Reports from {tiles:word} systems lock into one grid over a single data store.',
-    "An instrument panel reads the store. Its dials show low, in range or check, and the owner's report slides out on its own.",
+    "An instrument panel reads the store. Its dials show low, in range or check, a chart tracks cost against the estimate, a list keeps the open items, and the owner's report slides out on its own.",
     'The question buttons give sample answers built from the same store.',
   ],
   labels: {
@@ -24,10 +24,11 @@ export const s04Figure = {
     'tile.estimate': 'ESTIMATE',
     'tile.payroll': 'PAYROLL',
     store: 'ONE DATA STORE',
-    'store-sub': 'DATA',
     'dial.cost': 'JOB COST',
     'dial.schedule': 'SCHEDULE',
     'dial.hours': 'HOURS',
+    'cell.chart': 'COST TREND',
+    'cell.list': 'OPEN ITEMS',
     report: "OWNER'S REPORT",
   },
   live: {
@@ -52,8 +53,7 @@ export const s04Figure = {
     chipsLabel: 'Ask the example firm a question',
     answerLabel: 'SAMPLE ANSWER',
     'q.project': 'Where are we on this project?',
-    'a.project':
-      'Sample: on schedule. Two change orders are waiting for sign-off, and job cost is in range.',
+    'a.project': 'Sample: on schedule. Two change orders are waiting for sign-off.',
     'q.budget': 'Which jobs need a look?',
     'a.budget':
       'Sample: one job. Labor is running ahead of the estimate, and the weekly report has the details.',
