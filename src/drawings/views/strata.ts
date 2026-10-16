@@ -22,11 +22,13 @@ interface Layout {
   cut: number
   /** Band tops and the bottom, top to bottom: code, office, field, bottom. */
   ys: readonly [number, number, number, number]
+  /** The dimension chain's x, right of the bands. */
+  dim: number
 }
 
 export const STRATA_LAYOUT: Readonly<Record<LayoutId, Layout>> = {
-  wide: { viewBox: [0, 0, 960, 480], x: [40, 920], cut: 44, ys: [96, 206, 326, 452] },
-  tall: { viewBox: [0, 0, 400, 520], x: [20, 380], cut: 40, ys: [92, 214, 350, 500] },
+  wide: { viewBox: [0, 0, 960, 480], x: [40, 896], cut: 44, ys: [96, 206, 326, 452], dim: 926 },
+  tall: { viewBox: [0, 0, 400, 520], x: [20, 356], cut: 40, ys: [92, 214, 350, 500], dim: 380 },
 }
 
 /** Where each band's HTML label sits (its top-left, viewBox units). */
@@ -108,26 +110,57 @@ export function strataDoc(family: LayoutId): SvgDoc {
   const [yc, yo, yf, yb] = l.ys
   const area = (x1 - x0) / 960
   const kids: SvgNode[] = []
-  // the bands, top to bottom
-  kids.push(
-    path(grid(x0, yc, x1, yo, 16), 'code', '018', 'graphite', 0),
-    path([{ t: 'rect', at: [x0, yc], size: [x1 - x0, yo - yc] }], 'code', '050', 'asphalt', 0),
-  )
+  // the hatches (thin pen), one material per band: CODE a fine square grid, OFFICE
+  // concrete (stipple and aggregate), FIELD earth (45° hatch with dots)
+  kids.push(path(grid(x0, yc, x1, yo, 16), 'code', '018', 'graphite', 0))
   const st = stipple(x0, yo, x1, yf, Math.round(260 * area), 4096, 7)
   kids.push(
     path(st.dots, 'office', '025', 'graphite', 1),
     path(st.tris, 'office', '018', 'graphite', 1),
-    path([{ t: 'rect', at: [x0, yo], size: [x1 - x0, yf - yo] }], 'office', '050', 'asphalt', 1),
   )
   const dots = stipple(x0, yf, x1, yb, Math.round(120 * area), 1931, 1e9).dots
   kids.push(
     path(diagonals(x0, yf, x1, yb, 18), 'field', '018', 'graphite', 2),
     path(dots, 'field', '025', 'graphite', 2),
-    path([{ t: 'rect', at: [x0, yf], size: [x1 - x0, yb - yf] }], 'field', '050', 'asphalt', 2),
   )
-  // the section cut A–A: a chain line across the top with arrows at both ends pointing down
-  const arrow = (x: number): Prim[] => [
-    { t: 'line', a: [x, l.cut - 14], b: [x, l.cut + 18] },
+  // the outline (thick pen): the band boundaries across, and break lines down both cut
+  // ends, one jog per band, since the section runs on past the drawing
+  const across: Prim[] = [yc, yo, yf, yb].map((y) => ({ t: 'line', a: [x0, y], b: [x1, y] }))
+  const breakLine = (x: number, s: 1 | -1): Prim => {
+    const pts: Pt[] = [[x, yc]]
+    for (const [top, bottom] of [
+      [yc, yo],
+      [yo, yf],
+      [yf, yb],
+    ] as const) {
+      const m = (top + bottom) / 2
+      pts.push([x, m - 8], [x - 6 * s, m - 2], [x + 6 * s, m + 2], [x, m + 8])
+    }
+    pts.push([x, yb])
+    return { t: 'poly', pts }
+  }
+  kids.push(
+    path(across, 'outline', '050', 'asphalt', 3),
+    path([breakLine(x0, 1), breakLine(x1, -1)], 'outline', '050', 'asphalt', 3),
+  )
+  // the dimension chain down the right side (thin pen): extension lines from each
+  // boundary, the dimension line, and a tick at each boundary; no figures on it
+  const dx = l.dim
+  const ext: Prim[] = [yc, yo, yf, yb].map((y) => ({ t: 'line', a: [x1 + 6, y], b: [dx + 6, y] }))
+  const ticks: Prim[] = [yc, yo, yf, yb].map((y) => ({
+    t: 'line',
+    a: [dx - 4, y + 4],
+    b: [dx + 4, y - 4],
+  }))
+  kids.push(
+    path([...ext, { t: 'line', a: [dx, yc - 6], b: [dx, yb + 6] }], 'dim', '018', 'graphite', 4),
+    path(ticks, 'dim', '035', 'asphalt', 4),
+  )
+  // the section cut A–A: a chain line across the top, heavy ends, and arrows
+  // pointing down, the way the section is seen
+  const end = (x: number, s: 1 | -1): Prim[] => [
+    { t: 'line', a: [x, l.cut], b: [x + 26 * s, l.cut] },
+    { t: 'line', a: [x, l.cut], b: [x, l.cut + 16] },
     {
       t: 'poly',
       pts: [
@@ -135,11 +168,12 @@ export function strataDoc(family: LayoutId): SvgDoc {
         [x, l.cut + 18],
         [x + 6, l.cut + 8],
       ],
+      closed: true,
     },
   ]
   kids.push(
-    path([{ t: 'line', a: [x0 - 8, l.cut], b: [x1 + 8, l.cut] }], 'cut', '025', 'asphalt', 3),
-    path([...arrow(x0 + 4), ...arrow(x1 - 4)], 'cut', '050', 'asphalt', 3),
+    path([{ t: 'line', a: [x0 + 26, l.cut], b: [x1 - 26, l.cut] }], 'cut', '025', 'asphalt', 5),
+    path([...end(x0, 1), ...end(x1, -1)], 'cut', '070', 'asphalt', 5),
   )
   return {
     viewBox: l.viewBox,
