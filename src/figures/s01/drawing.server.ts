@@ -1,42 +1,37 @@
 import 'server-only'
 import type { DrawingBuilder, LayoutId, Part, Prim, Pt, SvgDoc, SvgNode } from '@/drawings/types'
-import {
-  STILL_K,
-  docsBuilder,
-  graphDoc,
-  mergeDocs,
-  partsNodes,
-  pencil,
-  cad,
-} from '@/drawings/render'
+import { STILL_K, docsBuilder, graphDoc, partsNodes, pencil, cad } from '@/drawings/render'
 import { group, strokeCls } from '@/drawings/render/cad'
 import { toStillSvg } from '@/drawings/lib/svg-string'
 import { seedFrom } from '@/drawings/lib/geometry'
-import { center } from '@/drawings/lib/route'
 import { cloudPrim, placeSymbol } from '@/drawings/symbols'
 import {
   S01_ART,
   S01_CLOUDED,
   S01_FAN,
   S01_REV,
+  S01_ROUTES,
   S01_STATION,
   S01_TOOLS,
+  crossAt,
   crossP,
   rectOf,
+  s01Glyph,
   s01Graph,
 } from '@/drawings/views/s01'
 
 /**
- * The S-01 drawing files (owner: services), served by /drawings/[file]:
+ * The S-01 drawing files (owner: svc-a), served by /drawings/[file]:
  *   s01.{family}.json             every layer, both states merged
  *   s01.{family}.{rev}.still.svg  asFound (pencil) and surveyed (the final frame)
  *
- * asFound: the pencil sketch (boxes rotated ±3°, hand-carry lines), the
- * surveyor and total station, and on the packet layer the fan, crosshairs and
- * clouds. surveyed: the deep panel and the clean map of the same topology
- * (by-hand routes dashed cyan-dim, syncs solid cyan). Classes tag each beat
- * (sk sketch, sv survey, fan, xh crosshair, cl cloud, pn panel, rd redraw);
- * src/figures/s01/s01.module.css runs them on --p.
+ * asFound: on l-pencil the pencil sketch (boxes with their glyphs, hand-off lines with
+ * paper), which the scan erases; on l-pkt the surveyor and the total station (who stay),
+ * the fan, crosshairs and clouds. surveyed: the deep panel and the clean map of the same topology (by-hand routes
+ * dashed cyan-dim, syncs solid, glyphs in cyan). Classes tag each beat (sk sketch, gl glyph,
+ * sv survey, fan, xh crosshair, cl cloud, pn panel, rd redraw); s01.module.css runs them
+ * on --p. The final frame has no pencil under the map: the sketch is gone, the surveyor
+ * stays (on paper, under the panel).
  */
 
 type Fam = LayoutId
@@ -69,60 +64,85 @@ const roughPaths = (
     cls,
   }))
 
-/** The pencil sketch: graph boxes (rotated ±3°) and hand-carry lines. */
+const glyphPrims = (tool: (typeof S01_TOOLS)[number], family: Fam): Prim[] =>
+  s01Glyph(tool, family).map((pts) => ({ t: 'poly' as const, pts }))
+
+/** The pencil sketch: graph boxes (rotated ±1.5°), hand-off lines, and each box's glyph. */
 function sketch(family: Fam): SvgNode[] {
   const doc = graphDoc(s01Graph, S01_REV, family, { medium: 'pencil' })
   const tools = new Set<string>(S01_TOOLS)
   let k = 0
+  // stagger: the eight boxes first (structure), then the nine hand-off lines (connections)
+  const order = (part: string | undefined) => {
+    const t = S01_TOOLS.indexOf(part as (typeof S01_TOOLS)[number])
+    if (t >= 0) return t
+    const r = S01_ROUTES.indexOf(part as (typeof S01_ROUTES)[number])
+    return r >= 0 ? S01_TOOLS.length + r : undefined
+  }
   return doc.groups.flatMap((g) =>
     g.children.map((n) => {
-      const tagged = retag(n, (cls) => `${cls} sk`)
+      const tagged = retag(n, (cls) => `${cls} sk`, order(n.el === 'g' ? n.part : undefined))
       if (n.el !== 'g' || !n.part || !tools.has(n.part)) return tagged
-      const c = center(rectOf(n.part as (typeof S01_TOOLS)[number], family))
-      const a = k++ % 2 ? 3 : -3
-      return { ...tagged, transform: `rotate(${a} ${r2(c[0])} ${r2(c[1])})` }
+      const tool = n.part as (typeof S01_TOOLS)[number]
+      const r = rectOf(tool, family)
+      const a = k++ % 2 ? 1.5 : -1.5
+      const glyph = roughPaths(
+        glyphPrims(tool, family),
+        `s01:${family}:glyph:${tool}`,
+        `${tool}.glyph`,
+        S01_TOOLS.indexOf(tool),
+        `${strokeCls({ pen: '025', ink: 'pencil' })} gl`,
+      )
+      return {
+        ...tagged,
+        children: [...(tagged.el === 'g' ? tagged.children : []), ...glyph],
+        transform: `rotate(${a} ${r2(r.x + r.w / 2)} ${r2(r.y + r.h / 2)})`,
+      }
     }),
   )
 }
 
-/** The total station on its tripod, and the surveyor bent over it. */
+/** The total station on its tripod, and the surveyor at it. */
 function survey(family: Fam): SvgNode[] {
   const s = S01_STATION[family]
   const [fx, fy] = s.feet
   const [hx, hy] = s.head
-  const spread = family === 'wide' ? 16 : 11
+  const u = family === 'wide' ? 1.3 : 0.55
+  const spread = 18 * u
   const legs: Prim[] = [
-    { t: 'line', a: [hx, hy + 6], b: [fx - spread, fy] },
-    { t: 'line', a: [hx, hy + 6], b: [fx, fy] },
-    { t: 'line', a: [hx, hy + 6], b: [fx + spread, fy] },
+    { t: 'line', a: [hx, hy + 8 * u], b: [fx - spread, fy] },
+    { t: 'line', a: [hx, hy + 8 * u], b: [fx, fy] },
+    { t: 'line', a: [hx, hy + 8 * u], b: [fx + spread, fy] },
   ]
   const head: Prim[] = [
-    { t: 'rect', at: [hx - 8, hy - 7], size: [16, 13] },
-    { t: 'circle', c: [hx + 4, hy - 1], r: 3 },
+    { t: 'rect', at: [hx - 9 * u, hy - 8 * u], size: [18 * u, 14 * u] },
+    { t: 'circle', c: [hx + 4 * u, hy - 1 * u], r: 3.5 * u },
+    { t: 'line', a: [hx - 12 * u, hy + 8 * u], b: [hx + 12 * u, hy + 8 * u] },
   ]
-  const parts: Part[] = placeSymbol('fig.survey', s.person, {
-    k: family === 'wide' ? 0.9 : 0.7,
-    prefix: 'surveyor',
-  })
+  const parts: Part[] = placeSymbol('fig.survey', s.person, { k: s.k, prefix: 'surveyor' })
   const seed = `s01:${family}:station`
   const cls = `${strokeCls({ pen: '035', ink: 'pencil' })} sv`
   return [
     group('station', [
-      path(head, 'station.head', 0, `${strokeCls({ fill: 'paper', draw: false })} sv`),
+      path(head.slice(0, 1), 'station.head', 0, `${strokeCls({ fill: 'paper', draw: false })} sv`),
       ...roughPaths(legs, `${seed}:legs`, 'station.legs', 0, cls),
       ...roughPaths(head, `${seed}:head`, 'station.head', 0, cls),
     ]),
-    group(
-      'surveyor',
-      partsNodes(parts, { variant: 'pencil', seed: `${seed}:person`, i: 0, ink: 'pencil' }).map(
-        (n) => retag(n, (c) => `${c} sv`),
+    {
+      ...group(
+        'surveyor',
+        partsNodes(parts, { variant: 'pencil', seed: `${seed}:person`, i: 0, ink: 'pencil' }).map(
+          (n) => retag(n, (c) => `${c} sv`),
+        ),
+        'person',
       ),
-      'person',
-    ),
+      // mirrored about his feet, so he faces the instrument
+      ...(s.mirror ? { transform: `translate(${r2(2 * s.person[0])} 0) scale(-1 1)` } : {}),
+    },
   ]
 }
 
-/** The 12° fan, drawn pointing east from the instrument; CSS rotates it up through the sweep. */
+/** The 12° fan, drawn pointing at its start from the instrument; CSS turns it through the sweep. */
 function fan(family: Fam): SvgNode {
   const L = S01_FAN.len[family]
   const a = (S01_FAN.halfDeg * Math.PI) / 180
@@ -137,13 +157,13 @@ function fan(family: Fam): SvgNode {
   return {
     el: 'g',
     part: 'fan.at',
-    transform: `translate(${hx} ${hy})`,
+    transform: `translate(${hx} ${hy}) rotate(${S01_FAN.startDeg[family]})`,
     children: [
       group(
         'fan',
         [
           path([wedge], 'fan.fill', 0, `${strokeCls({ fill: 'cad', draw: false })} fan`),
-          path(edges, 'fan.edge', 0, `${strokeCls({ pen: '035', ink: 'cad', draw: false })} fan`),
+          path(edges, 'fan.edge', 0, `${strokeCls({ pen: '025', ink: 'cad', draw: false })} fan`),
         ],
         's01-fan',
       ),
@@ -151,19 +171,23 @@ function fan(family: Fam): SvgNode {
   }
 }
 
-/** A crosshair (r = 6) in each box, drawn when the fan crosses it: --i carries that progress × 1000. */
+/**
+ * A crosshair in each box's corner, drawn when the fan crosses it (--i carries that
+ * progress × 1000). A clouded box's crosshair (xc1 to xc3) gives way to its Δ tag.
+ */
 function crosshairs(family: Fam): SvgNode[] {
   return S01_TOOLS.map((tool) => {
-    const r = rectOf(tool, family)
-    const c: Pt = [r.x + r.w - (family === 'wide' ? 22 : 16), r.y + (family === 'wide' ? 22 : 16)]
+    const { c, r, arm } = crossAt(tool, family)
     const prims: Prim[] = [
-      { t: 'circle', c, r: 6 },
-      { t: 'line', a: [c[0] - 10, c[1]], b: [c[0] + 10, c[1]] },
-      { t: 'line', a: [c[0], c[1] - 10], b: [c[0], c[1] + 10] },
+      { t: 'circle', c, r },
+      { t: 'line', a: [c[0] - arm, c[1]], b: [c[0] + arm, c[1]] },
+      { t: 'line', a: [c[0], c[1] - arm], b: [c[0], c[1] + arm] },
     ]
     const i = Math.round(crossP(tool, family) * 1000)
+    const n = S01_CLOUDED.indexOf(tool)
+    const xc = n < 0 ? '' : ` xc xc${n + 1}`
     return group(`xh.${tool}`, [
-      path(prims, `xh.${tool}`, i, `${strokeCls({ pen: '035', ink: 'cad' })} xh`),
+      path(prims, `xh.${tool}`, i, `${strokeCls({ pen: '035', ink: 'cad' })} xh${xc}`),
     ])
   })
 }
@@ -172,10 +196,10 @@ function crosshairs(family: Fam): SvgNode[] {
 function clouds(family: Fam): SvgNode[] {
   return S01_CLOUDED.map((tool, i) => {
     const r = rectOf(tool, family)
-    const pad = family === 'wide' ? 12 : 8
+    const pad = family === 'wide' ? 5 : 2
     const cp = cloudPrim(
       { x: r.x - pad, y: r.y - pad, w: r.w + 2 * pad, h: r.h + 2 * pad },
-      { seed: seedFrom(`s01:${family}:cloud:${tool}`) },
+      { seed: seedFrom(`s01:${family}:cloud:${tool}`), r: family === 'wide' ? 7 : 4 },
     )
     return group(
       `cloud.${i + 1}`,
@@ -198,7 +222,7 @@ function redraw(family: Fam): SvgNode[] {
   const byHand = new Set(
     s01Graph.routes.filter((r) => r.mode && r.mode !== 'sync').map((r) => r.id),
   )
-  return doc.groups.flatMap((g) =>
+  const map = doc.groups.flatMap((g) =>
     g.children.map((n) =>
       retag(n, (cls, part) => {
         let c = cls.replace('f-panel', 'f-deep')
@@ -207,6 +231,17 @@ function redraw(family: Fam): SvgNode[] {
       }),
     ),
   )
+  const glyphs = S01_TOOLS.map((tool, i) =>
+    group(`${tool}.glyph`, [
+      path(
+        glyphPrims(tool, family),
+        `${tool}.glyph`,
+        i,
+        `${strokeCls({ pen: '035', ink: 'cyan' })} rd`,
+      ),
+    ]),
+  )
+  return [...map, ...glyphs]
 }
 
 function make(family: Fam, rev: string): SvgDoc {
@@ -215,8 +250,12 @@ function make(family: Fam, rev: string): SvgDoc {
     return {
       viewBox: vb,
       groups: [
-        { layer: 'pencil', rev, children: [...sketch(family), ...survey(family)] },
-        { layer: 'pkt', rev, children: [fan(family), ...crosshairs(family), ...clouds(family)] },
+        { layer: 'pencil', rev, children: sketch(family) },
+        {
+          layer: 'pkt',
+          rev,
+          children: [...survey(family), fan(family), ...crosshairs(family), ...clouds(family)],
+        },
       ],
     }
   const art = S01_ART[family]
@@ -247,16 +286,21 @@ export const S01_STATES = [
 
 const docs = docsBuilder(make, S01_STATES)
 
-/** The final frame (p = 1): the clean map on the deep panel over the pencil ghost. */
+/** The final frame (p = 1): the clean map on the deep panel, the surveyor beside it on paper. */
 function finalStill(family: Fam): string {
   const found = docs.doc(family, 'asFound')
-  const ghost: SvgDoc = { ...found, groups: found.groups.filter((g) => g.layer === 'pencil') }
-  return toStillSvg(mergeDocs([ghost, docs.doc(family, 'surveyed')]), {
-    k: STILL_K[family],
-    ground: 'paper',
-    remap: { panel: 'paper' },
-    opacity: { pencil: 0.22 },
-  })
+  const keep = new Set(['station', 'surveyor'])
+  const surveyor = found.groups
+    .filter((g) => g.layer === 'pkt')
+    .map((g) => ({
+      ...g,
+      children: g.children.filter((c) => c.el === 'g' && keep.has(c.part ?? '')),
+    }))
+  const done = docs.doc(family, 'surveyed')
+  return toStillSvg(
+    { viewBox: done.viewBox, groups: [...done.groups, ...surveyor] },
+    { k: STILL_K[family], ground: 'paper', remap: { panel: 'paper' } },
+  )
 }
 
 export const drawing: DrawingBuilder = {

@@ -60,35 +60,50 @@
   fill: var(--c-alu-500);
 }
 
-/* ERASE: the sketch fades to its ghost behind the scan (the layer itself stays at 1). */
+/* ERASE: the sketch fades to its ghost behind the scan, then the ghost goes (A5: nothing
+   left under the finished plan). The layer itself stays at 1; a mask carries both. */
+.s02 {
+  --gh: calc(
+    var(--pencil-ghost, 0.22) *
+      (
+        1 -
+          clamp(
+            0,
+            (var(--p, 1) - var(--s02-scan-b)) / (var(--s02-ghost-out-b) - var(--s02-scan-b)),
+            1
+          )
+      )
+  );
+}
+
 .s02.s02 :global(svg.l-ghost) {
   opacity: 1;
   -webkit-mask-image: linear-gradient(
     90deg,
-    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    rgb(0 0 0 / var(--gh)) calc(var(--scan-at) - 10%),
     #000 var(--scan-at)
   );
   mask-image: linear-gradient(
     90deg,
-    rgb(0 0 0 / var(--pencil-ghost, 0.22)) calc(var(--scan-at) - 10%),
+    rgb(0 0 0 / var(--gh)) calc(var(--scan-at) - 10%),
     #000 var(--scan-at)
   );
 }
 
-/* Draw-on windows. */
+/* Draw-on windows: boxes (structure), the hand-carry line, then each box's glyph (detail). */
 .s02 :global(.w-sk) {
-  --a: calc(var(--s02-sketch-a) + var(--i) * 0.035);
-  --b: calc(var(--a) + 0.07);
+  --a: calc(var(--s02-sketch-a) + var(--i) * var(--s02-sketch-step));
+  --b: calc(var(--a) + var(--s02-sketch-stroke));
 }
 
 .s02 :global(.w-sr) {
-  --a: calc(var(--s02-sketch-a) + 0.05 + var(--i) * 0.035);
-  --b: calc(var(--a) + 0.04);
+  --a: calc(var(--s02-sketch-glyph) + var(--i) * var(--s02-sketch-step));
+  --b: calc(var(--a) + var(--s02-glyph-stroke));
 }
 
 .s02 :global(.w-hc) {
-  --a: calc(var(--s02-sketch-b) - 0.1);
-  --b: calc(var(--s02-sketch-b) - 0.04);
+  --a: var(--s02-carry-line-a);
+  --b: var(--s02-carry-line-b);
 }
 
 .s02 :global(.w-cd) {
@@ -106,6 +121,12 @@
   --a: var(--s02-carry-a);
   --b: var(--s02-carry-b);
   translate: calc(var(--e) * var(--s02-walk, 0) * 1px) 0;
+  /* he arrives with the hand-carry line he walks */
+  opacity: clamp(
+    0,
+    (var(--p, 1) - var(--s02-carry-line-a)) / (var(--s02-carry-line-b) - var(--s02-carry-line-a)),
+    1
+  );
 }
 
 .s02 :global(.step) {
@@ -149,7 +170,25 @@
   opacity: 0;
 }
 
+/* Tall: the iso print would be small in a narrow frame, so the figure ends on its finished
+   plan (enclosures with glyphs, conduits and flanges) with the plan labels. */
+@container fig (width < 440px) {
+  .s02.s02[data-print] :global(svg.l-iso) {
+    opacity: 0;
+  }
+
+  .s02.s02[data-print] :global(:is(svg.l-cad, svg.l-pkt)) {
+    opacity: 1;
+  }
+}
+
 /* ── Labels ─────────────────────────────────────────────────────────────── */
+/* Labels scale with the figure (a services sheet shows it at about 470 px), so the iso
+   labels stay on their enclosures instead of crowding the ones behind. */
+.s02.s02 :global(.labels) > * {
+  font-size: clamp(9px, 1.9cqi, 12px);
+}
+
 .lbl {
   display: grid;
   place-items: center;
@@ -171,7 +210,6 @@
 
 .tag,
 .fail,
-.callout,
 .prt {
   padding: 2px 6px;
   translate: -50% calc(-100% - 6px);
@@ -192,28 +230,68 @@
   color: var(--c-paper);
 }
 
+/* Tall plan: left of the junction's riser, above the accounting pipe, on two lines. */
+@container fig (width < 440px) {
+  .fail {
+    max-width: 38%;
+    white-space: normal !important;
+    translate: 0 -100%;
+  }
+}
+
+/* Iso: below and left of the flange, clear of the pipe that comes in from the upper left. */
 .s02[data-labels='iso'] .fail {
-  translate: calc(-100% - 10px) -50%;
+  translate: calc(-100% - 32px) 26px;
 }
 
-.callout {
-  translate: -50% calc(-100% - 16px);
-}
-
-.callout {
-  max-width: 40%;
+/* The legend, bottom left in clear panel: the key to the orange flanges (an API) from the
+   moment they appear, then the outcome once the runs are done. */
+.legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 50%;
+  translate: 0 -100%;
   white-space: normal !important;
+}
+
+/* Tall: the top left corner is the clear space (the CRM sits mid left), so the legend hangs
+   from the top. */
+@container fig (width < 440px) {
+  .legend {
+    max-width: 38%;
+    translate: 0 0;
+  }
+}
+
+.key,
+.note {
+  padding: 3px 8px;
+  background: var(--c-blueprint-deep);
+  color: var(--c-label-on-deep);
+}
+
+.key {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   text-transform: none !important;
+  opacity: clamp(0, (var(--p, 1) - var(--s02-flange-a)) * 40, 1);
+}
+
+/* The key's swatch: the flange tick it explains. */
+.key::before {
+  content: '';
+  flex: none;
+  inline-size: 3px;
+  block-size: 1em;
+  translate: 0 0.15em;
+  background: var(--c-orange);
 }
 
 .note {
-  translate: 0 -100%;
-  padding: 2px 6px;
-  background: var(--c-blueprint-deep);
-  color: var(--c-label-on-deep);
-  white-space: normal !important;
-  max-width: 90%;
-  visibility: hidden;
+  display: none;
 }
 
 .s02[data-lead] .tag,
@@ -222,8 +300,7 @@
 }
 
 /* WebGL: the Stage projects the anchors; labels it reports hidden stay hidden. */
-.s02[data-stage='webgl'] .tag:not(:global([data-hidden])),
-.s02[data-stage='webgl'] .callout:not(:global([data-hidden])) {
+.s02[data-stage='webgl'] .tag:not(:global([data-hidden])) {
   visibility: visible;
 }
 
@@ -246,17 +323,36 @@
   visibility: hidden;
 }
 
-/* The tall print is small: its labels would overlap, so only the note shows there. */
+.s02[data-print] .prt,
+:global(html[data-tier='still']) .s02:not(:global([data-user-play])) .prt,
+.s02:global([data-phase='still']) .prt {
+  visibility: visible;
+}
+
+.s02:is([data-print], :global([data-phase='done']), :global([data-phase='still'])) .note,
+:global(html[data-tier='still']) .s02:not(:global([data-user-play])) .note {
+  display: block;
+}
+
+/* The still tier shows the finished drawing: the key too. */
+:global(html[data-tier='still']) .s02:not(:global([data-user-play])) .key,
+.s02:global([data-phase='still']) .key {
+  opacity: 1;
+}
+
+/* Tall ends on the plan: the plan labels stay (on the deep panel), the print labels go. */
 @container fig (width < 440px) {
   .s02.s02 .prt {
     display: none;
   }
-}
 
-.s02[data-print] :is(.prt, .note),
-:global(html[data-tier='still']) .s02:not(:global([data-user-play])) :is(.prt, .note),
-.s02:global([data-phase='still']) :is(.prt, .note) {
-  visibility: visible;
+  .s02.s02[data-print] .lbl,
+  :global(html[data-tier='still']) .s02.s02:not(:global([data-user-play])) .lbl,
+  .s02.s02:global([data-phase='still']) .lbl {
+    visibility: visible;
+    opacity: 1;
+    color: var(--c-label-on-deep);
+  }
 }
 
 .runAgain {

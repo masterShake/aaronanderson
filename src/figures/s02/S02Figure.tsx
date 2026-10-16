@@ -50,16 +50,23 @@ function at(wide: Pt, tall: Pt, size?: { wide: Pt; tall: Pt }): CSSProperties {
   } as CSSProperties
 }
 
+/** A tool's label: the top half of its box (the glyph has the bottom half). */
 const box = (t: S02Tool) => {
   const [wx, wy, ww, wh] = fam('wide').boxes[t]
   const [tx, ty, tw, th] = fam('tall').boxes[t]
-  return at([wx, wy], [tx, ty], { wide: [ww, wh], tall: [tw, th] })
+  return at([wx, wy], [tx, ty], { wide: [ww, wh * 0.5], tall: [tw, th * 0.5] })
 }
 
 const flangeAt = (f: LayoutId, k: 'pm' | 'acct'): Pt => {
   const [x, y] = s02Flanges(fam(f))[k].at
   return [x - fam(f).flangeIn, y]
 }
+
+/** The legend's corner: bottom left, under the CRM, clear of every conduit (plan and iso). */
+const LEGEND = { wide: [40, 690] as Pt, tall: [12, 12] as Pt }
+
+/** Tall: the fail chip sits left of the junction's riser, just above the accounting pipe. */
+const FAIL_TALL: Pt = [12, fam('tall').routes.acct[2]![1] - 12]
 
 /** Timing vars for the CSS windows (unitless; cssVars would suffix ms). */
 const VARS = {
@@ -74,6 +81,13 @@ const VARS = {
   '--s02-conduit-b': S02.conduitB,
   '--s02-flange-a': S02.flangeA,
   '--s02-flange-b': S02.flangeB,
+  '--s02-sketch-step': S02.sketchStep,
+  '--s02-sketch-stroke': S02.sketchStroke,
+  '--s02-carry-line-a': S02.carryLineA,
+  '--s02-carry-line-b': S02.carryLineB,
+  '--s02-sketch-glyph': S02.sketchGlyph,
+  '--s02-glyph-stroke': S02.glyphStroke,
+  '--s02-ghost-out-b': S02.ghostOutB,
   '--s02-step-a': S02.stepA,
   '--s02-step-b': S02.stepB,
   '--s02-print-ms': `${S02.printMs}ms`,
@@ -101,7 +115,7 @@ export function S02Figure() {
           key={t}
           data-anchor={S02_LABEL[t]}
           className={`${s.lbl} pv pop`}
-          style={{ ...box(t), '--a': S02.sketchA + 0.02 + i * 0.035 } as CSSProperties}
+          style={{ ...box(t), '--a': S02.labelA + i * S02.sketchStep } as CSSProperties}
         >
           {copy.labels[S02_LABEL[t] as keyof typeof copy.labels]}
         </span>
@@ -121,19 +135,17 @@ export function S02Figure() {
       <span
         data-anchor="flange.acct"
         className={s.fail}
-        style={at(flangeAt('wide', 'acct'), flangeAt('tall', 'acct'))}
+        style={at(flangeAt('wide', 'acct'), FAIL_TALL)}
       >
         {ui.failed}
       </span>
-      <span
-        data-anchor="flange.pm"
-        className={s.callout}
-        style={at(flangeAt('wide', 'pm'), flangeAt('tall', 'pm'))}
-      >
-        <RichText value={ui.api} as="span" />
-      </span>
-      <span className={s.note} style={at([24, 700], [12, 490])}>
-        <RichText value={ui.arrives} vars={{ places }} as="span" />
+      <span className={s.legend} style={at(LEGEND.wide, LEGEND.tall)}>
+        <span className={s.key}>
+          <RichText value={ui.api} as="span" />
+        </span>
+        <span className={s.note}>
+          <RichText value={ui.arrives} vars={{ places }} as="span" />
+        </span>
       </span>
     </>
   )
@@ -174,7 +186,7 @@ export function S02Figure() {
             data-family="wide"
           />
           <img
-            src={drawingSrc('s02', 'tall.print.still.svg')}
+            src={drawingSrc('s02', 'tall.plan.still.svg')}
             alt=""
             loading="lazy"
             className="still-img"

@@ -13,7 +13,7 @@ import {
 } from 'three'
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import type { Beat, SceneModule } from '@/stage/types'
-import type { Pen } from '@/drawings/types'
+import type { Pen, Pt } from '@/drawings/types'
 import { COLOR } from '@/styles/tokens'
 import { S02 } from '@/motion/timing/s02'
 import {
@@ -21,10 +21,13 @@ import {
   S02_LABEL,
   S02_LAYOUT,
   S02_TOOLS,
+  s02LabelAt,
+  s02Lamp,
   s02Mech,
   s02Model,
   type S02Dest,
   type S02Route,
+  type S02Tool,
 } from '@/drawings/views/s02'
 import { OrthoRig } from '@/stage/runtime/kit/rig'
 import { fadeEdge, lineMat, segments } from '@/stage/runtime/kit/lines'
@@ -67,6 +70,9 @@ const mod: SceneModule = {
     const mats: Material[] = []
     const faces: ReturnType<typeof withFlatMix>[] = []
     const edges: LineMaterial[] = []
+    const glyphs: LineMaterial[] = []
+    const hosts: Partial<Record<S02Tool, Mesh>> = {}
+    const labelAt: [string, Pt, Pt][] = []
     const ground: LineMaterial[] = []
     const ticks: LineMaterial[] = []
     const boxes: Mesh[] = []
@@ -111,14 +117,30 @@ const mod: SceneModule = {
             L.heights[tool],
             face,
             line(COLOR.cyan, pl.pen, edges),
+            {
+              inset: L.heights[tool] * 0.16,
+              line: line(COLOR.cyan, '025', edges),
+            },
           )
           faces.push(face)
           mats.push(face)
           geos.push(e.mesh.geometry)
           boxes.push(e.mesh)
-          verticals.push(e.verticals)
+          hosts[tool] = e.mesh
+          verticals.push(e.verticals, e.panels!)
           three.add(e.mesh)
-          anchor(S02_LABEL[tool], x + bw / 2, L.heights[tool] + 2, y + bh / 2)
+          const [ax, az] = s02LabelAt(L, tool, 'plan')
+          anchor(S02_LABEL[tool], ax, L.heights[tool] + 2, az)
+          labelAt.push([S02_LABEL[tool], s02LabelAt(L, tool, 'plan'), s02LabelAt(L, tool, 'iso')])
+        } else if (pl.id.startsWith('glyph.')) {
+          // The tool's glyph rides on its enclosure's top (a child, so it extrudes with it).
+          const tool = pl.id.split('.')[1] as S02Tool
+          const l = segments(
+            ringSegments(pl.pts, pl.closed, L.heights[tool] + 0.5),
+            line(COLOR.cyan, pl.pen, glyphs),
+          )
+          geos.push(l.geometry)
+          hosts[tool]!.add(l)
         } else if (pl.id === 'tee') {
           const part = spec.parts.find((p) => p.id === 'tee')!
           const face = withFlatMix(aluminum(q))
@@ -177,23 +199,24 @@ const mod: SceneModule = {
           g.visible = false
           flanges[k] = g
           three.add(g)
-          if (k === 'acct' || k === 'pm') anchor(`flange.${k}`, x, L.pipeY + L.flangeR + 2, z)
+          if (k === 'acct') anchor(`flange.${k}`, x, L.pipeY + L.flangeR + 2, z)
         }
         yield
       }
       const lampGeo = new SphereGeometry(L.flangeR * 0.9, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2)
       geos.push(lampGeo)
       for (const d of S02_DESTS) {
-        const [x, y, bw] = L.boxes[d]
+        const [x, y] = s02Lamp(L, d)
         const mat = new MeshStandardMaterial({
-          color: COLOR.orange,
+          // dark until a copy arrives, then it glows orange (the one focal mark)
+          color: COLOR.graphite,
           emissive: COLOR.orange,
           emissiveIntensity: 0,
           roughness: 0.5,
         })
         mats.push(mat)
         const mesh = new Mesh(lampGeo, mat)
-        mesh.position.set(x + bw - 18, L.heights[d], y + 18)
+        mesh.position.set(x, L.heights[d], y)
         mesh.visible = false
         lamps[d] = { mesh, mat }
         three.add(mesh)
@@ -248,6 +271,8 @@ const mod: SceneModule = {
       for (const f of faces) f.uFlat.value = flat
       const edge = span(p, S02.anodizeA, S02.anodizeB) * 0.45
       for (const m of edges) fadeEdge(m, COLOR.cyan, COLOR.alu300, edge)
+      // glyphs turn from cyan linework to blueprint marks on the aluminium tops
+      for (const m of glyphs) fadeEdge(m, COLOR.cyan, COLOR.blueprint, edge / 0.45)
       // Plan lines draw over the faces, as the SVG strokes do; once tilting they depth-test.
       const tilting = p > S02.tiltA
       const lift = span(p, S02.tiltA, S02.liftB)
@@ -301,7 +326,7 @@ const mod: SceneModule = {
         const st = looping ? s02Mech(t, lens(), L.stallBack) : null
         if (st && !st.done) packets?.update(st.ms, plans(st.loop))
         else packets?.clear()
-        for (const d of S02_DESTS) lamps[d]!.mat.emissiveIntensity = st?.lamp[d] ? 0.9 : 0
+        for (const d of S02_DESTS) lamps[d]!.mat.emissiveIntensity = st?.lamp[d] ? 1.4 : 0
         if (acctFlash) acctFlash.emissiveIntensity = st?.flash ? 0.9 : 0
         const acct = flanges.acct
         const off = st?.beat === 'syncfail' ? 4 * (1 - ease.settle(st.reseat)) : 0
@@ -310,7 +335,14 @@ const mod: SceneModule = {
         if (leadNow >= 0)
           paths.lead.getPoint(leadNow / paths.lead.length, anchors.get('lead')!.position).y +=
             L.pipeR * 2
-        const show = p >= S02.labelsP
+        // labels stay through the hand-off (plan pose), hide while the model turns, and return
+        // at their iso place (further forward on the top, clear of the enclosure behind)
+        const show = p >= S02.labelsP || p < S02.tiltA
+        for (const [key, plan, iso] of labelAt) {
+          const [x, z] = p < S02.tiltA ? plan : iso
+          anchors.get(key)!.position.x = x
+          anchors.get(key)!.position.z = z
+        }
         projectAnchors(
           anchors,
           rig.camera,

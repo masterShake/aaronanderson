@@ -1,6 +1,7 @@
 import 'server-only'
-import type { LayoutId, Prim, Pt, SvgDoc, SvgNode } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Prim, Pt, SvgDoc, SvgNode } from '@/drawings/types'
 import {
+  STILL_K,
   docsBuilder,
   frameNodes,
   isoPrintDoc,
@@ -12,6 +13,7 @@ import { group } from '@/drawings/render/cad'
 import { planFrame } from '@/drawings/lib/frame'
 import { primD, seedFrom, polyLength } from '@/drawings/lib/geometry'
 import { fitIso, isoToViewBox, planToWorld } from '@/drawings/lib/iso'
+import { toStillSvg } from '@/drawings/lib/svg-string'
 import { placeSymbol } from '@/drawings/symbols'
 import {
   S02_DESTS,
@@ -19,22 +21,26 @@ import {
   S02_ROUTES,
   S02_TOOLS,
   ring,
+  s02Glyph,
+  s02LabelAt,
+  s02Lamp,
   s02Model,
   type S02Lens,
   type S02Tool,
 } from '@/drawings/views/s02'
 
 /**
- * The S-02 drawing files (owner: scenes-a), served by /drawings/[file]:
+ * The S-02 drawing files (owner: svc-a), served by /drawings/[file]:
  *   s02.{family}.json             every layer, both revs ('plan' and 'print')
- *   s02.{family}.print.still.svg  the still tier: the iso print, a packet arriving at each place
- * (s02.{family}.plan.still.svg is a by-product of docsBuilder and is not used.)
+ *   s02.wide.print.still.svg      the wide still: the iso print, a packet arriving at each place
+ *   s02.tall.plan.still.svg       the tall still: the finished plan (the print is too small there)
  *
- * Layers of 'plan': l-panel (the deep panel the scan reveals), l-ghost (the pencil sketch,
- * erased to its ghost by the scan), l-pencil (the carrier), l-cad (planFrame of the model:
- * the hand-off frame, identical in WebGL), l-pkt (packets and lamps, moved by the
- * controller). 'print' is l-iso. Draw-on windows come from S02Figure.module.css, keyed by
- * the w-* classes and each path's --i.
+ * Layers of 'plan': l-panel (the deep panel the scan reveals), l-ghost (the pencil sketch:
+ * tool boxes with their glyphs and the hand-carry line, erased by the scan and gone once the
+ * conduits are in), l-pencil (the carrier), l-cad (planFrame of the model: enclosures with
+ * their glyphs, conduits, flange ticks; the hand-off frame, identical in WebGL), l-pkt
+ * (packets and lamps, moved by the controller). 'print' is l-iso. Draw-on windows come from
+ * S02Figure.module.css, keyed by the w-* classes and each path's --i.
  */
 
 const SEED = 202
@@ -46,9 +52,17 @@ const node = (d: string, len: number, part: string, i: number, cls: string): Svg
   i,
   cls,
 })
-const rough = (prims: readonly Prim[], seed: string, part: string, i: number, cls: string) =>
-  pencil(prims, { seed: seedFrom(seed), preset: 'box' }).map((s) => node(s.d, s.len, part, i, cls))
-const PENCIL = 'draw pv p-035 i-pencil'
+const rough = (
+  prims: readonly Prim[],
+  seed: string,
+  part: string,
+  i: number,
+  cls: string,
+  preset: 'box' | 'line' = 'box',
+) => pencil(prims, { seed: seedFrom(seed), preset }).map((s) => node(s.d, s.len, part, i, cls))
+// draw-on eases in and out (e-machine is the cubic smoothstep)
+const PENCIL = 'draw pv e-machine p-035 i-pencil'
+const DETAIL = 'draw pv e-machine p-025 i-pencil'
 
 function planDoc(family: LayoutId): SvgDoc {
   const l = S02_LAYOUT[family]
@@ -57,15 +71,17 @@ function planDoc(family: LayoutId): SvgDoc {
 
   const panel = [node(`M0 0H${W}V${H}H0Z`, 0, 'panel', 0, 'f-deep')]
 
+  // The pencil sketch: each tool's box, then its glyph, staggered by --i.
   const sketch: SvgNode[] = []
   S02_TOOLS.forEach((t, i) => {
     const [x, y, w, h] = l.boxes[t]
-    const kids = rough([{ t: 'rect', at: [x, y], size: [w, h] }], seed(t), t, i, `${PENCIL} w-sk`)
-    l.rows.forEach(([fy, f0, f1], j) => {
-      const a: Pt = [x + w * f0, y + h * fy]
-      const b: Pt = [x + w * f1, y + h * fy]
-      kids.push(...rough([{ t: 'line', a, b }], seed(`${t}.row${j}`), t, i, `${PENCIL} w-sr`))
-    })
+    const kids = [
+      node(primD({ t: 'rect', at: [x, y], size: [w, h] }), 0, t, i, 'pv fade w-sk f-paper'),
+      ...rough([{ t: 'rect', at: [x, y], size: [w, h] }], seed(t), t, i, `${PENCIL} w-sk`),
+    ]
+    s02Glyph(l, t).forEach((pts, j) =>
+      kids.push(...rough([{ t: 'poly', pts }], seed(`${t}.g${j}`), t, i, `${DETAIL} w-sr`, 'line')),
+    )
     sketch.push(group(t, kids))
   })
   const carry: Prim = { t: 'poly', pts: l.carry }
@@ -81,12 +97,10 @@ function planDoc(family: LayoutId): SvgDoc {
     ]),
   )
 
-  const person = partsNodes(placeSymbol('fig.carrying-paper', l.walkFrom, { prefix: 'carrier' }), {
-    variant: 'pencil',
-    seed: seed('carrier'),
-    i: 0,
-    ink: 'pencil',
-  })
+  const person = partsNodes(
+    placeSymbol('fig.carrying-paper', l.walkFrom, { prefix: 'carrier', k: l.carrierK }),
+    { variant: 'pencil', seed: seed('carrier'), i: 0, ink: 'pencil' },
+  )
   const walker: SvgNode = {
     el: 'g',
     cls: 'pv walker',
@@ -107,7 +121,11 @@ function planDoc(family: LayoutId): SvgDoc {
   }
   const cad = frameNodes(planFrame(model)).map((n) => {
     if (n.el !== 'path') return n
-    if (n.part.startsWith('pipe.')) return { ...n, i: order[n.part]!, cls: `${n.cls} pv w-cd` }
+    if (n.part.startsWith('pipe.'))
+      return { ...n, i: order[n.part]!, cls: `${n.cls} pv e-machine w-cd` }
+    // the junction arrives with the conduits it joins
+    if (n.part === 'tee')
+      return { ...n, i: 1, cls: `${n.cls.replace('draw', '')} pv fade w-cd`.trim() }
     if (n.part.startsWith('flange.'))
       return { ...n, i: order[n.part]!, cls: `${n.cls.replace('draw', '')} pv pop w-fl`.trim() }
     return n
@@ -127,11 +145,10 @@ function planDoc(family: LayoutId): SvgDoc {
     )
   }
   for (const d of S02_DESTS) {
-    const [x, y, w] = l.boxes[d]
-    const c: Pt = [x + w - 18, y + 18]
+    const c = s02Lamp(l, d)
     pkt.push(
       node(
-        primD({ t: 'poly', pts: ring(c, 6, 12), closed: true }),
+        primD({ t: 'poly', pts: ring(c, l.flangeR * 0.6, 12), closed: true }),
         0,
         `lamp.${d}`,
         0,
@@ -152,17 +169,64 @@ function planDoc(family: LayoutId): SvgDoc {
   }
 }
 
-/** The iso print (l-iso), with one packet arriving at each place. */
+const isoFit = (family: LayoutId) => {
+  const l = S02_LAYOUT[family]
+  const model = s02Model(family)
+  const fit = fitIso(l.viewBox, l.viewBox[2], l.viewBox[3], modelBounds(model))
+  return (p: Pt, z: number) => isoToViewBox(planToWorld(p, z), l.viewBox, fit)
+}
+
+/**
+ * The iso print (l-iso), with one packet arriving at each place. Each tool's glyph is drawn
+ * on its enclosure's top, right after that top face, so a nearer enclosure still covers it.
+ */
 function printDoc(family: LayoutId): SvgDoc {
   const l = S02_LAYOUT[family]
   const model = s02Model(family)
-  const doc = isoPrintDoc(model, { viewBox: l.viewBox })
-  const fit = fitIso(l.viewBox, l.viewBox[2], l.viewBox[3], modelBounds(model))
-  const P = (p: Pt) => isoToViewBox(planToWorld(p, l.pipeY), l.viewBox, fit)
+  const solid = { ...model, parts: model.parts.filter((p) => !p.id.startsWith('glyph.')) }
+  const doc = isoPrintDoc(solid, { viewBox: l.viewBox })
+  const P = isoFit(family)
+  const glyphs = (t: S02Tool): SvgNode[] =>
+    s02Glyph(l, t).map((pts, j) =>
+      node(
+        `M${pts
+          .map((q) => P(q, l.heights[t]))
+          .map((q) => `${q[0].toFixed(2)} ${q[1].toFixed(2)}`)
+          .join('L')}`,
+        0,
+        `glyph.${t}`,
+        j,
+        'p-035 i-cad',
+      ),
+    )
+  const panel = (t: S02Tool, side: 'south' | 'east'): SvgNode => {
+    const [x, y, w, h] = l.boxes[t]
+    const H = l.heights[t]
+    const i = H * 0.16
+    const pts: [Pt, number][] =
+      side === 'south'
+        ? [
+            [[x + i, y + h], i],
+            [[x + w - i, y + h], i],
+            [[x + w - i, y + h], H - i],
+            [[x + i, y + h], H - i],
+          ]
+        : [
+            [[x + w, y + i], i],
+            [[x + w, y + h - i], i],
+            [[x + w, y + h - i], H - i],
+            [[x + w, y + i], H - i],
+          ]
+    const d = pts
+      .map(([q, z]) => P(q, z))
+      .map((q, k) => `${k ? 'L' : 'M'}${q[0].toFixed(2)} ${q[1].toFixed(2)}`)
+      .join('')
+    return node(`${d}Z`, 0, `panel.${t}`, 0, 'p-025 i-cad o-55')
+  }
   const beads = S02_DESTS.map((d, i) => {
     const end = l.routes[d][l.routes[d].length - 1]!
-    const a = P([end[0] - 34, end[1]])
-    const b = P([end[0] - 22, end[1]])
+    const a = P([end[0] - l.flangeIn - 22, end[1]], l.pipeY)
+    const b = P([end[0] - l.flangeIn - 10, end[1]], l.pipeY)
     return node(
       `M${a[0].toFixed(2)} ${a[1].toFixed(2)}L${b[0].toFixed(2)} ${b[1].toFixed(2)}`,
       12,
@@ -173,17 +237,47 @@ function printDoc(family: LayoutId): SvgDoc {
   })
   return {
     viewBox: l.viewBox,
-    groups: doc.groups.map((g) => ({ ...g, rev: 'print', children: [...g.children, ...beads] })),
+    groups: doc.groups.map((g) => {
+      const kids: SvgNode[] = []
+      for (const c of g.children) {
+        kids.push(c)
+        if (c.el !== 'path' || !c.part.startsWith('box.')) continue
+        const t = c.part.slice(4) as S02Tool
+        // right after each enclosure's top face (alu-100), its glyph; after its south
+        // (alu-300) and east (alu-500) faces, their service panels, as in WebGL
+        if (c.cls.includes('f-alu-100')) kids.push(...glyphs(t))
+        else if (c.cls.includes('f-alu-300')) kids.push(panel(t, 'south'))
+        else if (c.cls.includes('f-alu-500')) kids.push(panel(t, 'east'))
+      }
+      return { ...g, rev: 'print', children: [...kids, ...beads] }
+    }),
   }
 }
 
-export const drawing = docsBuilder(
+const docs = docsBuilder(
   (family, rev) => (rev === 'print' ? printDoc(family) : planDoc(family)),
   [
     { rev: 'plan', ground: 'deep' },
     { rev: 'print', ground: 'deep' },
   ],
 )
+
+/** The tall still: the finished plan (panel and CAD only: no sketch, carrier or packets). */
+function tallStill(): string {
+  const plan = docs.doc('tall', 'plan')
+  return toStillSvg(
+    { ...plan, groups: plan.groups.filter((g) => g.layer === 'panel' || g.layer === 'cad') },
+    { k: STILL_K.tall, ground: 'deep', remap: { panel: 'deep' } },
+  )
+}
+
+export const drawing: DrawingBuilder = {
+  files: docs.files,
+  build(file) {
+    if (file === 'tall.plan.still.svg') return tallStill()
+    return docs.build(file)
+  },
+}
 
 /** Route lengths per family, for the controller's packets. */
 export function s02Lens(family: LayoutId): S02Lens {
@@ -192,15 +286,14 @@ export function s02Lens(family: LayoutId): S02Lens {
   return { lead: len('lead'), est: len('est'), pm: len('pm'), acct: len('acct') }
 }
 
-/** Where each box's top lands on the iso print (viewBox units), for the print labels. */
+/**
+ * Where each box's label lands on the iso print (viewBox units): on the enclosure's top,
+ * in its back half, clear of the glyph in the front half.
+ */
 export function s02PrintAnchors(family: LayoutId): Record<S02Tool, Pt> {
   const l = S02_LAYOUT[family]
-  const model = s02Model(family)
-  const fit = fitIso(l.viewBox, l.viewBox[2], l.viewBox[3], modelBounds(model))
+  const P = isoFit(family)
   const out = {} as Record<S02Tool, Pt>
-  for (const t of S02_TOOLS) {
-    const [x, y, w, h] = l.boxes[t]
-    out[t] = isoToViewBox(planToWorld([x + w / 2, y + h / 2], l.heights[t]), l.viewBox, fit)
-  }
+  for (const t of S02_TOOLS) out[t] = P(s02LabelAt(l, t), l.heights[t])
   return out
 }

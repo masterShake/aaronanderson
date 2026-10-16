@@ -2,10 +2,10 @@ import type { FigureCopy } from '../types'
 import { site } from '../site'
 
 /**
- * S-01 Systems Survey, DETAIL 1 / S-01 (owner: services). SVG only. Tool label
- * keys follow the firm graph. Render-time vars: {tools}, {handoffs},
- * {bottlenecks} from counts(graph); {nn} and {k} per tool in ui.toolTag; {n}
- * for roadmap ticks. Hand notes: 2 of the site's 12.
+ * S-01 Systems Survey, DETAIL 1 / S-01 (owner: svc-a). SVG only. Tool label keys follow
+ * the firm graph. Render-time vars: {tools}, {handoffs}, {bottlenecks} from counts(graph);
+ * {k} per tool in ui.toolTag; {n} for roadmap ticks. No hand notes (W4 finish standard
+ * A4). The title strip's tag marks the whole figure, ranked list included, as an example.
  */
 export const s01Figure = {
   id: 's01',
@@ -28,19 +28,12 @@ export const s01Figure = {
     'cloud.1': 'Δ1',
     'cloud.2': 'Δ2',
     'cloud.3': 'Δ3',
-    'spec.written': 'WRITTEN DOWN',
-    'spec.oneSource': 'ONE SOURCE',
     instrument: 'SURVEY',
-  },
-  notes: {
-    head: "It's all in someone's head",
-    version: 'Which version did accounting get?',
   },
   controls: { replay: 'Replay', playDrawing: 'Play the drawing' },
   ui: {
-    toolTag: 'TOOL {nn} · {k} BY HAND',
+    toolTag: '{k} BY HAND',
     listTitle: 'WHAT TO FIX FIRST',
-    listTag: 'EXAMPLE',
     effort: 'EFFORT',
     payoff: 'PAYOFF',
     small: 'SMALL',

@@ -11,9 +11,9 @@ import {
   S01_BY_HAND,
   S01_CLOUDED,
   S01_COUNTS,
+  S01_FAN,
   S01_ITEMS,
   S01_LIST,
-  S01_NOTES,
   S01_ROADMAP_DAYS,
   S01_TOOLS,
   S01_VB,
@@ -28,10 +28,10 @@ import { ScrubPlay } from './ScrubPlay.client'
 import s from './s01.module.css'
 
 /**
- * DETAIL 1 / S-01 · THE SURVEY (pages-drawings §6.1). SVG only: sketch, survey
- * sweep, clouds Δ1–Δ3, the redraw on the deep panel, then the ranked list
- * (EXAMPLE) and the 90-day roadmap. --p drives every beat (scrubbed on the
- * sheet at 1024 px and up, played over S01.playMs elsewhere); the still is p = 1.
+ * DETAIL 1 / S-01 · THE SURVEY (owner: svc-a). SVG only: the pencil sketch of the firm's
+ * tools, the survey sweep, clouds Δ1–Δ3, the redraw on the deep panel, then the ranked
+ * list and the 90-day roadmap. --p drives every beat (scrubbed on the sheet at 1024 px and
+ * up, played over S01.playMs elsewhere); the still is p = 1.
  */
 
 const str = (v: Rich): string => (typeof v === 'string' ? v : v.text)
@@ -42,7 +42,6 @@ const pos = (p: S01Pos) => ({
   '--lyt': p.tall[1],
 })
 const css = (o: Record<string, string | number>) => o as CSSProperties
-const nn = (n: number) => String(n).padStart(2, '0')
 const LEVELS = ['small', 'medium', 'large'] as const
 
 const file = (f: string) => drawingSrc('s01', f)
@@ -67,7 +66,8 @@ function Labels() {
   S01_TOOLS.forEach((tool, idx) => {
     const at = toolLabelAt(tool)
     const sx = scanX(at)
-    const a = S01.sketchFromP + (idx + 2) * S01.sketchStaggerP * 1.5
+    // after its box and glyph: the name names a drawn thing
+    const a = S01.glyphFromP + idx * S01.glyphStepP + S01.glyphP
     out.push(
       <span
         key={`t.${tool}`}
@@ -75,7 +75,7 @@ function Labels() {
         style={css({
           ...pos(at),
           '--a': a,
-          '--b': a + S01.sketchStrokeP,
+          '--b': a + S01.labelLagP,
           '--sx': sx.wide[0],
           '--sxt': sx.tall[0],
         })}
@@ -98,7 +98,7 @@ function Labels() {
           '--sxt': tx.tall[0],
         })}
       >
-        {fill(str(ui.toolTag), { nn: nn(idx + 1), k })}
+        {fill(str(ui.toolTag), { k })}
       </span>,
     )
   })
@@ -110,35 +110,10 @@ function Labels() {
       </span>,
     )
   })
-  out.push(
-    <span
-      key="n.head"
-      className={`note ${s.note}`}
-      style={css({ ...pos(S01_NOTES.head), '--tilt': '-1.5deg' })}
-    >
-      {copy.notes.head}
-    </span>,
-    <span
-      key="n.version"
-      className={`note ${s.note}`}
-      style={css({ ...pos(S01_NOTES.version), '--tilt': '1.2deg' })}
-    >
-      {copy.notes.version}
-    </span>,
-    <span key="s.written" className={s.spec} style={css(pos(S01_NOTES.head))}>
-      {copy.labels['spec.written']}
-    </span>,
-    <span key="s.one" className={s.spec} style={css(pos(S01_NOTES.version))}>
-      {copy.labels['spec.oneSource']}
-    </span>,
-  )
   const days = S01_ROADMAP_DAYS
   out.push(
     <div key="list" className={s.list} style={css(pos(S01_LIST))}>
-      <p className={s.listHead}>
-        <span>{str(ui.listTitle)}</span>
-        <span className={s.example}>{str(ui.listTag)}</span>
-      </p>
+      <p className={s.listHead}>{str(ui.listTitle)}</p>
       <ol className={s.items}>
         {S01_ITEMS.map((it, i) => (
           <li
@@ -197,7 +172,11 @@ export function S01Figure() {
       className={s.fig}
       layouts={{ wide: S01_VB.wide, tall: S01_VB.tall }}
       driver="scroll"
-      vars={cssVars(S01, 's01')}
+      vars={{
+        ...cssVars(S01, 's01'),
+        '--s01-fan-deg': `${S01_FAN.sweepDeg.wide}deg`,
+        '--s01-fan-deg-t': `${S01_FAN.sweepDeg.tall}deg`,
+      }}
       textVars={textVars}
       controls={{ replay: true }}
       drawing={
