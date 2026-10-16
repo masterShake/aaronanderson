@@ -48,11 +48,12 @@ export const S01_ART: Readonly<Record<LayoutId, Rect>> = {
 
 /* Wide: the left column is wider, for the longest name (a file name never wraps). */
 const BOX_W: readonly (readonly [number, number])[] = [
-  [306, 144],
-  [238, 144],
+  [296, 144],
+  [228, 144],
 ]
 const BOX_T: readonly [number, number] = [184, 56]
-const COL_W = [20, 346]
+/* a 44-unit gutter between the columns, for the hand-off lines that run up it */
+const COL_W = [20, 360]
 const ROW_W = [36, 204, 372, 540]
 const COL_T = [8, 208]
 const ROW_T = [6, 68, 130, 192]
@@ -138,21 +139,24 @@ export const rectOf = (tool: S01Tool, family: LayoutId): Rect =>
     family,
   )
 
-/** The tool's glyph (open polylines): right of centre, under the crosshair's corner. */
-export function s01Glyph(tool: S01Tool, family: LayoutId): Pt[][] {
+/** Where a tool's glyph sits: right of centre, below the name's line (smaller in tall). */
+function glyphAt(tool: S01Tool, family: LayoutId): { c: Pt; s: number } {
   const r = rectOf(tool, family)
-  const s = r.h * 0.46
-  const c: Pt = [r.x + r.w - 0.75 * s - r.h * 0.14, r.y + r.h * 0.58]
+  const s = r.h * (family === 'wide' ? 0.46 : 0.42)
+  const cy = family === 'wide' ? 0.58 : 0.62
+  return { c: [r.x + r.w - 0.75 * s - r.h * 0.14, r.y + r.h * cy], s }
+}
+
+/** The tool's glyph (open polylines). */
+export function s01Glyph(tool: S01Tool, family: LayoutId): Pt[][] {
+  const { c, s } = glyphAt(tool, family)
   return glyphLines(S01_GLYPH[tool], c, s)
 }
 
-/** The survey crosshair: the box's top right corner. */
+/** The survey crosshair: the instrument's sight on the tool, centred on its glyph. */
 export function crossAt(tool: S01Tool, family: LayoutId): { c: Pt; r: number; arm: number } {
-  const r = rectOf(tool, family)
-  const s = r.h * 0.46
-  // the instrument's sight on the tool: centred on its glyph
   return {
-    c: [r.x + r.w - 0.75 * s - r.h * 0.14, r.y + r.h * 0.58],
+    c: glyphAt(tool, family).c,
     r: family === 'wide' ? 15 : 6,
     arm: family === 'wide' ? 26 : 11,
   }
