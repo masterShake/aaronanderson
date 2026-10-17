@@ -1,6 +1,11 @@
 import 'server-only'
 import { firmBuilder, FIRM_STATES } from '@/drawings/render/firm'
-import { HOME_PERSON_K, HOME_TALL_HIDDEN, homeFirmGraph } from '@/drawings/views/home'
+import {
+  HOME_PERSON_K,
+  HOME_TALL_HIDDEN,
+  HOME_WIDE_ONLY,
+  homeFirmGraph,
+} from '@/drawings/views/home'
 
 /**
  * The firm drawing files served by /drawings/[file] (owner: home-about): Home
@@ -9,6 +14,7 @@ import { HOME_PERSON_K, HOME_TALL_HIDDEN, homeFirmGraph } from '@/drawings/views
  * (tool glyphs, flanges, packets, people at Home's scale; src/drawings/render/firm.ts).
  */
 export const drawing = firmBuilder(homeFirmGraph, FIRM_STATES, ['wide', 'tall'], {
-  omit: (family, rev) => (family === 'tall' && rev === 'rewired' ? HOME_TALL_HIDDEN : []),
+  omit: (family, rev) =>
+    family !== 'tall' ? [] : rev === 'rewired' ? HOME_TALL_HIDDEN : HOME_WIDE_ONLY,
   personK: HOME_PERSON_K,
 })

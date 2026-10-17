@@ -11,7 +11,7 @@ import type {
 } from '../types'
 import { placeSymbol, toolGlyph, type ToolKind } from '../symbols'
 import { firmGraph } from '../graphs/firm'
-import { FIRM_CELL, forFamily } from '../views/home'
+import { deskProps, FIRM_CELL, forFamily, HOME_DESKS } from '../views/home'
 import { primD } from '../lib/geometry'
 import { primLength } from '../lib/length'
 import { directionAt, inRev, nodeRect, routeGraph, type Routed } from '../lib/route'
@@ -153,6 +153,22 @@ export function firmDoc(
     const i = (child.children[0] as { i?: number } | undefined)?.i ?? 0
     const parts = placeSymbol(pose.symbol, at, { prefix: p.id, k: personK })
     const seed = `${g.id}:${g.seed}:${family}:${rev}:${p.id}`
+    // a desk worker's desk, windows or paper (Home's As found, W4d A1), in the same pencil
+    const desk = HOME_DESKS[p.id]
+    if (desk) {
+      const d = deskProps(desk.kind, at, personK)
+      parts.push(
+        {
+          id: `${p.id}.desk`,
+          layer: 'pencil',
+          prims: d.outline,
+          pen: '035',
+          ink: 'pencil',
+          fill: 'paper',
+        },
+        { id: `${p.id}.desk`, layer: 'pencil', prims: d.detail, pen: '025', ink: 'pencil' },
+      )
+    }
     return {
       ...child,
       children: partsNodes(parts, { variant: 'pencil', seed, i, ink: 'pencil' }),
@@ -261,6 +277,8 @@ export function flowBuilder(
   make: (family: LayoutId, rev: string) => SvgDoc,
   states: readonly { rev: string; ground: 'paper' | 'deep' }[],
   families: readonly LayoutId[] = ['wide', 'tall'],
+  /** The ghost layer's opacity in the stills, as the live layer shows it. */
+  ghost = 1,
 ): DocsBuilder {
   const cache = new Map<string, SvgDoc>()
   const doc = (family: LayoutId, rev: string) => {
@@ -293,6 +311,7 @@ export function flowBuilder(
           k: STILL_K[family],
           ground: s.ground,
           remap: s.ground === 'deep' ? { panel: 'deep' } : { panel: 'paper' },
+          ...(ghost < 1 ? { opacity: { ghost } } : {}),
         },
         still,
       )

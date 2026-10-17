@@ -523,6 +523,7 @@ export function Schematic({
               <li
                 key={d.sheet}
                 className={s.bubble}
+                data-show={wired}
                 data-place={`bubble-${d.sheet}`}
                 data-at={a['data-at']}
                 data-gap={a['data-gap']}

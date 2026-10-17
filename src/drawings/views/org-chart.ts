@@ -8,7 +8,8 @@ import type { LayoutId, Pt, SymbolId, ViewBox } from '../types'
  *     MANAGER → ANALYST → THE PERSON WHO BUILDS IT, each joint a hand-carry
  *     with a sheet of paper on it;
  *   ours (blueprint-deep, CAD): YOU and THE PEOPLE WHO BUILD IT, joined by one
- *     flanged wire with packets on it.
+ *     flanged wire with packets on it, over the chain's three middle cards
+ *     erased to a ghost where they stood (W4d A4).
  * Each card holds an architect's scale figure over a title rule; the title is
  * HTML (keys into src/content/figures/org-chart.ts `labels`). YOU and the
  * builders keep their places in both states. Wide runs left to right

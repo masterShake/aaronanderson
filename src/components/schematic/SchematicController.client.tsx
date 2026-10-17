@@ -188,10 +188,12 @@ export function SchematicController({
           const r = b.getBoundingClientRect()
           if (r.width) obs.push({ x: r.left - br.left, y: r.top - br.top, w: r.width, h: r.height })
         }
+        // this state's labels and bubbles; one leaving with the scan keeps its place (and draws
+        // no leader) until the edge passes it
         const els = [
           ...fig.querySelectorAll<HTMLElement>('.ui li[data-place]'),
           ...fig.querySelectorAll<HTMLElement>('.labels > [data-place]'),
-        ].filter((el) => el.offsetWidth > 0)
+        ].filter((el) => el.offsetWidth > 0 && (!el.dataset.show || el.dataset.show === state))
         const t = fam === 'tall' ? 2 : 0
         const items = els.map((el) => {
           const at = (el.dataset.at ?? '').split(' ').map(Number)

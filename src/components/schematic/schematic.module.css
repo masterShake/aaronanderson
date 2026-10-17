@@ -291,7 +291,8 @@
    a label) */
 .schematic[data-switch] .tool,
 .schematic[data-switch] .tool > [data-show],
-.schematic[data-switch] :global(.labels) > [data-show] {
+.schematic[data-switch] :global(.labels) > [data-show],
+.schematic[data-switch] .bubble[data-show] {
   --sch-at: calc(var(--lx, 0) + var(--lw, 0) / 4);
   transition:
     display 0s linear calc(var(--sch-scan) * var(--sch-at) / 100),
@@ -312,9 +313,17 @@
 @container fig (width < 560px) {
   .schematic[data-switch] .tool,
   .schematic[data-switch] .tool > [data-show],
-  .schematic[data-switch] :global(.labels) > [data-show] {
+  .schematic[data-switch] :global(.labels) > [data-show],
+  .schematic[data-switch] .bubble[data-show] {
     --sch-at: calc(var(--lyt, 0) + var(--lht, 0) / 4);
   }
+}
+
+/* the bubbles' list stays until the scan has crossed, so each bubble can leave as the edge
+   passes it (W4d A3) */
+.schematic[data-switch] .bubbles {
+  transition: display 0s linear var(--sch-scan);
+  transition-behavior: allow-discrete;
 }
 
 .schematic[data-toggle='rewired'] :global(.l-cad g.k-inst) {

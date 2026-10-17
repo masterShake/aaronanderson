@@ -71,6 +71,19 @@ for (const width of WIDTHS) {
       await page.locator(`#fig-firm [data-state-value="${state}"]`).click()
       await expect(fig).toHaveAttribute('data-toggle', state)
       await expect(fig).toHaveAttribute('data-placed', new RegExp(`-${state}-`))
+      // the change has played out: everything that belongs to the other state has left with
+      // the scan (each label and bubble keeps its place until the edge passes it)
+      await expect
+        .poll(() =>
+          page.evaluate(
+            (st) =>
+              [...document.querySelectorAll<HTMLElement>('#fig-firm [data-show]')].filter(
+                (el) => el.dataset.show !== st && el.checkVisibility({ visibilityProperty: true }),
+              ).length,
+            state,
+          ),
+        )
+        .toBe(0)
       const { hits, box } = await collect(page, state)
       const where = `${state} @${width}`
       expect(hits.filter((h) => h.what.startsWith('label')).length, where).toBeGreaterThan(0)

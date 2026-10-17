@@ -9,7 +9,7 @@ import {
   segHitsRect,
   type Rect,
 } from '../lib/route'
-import { placeSymbol } from '../symbols'
+import { placeSymbol, toolGlyph } from '../symbols'
 import { PERSON_HEIGHT } from '../symbols/people'
 
 /**
@@ -47,7 +47,11 @@ export const HOME_PERSON_K = (PERSON_HEIGHT / 64) * 1.25
  */
 const WIDE_ROWS = [62, 270, 478] as const
 const WIDE_TOOL: readonly [number, number] = [180, 72]
-const WIDE_H = 580
+/**
+ * The frame ends just under the last row's desk worker (HOME_DESKS) and the hand note, with
+ * about the same margin as above the first row (W4d A1: no empty band under the last row).
+ */
+const WIDE_H = 556
 
 /**
  * Where Home moves a box across (W4c A1): the first and last rows hold three tools each, so
@@ -172,6 +176,87 @@ export const HOME_PEOPLE_AT: Readonly<Record<string, Readonly<Record<LayoutId, n
   p4: { wide: 0.5, tall: 0.5 },
 }
 
+/**
+ * People doing the hand work as found (W4d A1), in the two cells of the wide family's grid the
+ * new plumbing takes once rewired (the monitor's in the top row; the data store's in the bottom
+ * row, where they sit under the Timesheets line): in each, one at a desk with two windows open,
+ * retyping from the spreadsheet into the schedule, and one at a desk with a paper stack and a
+ * stamp. The kit's
+ * seated pose (fig.desk-stamp) at Home's scale; the desk, windows and paper are drawn here
+ * (deskProps). As found only, wide only: the scan replaces them with the plumbing, and the tall
+ * family has no empty cell. Feet in viewBox units.
+ */
+export type DeskKind = 'windows' | 'stack'
+export const HOME_DESKS: Readonly<Record<string, { kind: DeskKind; at: Pt }>> = {
+  p5: { kind: 'windows', at: [512, 98] },
+  p6: { kind: 'stack', at: [635, 98] },
+  p7: { kind: 'stack', at: [512, 540] },
+  p8: { kind: 'windows', at: [613, 540] },
+}
+
+/**
+ * A desk worker's desk and what is on it, as outline and detail prims (viewBox units). Authored
+ * on the kit's figure artboard (feet at 20, 72; the kit's own desk top at y 43 from x 26 to 40)
+ * and scaled by k, so the desk runs on from the kit's.
+ */
+export function deskProps(kind: DeskKind, at: Pt, k = HOME_PERSON_K) {
+  const P = (x: number, y: number): Pt => [
+    Math.round((at[0] + (x - 20) * k) * 100) / 100,
+    Math.round((at[1] + (y - 72) * k) * 100) / 100,
+  ]
+  const box = (x: number, y: number, w: number, h: number): Prim => ({
+    t: 'poly',
+    pts: [P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)],
+    closed: true,
+  })
+  const line = (x0: number, y0: number, x1: number, y1: number): Prim => ({
+    t: 'line',
+    a: P(x0, y0),
+    b: P(x1, y1),
+  })
+  const end = kind === 'windows' ? 128 : 100
+  const outline: Prim[] = [box(40, 43, end - 40, 2), line(end - 3, 45, end - 3, 72)]
+  const detail: Prim[] = []
+  if (kind === 'windows') {
+    // two windows open side by side: the estimate's grid and the schedule's bars
+    for (const [x, glyph] of [
+      [32, 'sheet'],
+      [80, 'gantt'],
+    ] as const) {
+      outline.push(box(x, 6, 44, 31))
+      detail.push(line(x, 11, x + 44, 11), line(x + 22, 37, x + 22, 43))
+      const g = toolGlyph(glyph, { x: P(x + 12, 13)[0], y: P(x + 12, 13)[1], g: 20 * k })
+      detail.push(...g.outline, ...g.rules)
+    }
+  } else {
+    // a stack waiting, the sheets' edges showing; a shorter stack done, stamped
+    outline.push(box(44, 25, 22, 18), box(72, 33, 22, 10))
+    detail.push(
+      line(44, 29.5, 66, 29.5),
+      line(44, 34, 66, 34),
+      line(44, 38.5, 66, 38.5),
+      line(72, 38, 94, 38),
+    )
+  }
+  return { outline, detail }
+}
+
+/** A desk worker's whole vignette (body, desk and props), relative to their feet. */
+function deskBody(kind: DeskKind): Rect {
+  const at: Pt = [0, 0]
+  const d = deskProps(kind, at)
+  const pts = [
+    ...placeSymbol('fig.desk-stamp', at, { k: HOME_PERSON_K }).flatMap((p) =>
+      p.prims.flatMap(primPts),
+    ),
+    ...[...d.outline, ...d.detail].flatMap(primPts),
+  ]
+  const xs = pts.map((q) => q[0])
+  const ys = pts.map((q) => q[1])
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+}
+
 /** Points of a prim, for its bounds (arcs and curves by their control points). */
 function primPts(p: Prim): Pt[] {
   switch (p.t) {
@@ -209,6 +294,11 @@ const BODY: Rect = (() => {
 const AIR = 3
 /** Half the width of the paper mark on a hand-carry line (render/graph.ts paperGlyph). */
 const SIDE = 6
+/**
+ * How far above a level run a person's feet stand (W4d A2): clear of the line, its paper mark
+ * and its arrowhead by a step, so nobody reads as standing on the arrow.
+ */
+export const HOME_LEVEL_GAP = 16
 
 /**
  * Where each person stands as found: beside their own hand-off line, never on
@@ -232,7 +322,14 @@ function standBeside(g: G, family: LayoutId): Map<string, Pt> {
     const c = pointAlong(r.pts, 0.5)
     return { x: c[0] - 6, y: c[1] - 7, w: 12, h: 14 }
   })
-  const placed: Rect[] = []
+  // the desk workers sit where they sit (wide only): the walkers keep clear of them
+  const placed: Rect[] =
+    family === 'wide'
+      ? Object.values(HOME_DESKS).map(({ kind, at }) => {
+          const b = deskBody(kind)
+          return { x: at[0] + b.x, y: at[1] + b.y, w: b.w, h: b.h }
+        })
+      : []
   const out = new Map<string, Pt>()
   const hit = (a: Rect, b: Rect) =>
     a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
@@ -248,9 +345,9 @@ function standBeside(g: G, family: LayoutId): Map<string, Pt> {
       const level = Math.abs(d[0]) > 0.9
       // beside an upright run: clear of the line and of the paper on it (6 units each side)
       const side = SIDE + AIR
-      // beside a level run: just above it, feet clear of the line and its paper (W4c A2)
+      // beside a level run: above it, feet a step clear of the line, its paper and its arrow
       const spots: Pt[] = level
-        ? [[q[0], q[1] - side]]
+        ? [[q[0], q[1] - HOME_LEVEL_GAP]]
         : [
             [q[0] - side - BODY.x - BODY.w, q[1] + BODY.h / 2],
             [q[0] + side - BODY.x, q[1] + BODY.h / 2],
@@ -304,7 +401,8 @@ function people(g: G): ScaleFigure<FirmRev>[] {
 /**
  * Where a person stands once rewired, when Home moves them off the graph's
  * station: beside Estimating in the clear gap to its right, and On site in the
- * clear band under Field phones (wide family). Viewbox units, feet. The tall
+ * clear corner over Field phones, left of its lines (wide family; the frame
+ * ends under the last row, W4d A1). Viewbox units, feet. The tall
  * family has no clear spot for these two, so Home leaves them out there
  * (schematic.module.css, `HOME_TALL_HIDDEN`); the valves keep their people.
  */
@@ -313,7 +411,7 @@ const REWIRED_AT: Readonly<Record<string, Readonly<Record<LayoutId, (r: Rect) =>
     wide: (r) => [r.x + r.w + 30, r.y + r.h + 30],
     tall: (r) => [r.x + r.w - 16, r.y + r.h + 2],
   },
-  p3: { wide: (r) => [r.x + 40, r.y + r.h + 58], tall: (r) => [r.x + r.w - 16, r.y + r.h + 2] },
+  p3: { wide: (r) => [r.x + 22, r.y - 10], tall: (r) => [r.x + r.w - 16, r.y + r.h + 2] },
 }
 
 /** People (and their place labels) the tall family leaves out once rewired. */
@@ -321,7 +419,7 @@ export const HOME_TALL_HIDDEN: readonly string[] = ['p2', 'p3']
 const BESIDE: Readonly<Record<string, string>> = { p2: 'estimate', p3: 'field' }
 
 /** The hand note by Timesheets: in the clear margin under it, per family. */
-const NOTE_AT: Readonly<Record<LayoutId, Pt>> = { wide: [370, 532], tall: [22, 624] }
+const NOTE_AT: Readonly<Record<LayoutId, Pt>> = { wide: [370, 522], tall: [22, 624] }
 
 /**
  * Home leaves out the monitor's signal lines (branch routes m06, m08, m10):
@@ -378,7 +476,13 @@ function valveStations(g: G, ps: ScaleFigure<FirmRev>[]): ScaleFigure<FirmRev>[]
 /** The example firm as Home B draws it. */
 export const homeFirmGraph: G = {
   ...laidOut,
-  people: stations(laidOut, valveStations(laidOut, people(laidOut))),
+  people: [
+    ...stations(laidOut, valveStations(laidOut, people(laidOut))),
+    ...Object.entries(HOME_DESKS).map(([id, d]) => ({
+      id,
+      poses: { asFound: { symbol: 'fig.desk-stamp' as const, at: d.at } },
+    })),
+  ],
   notes: (firmGraph.notes ?? []).map((n) => ({ ...n, at: NOTE_AT.wide, atTall: NOTE_AT.tall })),
 }
 
@@ -397,6 +501,12 @@ export function forFamily<T extends object>(g: T, family: LayoutId): T {
   return (FAMILIES.get(g)?.[family] as T | undefined) ?? g
 }
 
+/** People only the wide family draws (the desk workers): the tall family leaves them out. */
+export const HOME_WIDE_ONLY: readonly string[] = Object.keys(HOME_DESKS)
+
 /** For tests: a carrying person's body relative to their feet, and the hand-off each walks. */
 export const HOME_BODY: Readonly<Rect> = BODY
+/** For tests: a person's whole body relative to their feet (a desk worker's with the desk). */
+export const homeBodyOf = (id: string): Readonly<Rect> =>
+  HOME_DESKS[id] ? deskBody(HOME_DESKS[id].kind) : BODY
 export const HOME_CARRIES: Readonly<Record<string, string>> = ON

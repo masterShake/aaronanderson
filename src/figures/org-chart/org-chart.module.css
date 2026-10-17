@@ -38,11 +38,13 @@
   transition: none;
 }
 
-.org :global(.drawing :is(.l-cad, .l-pkt)) {
+/* ours' ghost (the chain's erased middle, W4d A4) belongs to ours: it comes and goes with the
+   CAD layer, at the ghost layer's own opacity (figures.css) */
+.org :global(.drawing :is(.l-cad, .l-pkt, .l-ghost)) {
   visibility: hidden;
 }
 
-.org[data-toggle='ours'] :global(.drawing :is(.l-cad, .l-pkt)) {
+.org[data-toggle='ours'] :global(.drawing :is(.l-cad, .l-pkt, .l-ghost)) {
   visibility: visible;
 }
 
@@ -90,8 +92,12 @@
   opacity: 1;
 }
 
+.org[data-switch][data-toggle='chain'] :global(.drawing .l-ghost) {
+  visibility: visible;
+}
+
 .org[data-switch][data-toggle='ours'] :global(.drawing .l-pencil),
-.org[data-switch][data-toggle='chain'] :global(.drawing .l-cad) {
+.org[data-switch][data-toggle='chain'] :global(.drawing :is(.l-cad, .l-ghost)) {
   animation: org-scan-out-x var(--org-scan) linear both;
 }
 
@@ -104,7 +110,7 @@
   animation: org-sheet-x var(--org-scan) linear both;
 }
 
-.org[data-switch][data-toggle='ours'] :global(.drawing .l-cad),
+.org[data-switch][data-toggle='ours'] :global(.drawing :is(.l-cad, .l-ghost)),
 .org[data-switch][data-toggle='chain'] :global(.drawing .l-pencil) {
   animation: org-scan-in-x var(--org-scan) linear both;
 }
@@ -129,7 +135,7 @@
 
   .org[data-switch][data-toggle='ours'] :global(.drawing)::before,
   .org[data-switch][data-toggle='ours'] :global(.drawing .l-pencil),
-  .org[data-switch][data-toggle='chain'] :global(.drawing .l-cad) {
+  .org[data-switch][data-toggle='chain'] :global(.drawing :is(.l-cad, .l-ghost)) {
     animation-name: org-scan-out-y;
   }
 
@@ -137,7 +143,7 @@
     animation-name: org-sheet-y;
   }
 
-  .org[data-switch][data-toggle='ours'] :global(.drawing .l-cad),
+  .org[data-switch][data-toggle='ours'] :global(.drawing :is(.l-cad, .l-ghost)),
   .org[data-switch][data-toggle='chain'] :global(.drawing .l-pencil) {
     animation-name: org-scan-in-y;
   }
@@ -336,7 +342,9 @@
   opacity: 0 !important;
 }
 
-:global(html[data-motion='paused']) .org[data-toggle='chain'] :global(.drawing .l-cad) {
+:global(html[data-motion='paused'])
+  .org[data-toggle='chain']
+  :global(.drawing :is(.l-cad, .l-ghost)) {
   visibility: hidden !important;
 }
 
