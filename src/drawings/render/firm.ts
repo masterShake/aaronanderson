@@ -11,7 +11,7 @@ import type {
 } from '../types'
 import { placeSymbol, toolGlyph, type ToolKind } from '../symbols'
 import { firmGraph } from '../graphs/firm'
-import { FIRM_CELL } from '../views/home'
+import { FIRM_CELL, forFamily } from '../views/home'
 import { primD } from '../lib/geometry'
 import { primLength } from '../lib/length'
 import { directionAt, inRev, nodeRect, routeGraph, type Routed } from '../lib/route'
@@ -129,7 +129,7 @@ export function packetNode(r: Pick<Routed, 'prim' | 'len'>, part: string, i: num
 
 /** One state of the firm in one family. */
 export function firmDoc(
-  g: AnyGraph,
+  graph: AnyGraph,
   rev: string,
   family: LayoutId,
   medium: Medium,
@@ -138,6 +138,8 @@ export function firmDoc(
   /** Scale of the people (placeSymbol k); the kit's default when left out. */
   personK?: number,
 ): SvgDoc {
+  // the graph as this family routes it (Home's wide family fixes some ports of its own)
+  const g = forFamily(graph, family)
   // the firm draws its own flanges (below, part `.flange`): the kit's pair would double them
   const base = graphDoc(g, rev, family, { medium, flanges: false })
   // people at Home's scale: the same pencil cut-outs graphDoc draws, larger

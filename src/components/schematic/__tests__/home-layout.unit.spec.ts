@@ -34,12 +34,12 @@ for (const family of FAMILIES) {
     for (const p of people) {
       const pose = p.poses.asFound!
       const at = family === 'tall' ? (pose.atTall ?? pose.at) : pose.at
-      // the body, less the feet that may touch the line they walk on
+      // the whole body, feet included: nobody stands on a line or an arrow (W4c A2)
       const body: Rect = {
         x: at[0] + HOME_BODY.x,
         y: at[1] + HOME_BODY.y,
         w: HOME_BODY.w,
-        h: HOME_BODY.h - 2,
+        h: HOME_BODY.h,
       }
       for (const r of rects) expect(hit(body, r), `${p.id} on a box`).toBe(false)
       for (const r of found.values())
@@ -55,7 +55,8 @@ for (const family of FAMILIES) {
           x: body.x - HOME_BODY.w,
           y: body.y,
           w: body.w + HOME_BODY.w * 2,
-          h: body.h + 6,
+          // walking just above a level run: the line within a few units under the feet
+          h: body.h + 14,
         }
         return segHitsRect(a, b, pad)
       })

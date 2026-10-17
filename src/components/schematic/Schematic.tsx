@@ -11,8 +11,9 @@ import {
   instrumentsOn,
   nodeRect,
   pointAlong,
-  routeGraph,
+  routeGraph as routeAny,
 } from '@/drawings/lib/route'
+import { forFamily } from '@/drawings/views/home'
 import { aiPrims, monitorPrims, placeSymbol, tankPrims, valvePrims } from '@/drawings/symbols'
 import { tableRows } from '@/drawings/render/table'
 import { FigureFrame } from '@/figures/FigureFrame'
@@ -122,6 +123,10 @@ const poseOf = (p: NonNullable<AnyGraph['people']>[number], st: string) =>
   (p.poses as Record<string, Pose | undefined>)[st]
 const poseAt = (pose: Pose, family: LayoutId): Pt =>
   family === 'tall' && pose.atTall ? pose.atTall : pose.at
+
+/** Routes a graph as its drawing does: with the family's own ports (views/home.ts forFamily). */
+const routeGraph: typeof routeAny = (g, rev, family, o) =>
+  routeAny(forFamily(g, family), rev, family, o)
 
 /** Everything drawn in one family and state that labels must stay clear of (viewBox units). */
 function obstaclesOf(

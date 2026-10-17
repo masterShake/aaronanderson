@@ -221,6 +221,9 @@ export function SchematicController({
           const b = out[i]!
           el.style.insetInlineStart = `${Math.round((b.x / bw) * 10000) / 100}%`
           el.style.insetBlockStart = `${Math.round((b.y / bh) * 10000) / 100}%`
+          // where it sits along a change's scan (percent): it changes as the edge passes it
+          const along = fam === 'tall' ? b.y / bh : b.x / bw
+          el.style.setProperty('--sch-at', String(Math.round(along * 10000) / 100))
           // a leader from the anchor to the item's nearest edge, once it sits off its anchor
           const it = items[i]!
           if (el.dataset.place?.startsWith('note-') || el.dataset.leader === 'none') return
@@ -243,7 +246,9 @@ export function SchematicController({
         fig.dataset.placed = `${fam}-${state}-${++placements}`
       }
 
-      const setState = (v: string) => {
+      const setState = (v: string, press = false) => {
+        // a press that changes the state plays the scan (schematic.module.css); load never does
+        if (press && v !== state) fig.dataset.switch = ''
         state = v
         fig.dataset.toggle = v
         fig.dataset.rev = v
@@ -269,7 +274,7 @@ export function SchematicController({
         offs.push(() => el.removeEventListener(type, fn as EventListener))
       }
 
-      for (const s of states) on(s, 'click', () => setState(s.dataset.stateValue ?? initial))
+      for (const s of states) on(s, 'click', () => setState(s.dataset.stateValue ?? initial, true))
 
       for (const b of buttons) {
         const id = idOf(b)
