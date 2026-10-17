@@ -556,8 +556,10 @@ class Runtime implements RuntimeApi {
     if (next.stillOn) this.hideStill(next)
   }
 
+  /** Clears the bitmap too: an unstyled canvas.still is still a visible block in the slot. */
   private hideStill(f: Fig) {
     f.still.style.cssText = ''
+    f.still.width = 0
     f.stillOn = false
   }
 
