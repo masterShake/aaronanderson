@@ -507,6 +507,35 @@ function toneInk(tone: Tone, rev: TicketRev): string {
 
 const NODE_CAP = 8
 const TAG_CAP = 7
+/** Clear space from any box or sheet edge on a phone still: 8 px at 390 wide (0.89 px a unit). */
+const CLEAR = 9
+/** The AI reader's outer radius on the tall drawing (its bezel). */
+const READER_R = 15
+
+/**
+ * Where a tag letters on a phone still (x, y of its first line). Most sit where the live tall
+ * figure puts them; two move where that spot crowds an edge at phone size (W4d):
+ * - AI READER: centred between the box rows (REV 1, 2); from REV 3 left of the reader, clear of
+ *   the hand-over sheets above it and the punch list below;
+ * - the REV 1 markup: under the sign-off note, clear of the faint as-found boxes.
+ */
+function stillTagAt(key: string, rev: TicketRev, t: readonly number[], lw: number, lh: number): Pt {
+  if (key === 'ai') {
+    const geo = ticketGeometry('tall')
+    const [ax, ay] = geo.ai
+    if (rev === 'rev3' || rev === 'rev4') return [ax - READER_R - CLEAR - lw, ay - lh / 2]
+    const rect = (id: string) =>
+      nodeRect(
+        geo.graph.nodes.find((n) => n.id === id)!,
+        'tall',
+      )
+    const above = rect('inbox')
+    const below = rect('office')
+    return [t[0]!, (above.y + above.h + below.y - lh) / 2]
+  }
+  if (key === 'markup') return [t[0]!, TICKET_EXTRAS.tall.viewBox[3] - CLEAR - 3 - lh]
+  return [t[0]!, t[1]!]
+}
 
 /**
  * The phone stills' names (tall family): each label the HTML overlay shows at this revision,
@@ -580,10 +609,10 @@ function lettering(rev: TicketRev): SvgDoc {
   for (const [key, text, tone, revs] of tags) {
     const t = ex.tags[key]
     if (!t || !revs.includes(rev)) continue
-    const [x, y, w] = t
-    const lines = wrap(text, w, TAG_CAP)
+    const lines = wrap(text, t[2], TAG_CAP)
     const lw = Math.max(...lines.map((l) => measure(l, TAG_CAP)))
     const lh = lines.length * TAG_CAP + (lines.length - 1) * TAG_CAP * 0.6
+    const [x, y] = stillTagAt(key, rev, t, lw, lh)
     kids.push(
       group(`tag.${key}`, [
         backing(x - 3, y - 3, lw + 6, lh + 6, key, deep ? 'deep' : 'paper'),

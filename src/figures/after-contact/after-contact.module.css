@@ -47,9 +47,19 @@
   animation-play-state: var(--gate);
 }
 
-/* The four enclosures are there from the first frame, faint, and ink up in turn: the panel is
-   never empty while the figure waits for its gate (W4b: no blank frame). */
-.fig.fig:global([data-run]) :global(.l-cad path[data-part$='.box']) {
+/* The four nodes are there from the first frame, whole and faint (enclosure, glyph and plate,
+   with their names): never bare boxes, never an empty panel while the figure waits for its gate
+   (W4b, W4d). They ink up in turn; the conduits then draw on between them. */
+.fig.fig:global([data-run])
+  :global(.l-cad)
+  :global(
+    path:is(
+      [data-part$='.box'],
+      [data-part$='.glyph'],
+      [data-part$='.detail'],
+      [data-part$='.plate']
+    )
+  ) {
   animation-name: ac-ink;
 }
 
@@ -177,14 +187,8 @@
 }
 
 .fig:global([data-run]) .label {
-  animation: ac-pop var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
+  animation: ac-ink var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
   animation-play-state: var(--gate);
-}
-
-@keyframes ac-pop {
-  from {
-    opacity: 0;
-  }
 }
 
 /* The still tier (Pause motion) rests on the final frame: the names show whatever the gate holds. */

@@ -58,55 +58,53 @@
   --gate: paused;
 }
 
-/* ── Draw-on: structure, connections, details (--i), ease-in-out cubic ──── */
-.valve:global([data-run]) :global(.l-cad path.draw) {
-  animation: valve-draw var(--valve-draw, 480ms) cubic-bezier(0.65, 0, 0.35, 1)
-    calc(var(--i, 0) * var(--valve-stagger, 80ms)) both;
+/* ── Ink: structure, connections, then the person (--o), ease-in-out cubic ── */
+/* The whole drawing is there from the first frame, faint: every object with its details, the
+   line, the person (W4b: no blank frame; W4d: never bare outlines). Each object inks up whole,
+   outline and details together, in its turn. The fade is on the object's group, so a faint
+   object never shows its own hidden lines through it. The needle and the wheel keep their own
+   motion on their groups, so they ink by their parts (--i). */
+.valve:global([data-run]) :global(.l-cad > g > g:not(.wheel, [data-part='needle'])),
+.valve:global([data-run]) :global(.l-cad :is(.wheel, [data-part='needle']) > path) {
+  animation: valve-ink var(--valve-draw, 480ms) cubic-bezier(0.65, 0, 0.35, 1)
+    calc(var(--o, var(--i, 0)) * var(--valve-stagger, 80ms)) both;
   animation-play-state: var(--gate);
 }
 
-.valve:global([data-run]) :global(.l-cad path:not(.draw)) {
-  animation: valve-fade var(--valve-draw, 480ms) cubic-bezier(0.65, 0, 0.35, 1)
-    calc(var(--i, 0) * var(--valve-stagger, 80ms)) both;
-  animation-play-state: var(--gate);
+.valve :global(.l-cad [data-part='reader']) {
+  --o: 1;
 }
-
-/* The structure (in-tray, reader, gauge, valve body, cabinet, logbook card) is there from the
-   first frame, faint, and inks up in its turn: the panel is never empty while it waits for the
-   gate (W4b: no blank frame). Connections and details then draw on over it. */
-.valve.valve:global([data-run])
-  :global(.l-cad)
-  :global(
-    path:is(
-      [data-part='tray.box'],
-      [data-part='reader.body'],
-      [data-part='gauge.stem'],
-      [data-part='gauge.bezel'],
-      [data-part='valve.body'],
-      [data-part='cabinet'],
-      [data-part='logbook.card']
-    )
-  ) {
-  animation-name: valve-ink;
+.valve :global(.l-cad [data-part='gauge']) {
+  --o: 2;
+}
+.valve :global(.l-cad [data-part='valve']) {
+  --o: 3;
+}
+.valve :global(.l-cad [data-part='cabinet']) {
+  --o: 4;
+}
+.valve :global(.l-cad [data-part='logbook']) {
+  --o: 5;
+}
+.valve :global(.l-cad [data-part='line']) {
+  --o: 6;
+}
+.valve :global(.l-cad [data-part='branch']) {
+  --o: 7;
+}
+.valve :global(.l-cad [data-part='joints']) {
+  --o: 8;
+}
+.valve :global(.l-cad [data-part='signer']) {
+  --o: 14;
+}
+.valve :global(.l-cad [data-part='leaders']) {
+  --o: 16;
 }
 
 @keyframes valve-ink {
   from {
     opacity: var(--valve-ghost, 0.4);
-  }
-}
-
-@keyframes valve-draw {
-  0% {
-    stroke-dashoffset: 1;
-    opacity: 0;
-  }
-  2% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 1;
   }
 }
 
@@ -117,25 +115,17 @@
   }
 }
 
-/* Labels arrive with or after their objects (--t from the figure). */
+/* Labels are faint with their objects from the first frame, and ink up with or after them
+   (--t from the figure). APPROVED waits for its moment (below). */
 .valve:global([data-run]) .label {
-  animation: valve-pop var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
+  animation: valve-ink var(--dur-ui, 200ms) var(--ease-settle, ease) var(--t, 0ms) both;
   animation-play-state: var(--gate);
 }
 
-/* The logbook's header and opening line belong to its card: faint with it from the first
-   frame, inked up with it (--i 5). */
+/* The logbook's header and opening line belong to its card: inked up with it (--i 5). */
 .valve.valve:global([data-run]) .label.logbook {
-  animation-name: valve-ink;
   animation-duration: var(--valve-draw, 480ms);
   animation-delay: calc(5 * var(--valve-stagger, 80ms));
-}
-
-@keyframes valve-pop {
-  from {
-    opacity: 0;
-    translate: 0 4px;
-  }
 }
 
 /* ── Records: FLOW, linear at constant speed ───────────────────────────── */

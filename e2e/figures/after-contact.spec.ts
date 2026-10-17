@@ -69,6 +69,37 @@ for (const width of [1280, 390]) {
   })
 }
 
+/**
+ * W4d: the first frame is the whole starting drawing, faint: every enclosure with its glyph, its
+ * plate and its name, never bare boxes. The conduits draw on after.
+ */
+test('the first frame shows every node whole, with its glyph and name', async ({ page }) => {
+  test.skip(await isProductionBuild(page), '/kit is preview only')
+  await page.goto('/kit/fig/after-contact?tier=svg')
+  const fig = page.locator('#fig-after-contact')
+  await fig.scrollIntoViewIfNeeded()
+  await expect(fig).toHaveAttribute('data-layers', 'ready')
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      a.pause()
+      a.currentTime = 0
+    }
+  })
+  const opacity = (sel: string) =>
+    fig
+      .locator(sel)
+      .first()
+      .evaluate((e) => Number(getComputedStyle(e).opacity))
+  for (const id of ['you', 'reply', 'call', 'next']) {
+    for (const part of ['box', 'glyph', 'detail', 'plate'])
+      expect(
+        await opacity(`svg.l-cad path[data-part="${id}.${part}"]`),
+        `${id}.${part}`,
+      ).toBeGreaterThan(0.3)
+    expect(await opacity(`.labels > [data-anchor="${id}"]`), `${id} name`).toBeGreaterThan(0.3)
+  }
+})
+
 test('the still tier shows the baked still and fetches no layers', async ({ page }) => {
   const fetched: string[] = []
   page.on('request', (q) => {

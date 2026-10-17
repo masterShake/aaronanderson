@@ -61,9 +61,26 @@ test('before and early in the play: structure and the logbook header show', asyn
       .locator(sel)
       .first()
       .evaluate((e) => Number(getComputedStyle(e).opacity))
-  for (const part of ['tray.box', 'cabinet', 'logbook.card', 'valve.body'])
-    expect(await opacity(`svg.l-cad path[data-part="${part}"]`)).toBeGreaterThan(0.3)
-  expect(await opacity('[data-label="logbook"]')).toBeGreaterThan(0.3)
+  // W4d: the whole drawing, faint, never bare outlines: details, line, person and labels too
+  for (const part of [
+    'tray.box',
+    'tray.rules',
+    'reader.body',
+    'reader.lens',
+    'gauge.ticks',
+    'cabinet',
+    'cabinet.detail',
+    'logbook.card',
+    'valve.body',
+    'valve.detail',
+    'wheel.rim',
+    'line',
+    'signer.head',
+  ])
+    expect(await opacity(`svg.l-cad path[data-part="${part}"]`), part).toBeGreaterThan(0.3)
+  for (const k of ['incoming', 'reader', 'tolerance', 'valve', 'record', 'logbook'])
+    expect(await opacity(`[data-label="${k}"]`), k).toBeGreaterThan(0.3)
+  expect(await opacity('[data-label="approved"]')).toBe(0)
   expect(await opacity('[data-line="0"]')).toBe(1)
   expect(await opacity('[data-line="1"]')).toBe(0)
 })
