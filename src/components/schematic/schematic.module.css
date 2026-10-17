@@ -160,13 +160,20 @@
   }
 }
 
+/* what the edge has crossed is gone for good: no ghost under the finished drawing (A5) */
 @keyframes sch-scan-out-x {
   from {
     clip-path: inset(0);
+    opacity: 1;
+  }
+
+  99.9% {
+    opacity: 1;
   }
 
   to {
     clip-path: inset(0 0 0 100%);
+    opacity: 0;
   }
 }
 
@@ -193,10 +200,16 @@
 @keyframes sch-scan-out-y {
   from {
     clip-path: inset(0);
+    opacity: 1;
+  }
+
+  99.9% {
+    opacity: 1;
   }
 
   to {
     clip-path: inset(100% 0 0 0);
+    opacity: 0;
   }
 }
 

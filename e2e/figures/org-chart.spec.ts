@@ -34,13 +34,30 @@ for (const width of [390, 1280]) {
     for (const rev of ORG_REVS) {
       await fig.locator(`[role="group"] > button`).nth(ORG_REVS.indexOf(rev)).click()
       await expect(fig).toHaveAttribute('data-toggle', rev)
+      // a change is a scan (W4c): wait for its edge and every label it passes to settle
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              document
+                .getAnimations()
+                .filter(
+                  (a) =>
+                    a.playState === 'running' &&
+                    (a instanceof CSSTransition ||
+                      /org-(scan|sheet|edge)/.test((a as CSSAnimation).animationName ?? '')),
+                ).length,
+          ),
+        )
+        .toBe(0)
       expect(await fig.locator(`.drawing g[data-rev="${rev}"] path`).count()).toBeGreaterThan(0)
       const out = await fig.evaluate((el) => {
         const box = el.querySelector('.box')!.getBoundingClientRect()
         const bad: string[] = []
         let shown = 0
         for (const l of el.querySelectorAll<HTMLElement>('.labels > *')) {
-          if (!l.checkVisibility()) continue
+          // the other state's labels stay in place, hidden (visibility), so a scan can change them
+          if (!l.checkVisibility({ visibilityProperty: true })) continue
           shown++
           const r = l.getBoundingClientRect()
           if (
@@ -62,7 +79,7 @@ for (const width of [390, 1280]) {
       // titles, the dimension and the hand note never touch each other
       const hits = await fig.evaluate((el) =>
         [...el.querySelectorAll<HTMLElement>('.labels > *')]
-          .filter((l) => l.checkVisibility())
+          .filter((l) => l.checkVisibility({ visibilityProperty: true }))
           .map((l) => {
             const r = l.getBoundingClientRect()
             return { what: l.textContent ?? '', at: [r.left, r.top, r.right, r.bottom] }
