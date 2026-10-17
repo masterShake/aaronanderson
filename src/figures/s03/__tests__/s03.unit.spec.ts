@@ -1,10 +1,18 @@
 import { test, expect } from '@playwright/test'
 import type { LayoutId } from '@/drawings/types'
 import { frontFrame } from '@/drawings/lib/frame'
-import { S03_COUNTS, S03_LABELS, S03_LABEL_GROUPS, type S03LabelKey } from '@/drawings/views/s03'
+import {
+  S03_COUNTS,
+  S03_LABELS,
+  S03_LABEL_GROUPS,
+  magazine,
+  placePrimS03,
+  sketchPrims,
+  type S03LabelKey,
+} from '@/drawings/views/s03'
 import { s03Figure as copy } from '@/content/figures/s03'
 import { S03, S03_HELD_MS } from '@/motion/timing/s03'
-import { S03_FAMILY, s03Spec, sectionFrame, MOVING } from '@/scenes/s03/section'
+import { G, S03_FAMILY, dialC, place, s03Spec, sectionFrame, MOVING } from '@/scenes/s03/section'
 import { s03Doc, s03Drawing, s03Frame } from '../drawing'
 
 /**
@@ -120,6 +128,26 @@ test('labels come after their drawing; the person reads at scale', () => {
     const h = Math.max(...ys) - Math.min(...ys)
     expect(h / S03_FAMILY[f].vb[3], `person height (${f})`).toBeGreaterThanOrEqual(0.115)
   }
+})
+
+test('the tall family fills its panel: no bare top quarter in the pencil or section state', () => {
+  const vb = S03_FAMILY.tall.vb
+  // the feed magazine (section) and the pencil sketch both reach into the top fifth
+  const top = Math.min(...magazine().walls.flatMap((w) => w.map((p) => place('tall', p)[1])))
+  expect(top / vb[3]).toBeLessThanOrEqual(0.2)
+  const sketch = sketchPrims('tall').find((s) => s.id === 'magazine')!
+  const r = placePrimS03('tall', sketch.prims[0]!)
+  expect(r.t === 'rect' && r.at[1] / vb[3]).toBeLessThanOrEqual(0.2)
+  // the gauge rides its mast into the upper half, clear of the TOLERANCE label above it
+  const c = place('tall', dialC('tall'))
+  expect(c[1] / vb[3]).toBeLessThanOrEqual(0.3)
+  expect(c[1] - (G.dial.r + 5) * S03_FAMILY.tall.s).toBeGreaterThan(
+    // the label's box at the narrowest tall container: 40 CSS px tall at 0.9 px per unit
+    S03_LABELS.tolerance.tall[1] + 40 / 0.9,
+  )
+  // the wide family keeps the hand-off geometry
+  expect(dialC('wide')).toEqual(G.dial.c)
+  expect(sketchPrims('wide').some((s) => s.id === 'magazine')).toBe(false)
 })
 
 test('demo counts and timing', () => {
