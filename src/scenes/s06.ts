@@ -50,7 +50,9 @@ import { ease, span } from '@/stage/runtime/kit/ease'
  */
 
 type Solid = FlatMixed<ReturnType<typeof aluminum>>
-const PH = S06.handoffP
+const { handoffP: PH, monthStepP, motionFromP, bandMs } = S06
+/** The p at which month m (1–3) bolts on. */
+const land = (m: number) => S06.monthFromP + m * monthStepP
 
 function linePositions(pts: readonly Pt[], closed: boolean, y: number) {
   const P = closed ? [...pts, pts[0]!] : pts
@@ -59,7 +61,7 @@ function linePositions(pts: readonly Pt[], closed: boolean, y: number) {
   return out
 }
 
-function trace(g: CanvasRenderingContext2D, l: LiteLine) {
+function trace(g: CanvasRenderingContext2D, l: Pick<LiteLine, 'pts' | 'r'> & { closed?: boolean }) {
   const P = l.pts
   g.moveTo(P[0]![0], P[0]![1])
   for (let i = 1; i < P.length; i++) {
@@ -110,7 +112,14 @@ const mod: SceneModule = {
     const lines: { m: LineMaterial; pen: Pen; o: Object3D }[] = []
     const edges: { m: LineMaterial; ink: string }[] = []
     const pipeLines: { m: LineMaterial; o: Object3D }[] = []
-    const solids: { mesh: Mesh; face: Solid; order: number; month: number; c: Color }[] = []
+    const solids: {
+      mesh: Mesh
+      face: Solid
+      order: number
+      month: number
+      c: Color
+      cool: number
+    }[] = []
     const hot = new Color(COLOR.orange)
     const tubes: { t: Mesh<TubeGeometry>; month: number }[] = []
     const anchors = new Map<string, Object3D>()
@@ -157,8 +166,7 @@ const mod: SceneModule = {
       painted = key
       cv.width = Math.round(vb[2] * s)
       cv.height = Math.round(vb[3] * s)
-      const g = cv.getContext('2d')
-      if (!g) return
+      const g = cv.getContext('2d')!
       g.setTransform(cv.width / vb[2], 0, 0, cv.height / vb[3], -vb[0] * s, -vb[1] * s)
       g.lineCap = g.lineJoin = 'round'
       for (const l of frame) {
@@ -172,7 +180,7 @@ const mod: SceneModule = {
       g.lineWidth = ctx.strokePx('025') / rig.scale
       for (const gl of glyphs) {
         g.beginPath()
-        gl.pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])))
+        trace(g, gl)
         g.strokeStyle = gl.id === 'glyph.report' ? COLOR.asphalt : COLOR.cyan
         g.stroke()
       }
@@ -251,8 +259,10 @@ const mod: SceneModule = {
         }
         if (!isSolid(p)) return
         const orange = p.material === 'orange'
+        // the hero's valve: orange on the plan (flat), aluminum once built, edges still orange
+        const valve = p.id === 'valve'
         const face = withFlatMix(
-          orange ? powderOrange(q) : aluminum(q),
+          orange && !valve ? powderOrange(q) : aluminum(q),
           orange ? COLOR.orange : COLOR.blueprintDeep,
         )
         own.push({ material: face })
@@ -267,22 +277,16 @@ const mod: SceneModule = {
           const l = partLines(p)[i]!
           for (const y of [0, top]) edges.push({ m: mkLine(l, y, order, mesh).m, ink: l.ink })
           setExtrude(mesh, 0)
-          solids.push({ mesh, face, order, month, c: face.color.clone() })
+          // when it settles from orange to aluminum (months: after hotP; the valve: as the
+          // inspection starts); 0: never orange
+          const cool = month ? land(month) + S06.hotP : valve ? motionFromP : 0
+          solids.push({ mesh, face, order, month, c: face.color.clone(), cool })
           three.add(mesh)
           if (p.id === 'gauge') dial(mesh, centre(p), outline(c).pts, top, order)
           // the tool's glyph on its top face (blueprint; dark on the orange report)
           const pos: number[] = []
           for (const gl of glyphs)
-            if (gl.id === `glyph.${p.id}`)
-              for (let j = 1; j < gl.pts.length; j++)
-                pos.push(
-                  gl.pts[j - 1]![0],
-                  top + 0.4,
-                  gl.pts[j - 1]![1],
-                  gl.pts[j]![0],
-                  top + 0.4,
-                  gl.pts[j]![1],
-                )
+            if (gl.id === `glyph.${p.id}`) pos.push(...linePositions(gl.pts, false, top + 0.4))
           if (pos.length) {
             const m = lineMat({
               color: orange ? COLOR.asphalt : COLOR.blueprint,
@@ -338,15 +342,15 @@ const mod: SceneModule = {
       rig.pose(e)
       const flat = 1 - span(p, PH + 0.08, PH + 0.2)
       for (const sd of solids) {
-        const mm = sd.month ? S06.monthFromP + sd.month * S06.monthStepP : 0
+        const mm = land(sd.month)
         const ext = sd.month
           ? ease.settle(span(p, mm, mm + 0.04))
           : ease.settle(span(p, PH + 0.04 + sd.order * 0.004, PH + 0.14 + sd.order * 0.004))
         setExtrude(sd.mesh, ext)
         sd.mesh.visible = !sd.month || ext > 0
-        if (sd.month) {
-          // lands orange, settles to aluminum: only the newest is ever orange
-          const k = span(p, mm + S06.hotP, mm + S06.hotP + S06.coolP)
+        if (sd.cool) {
+          // lands orange, settles to aluminum: the owner's report is the one constant orange
+          const k = span(p, sd.cool, sd.cool + S06.coolP)
           sd.face.color.lerpColors(hot, sd.c, k)
           sd.face.metalness = k * TUNING.aluminum.standard.metalness
         }
@@ -355,25 +359,27 @@ const mod: SceneModule = {
       decal.visible = p < PH + 0.07
       dialGroup.visible = p > PH + 0.12
       decalMat.opacity = 1 - span(p, PH + 0.04, PH + 0.07)
-      for (const l of lines) l.o.visible = p > PH + 0.04
+      // the model's lines, once it starts to rise off the plan
+      const up = p > PH + 0.04
+      for (const l of lines) l.o.visible = up
       const fade = span(p, PH + 0.08, PH + 0.2) * 0.45
       for (const ed of edges) {
-        ed.m.depthTest = p > PH + 0.04
+        ed.m.depthTest = up
         if (ed.ink !== 'orange') fadeEdge(ed.m, COLOR.cyan, COLOR.alu300, fade)
       }
       const grow = span(p, PH + 0.12, PH + 0.2)
       for (const tb of tubes) {
-        const mm = S06.monthFromP + tb.month * S06.monthStepP
+        const mm = land(tb.month)
         setGrowth(tb.t, tb.month ? span(p, mm - 0.02, mm) : grow)
       }
       for (const pl of pipeLines) {
         pl.m.transparent = true
         pl.m.opacity = 1 - grow
-        pl.o.visible = p > PH + 0.04 && grow < 1
+        pl.o.visible = up && grow < 1
       }
       // the inspection: three sweeps, the flange pulses on the last
       const loops = 3
-      const band = S06.bandMs
+      const band = bandMs
       const on = m >= 0 && m < band * loops
       const k = on ? (m % band) / band : 0
       if (spot) {
@@ -407,16 +413,16 @@ const mod: SceneModule = {
       },
       update(dt, p) {
         // the pose follows p even before start (seek, holds); only the loops need running
-        const looping = running && p >= S06.motionFromP
+        const looping = running && p >= motionFromP
         if (looping) t += dt
         else t = 0
-        const end = S06.bandMs * 3
+        const end = bandMs * 3
         const e = pose(p, looping ? Math.min(t, end) : -1)
-        const month = Math.max(0, Math.min(3, Math.floor((p - S06.motionFromP) / S06.monthStepP)))
+        const month = Math.max(0, Math.min(3, Math.floor((p - motionFromP) / monthStepP)))
         const next: Beat =
           month > 0
             ? (`month${month}` as Beat)
-            : looping && t >= S06.bandMs * 2.5
+            : looping && t >= bandMs * 2.5
               ? 'fixed'
               : e >= 0.999
                 ? 'built'

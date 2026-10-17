@@ -75,6 +75,29 @@ test('months are reversible: at p = 0.6 only the first is bolted on', async ({ p
   await expect(iso.locator('[data-part="m3"]').first()).toHaveCSS('opacity', '0')
 })
 
+test('scrolled back below the inspection, its chip and sweep are off (W4d)', async ({
+  page,
+  guard,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'the scrub runs at 1024 px and up')
+  await gotoTier(page, '/services', 'svg')
+  const fig = page.locator(FIG)
+  await fig.scrollIntoViewIfNeeded()
+  const { top, end } = await fig.evaluate((f) => {
+    const t = f.closest('section')!.querySelector('[data-scrub-track]')!.getBoundingClientRect()
+    return { top: t.top + scrollY - innerHeight, end: t.bottom + scrollY - innerHeight / 2 }
+  })
+  await page.evaluate((y) => scrollTo(0, y), end)
+  await expect(fig).toHaveAttribute('data-mech', '')
+  await page.evaluate((y) => scrollTo(0, y), top)
+  await expect(fig).not.toHaveAttribute('data-mech')
+  await expect(fig.locator('.labels').getByText('INSPECTION', { exact: true })).toBeHidden()
+  // and down again: the loops start over
+  await page.evaluate((y) => scrollTo(0, y), end)
+  await expect(fig).toHaveAttribute('data-mech', '')
+  expect(guard.errors).toEqual([])
+})
+
 test('the health card shows labels only, never numbers', async ({ page }) => {
   await gotoTier(page, '/kit/fig/s06?p=1', 'svg')
   const text = await page.locator(`${FIG} .ui`).first().innerText()

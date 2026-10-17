@@ -140,6 +140,22 @@ function printGlyphs(m: S06Model, family: LayoutId, first: number): SvgNode[] {
   }))
 }
 
+/**
+ * The hero's valve on the print (W4d): aluminum faces with orange edges, so the owner's report
+ * is the one constant orange at the end. s06.module.css tints it orange while it is new (until
+ * the inspection starts), as the WebGL scene does; the still print shows it settled.
+ */
+const settleValve = (n: SvgNode): SvgNode =>
+  n.el === 'path' && n.part === 'valve'
+    ? {
+        ...n,
+        cls: n.cls
+          .replace('f-orange-dark', 'f-alu-300')
+          .replace('f-orange', 'f-alu-100')
+          .replace('i-cyan-dim', 'i-orange'),
+      }
+    : n
+
 function make(family: LayoutId, rev: string): SvgDoc {
   const m = buildS06Model(family)
   const vb = S06_VIEWBOX[family]
@@ -153,7 +169,7 @@ function make(family: LayoutId, rev: string): SvgDoc {
           ...g,
           rev,
           children: [
-            ...g.children,
+            ...g.children.map(settleValve),
             ...dial,
             ...printGlyphs(m, family, g.children.length + dial.length),
           ],
