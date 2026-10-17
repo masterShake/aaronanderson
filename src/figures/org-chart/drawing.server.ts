@@ -8,6 +8,7 @@ import { primLength } from '@/drawings/lib/length'
 import { arrowhead, chevron, paperGlyph, placeSymbol } from '@/drawings/symbols'
 import {
   cardsIn,
+  ORG_CARDS,
   ORG_LAYOUT,
   wireDim,
   wireEnds,
@@ -29,6 +30,8 @@ export const ORG_CHART_STATES = [
 ] as const
 
 const SEED = 2207
+/** The ghost's opacity in the stills: the live layer's own (figures.css, --pencil-ghost). */
+const ORG_GHOST = 0.22
 const clean = (prims: readonly Prim[], part: string, i: number, cls: string): SvgNode => ({
   el: 'path',
   d: prims.map(primD).join(''),
@@ -55,6 +58,7 @@ const rough = (
   }))
 
 const rectPrim = (r: OrgRect): Prim => ({ t: 'rect', at: [r.x, r.y], size: [r.w, r.h] })
+const slotOf = (id: string) => ORG_CARDS.find((c) => c.id === id)!.slot
 
 function cardNodes(
   family: LayoutId,
@@ -194,11 +198,23 @@ function orgDoc(family: LayoutId, rev: OrgRev): SvgDoc {
     children.push(group('wire', kids, 'k-wire'))
     pkts.push({ el: 'g', part: 'wire', children: [packetNode({ prim, len }, 'wire', 1)] })
   }
-  const groups: SvgDoc['groups'][number][] = [
-    { layer: rev === 'ours' ? 'cad' : 'pencil', rev, children },
-  ]
+  const groups: SvgDoc['groups'][number][] = []
+  // ours: the chain's middle stays where it stood, erased to a ghost under the wire (D8 ERASE;
+  // W4d A4), so the one wire reads against the people it replaces
+  if (rev === 'ours') {
+    const ghosts = cardsIn('chain')
+      .filter((c) => !c.revs.includes('ours') && c.slot !== slotOf('builders'))
+      .flatMap((c) => cardNodes(family, 'ours', `ghost-${c.id}`, c.slot, c.people))
+    groups.push({ layer: 'ghost', rev, children: ghosts })
+  }
+  groups.push({ layer: rev === 'ours' ? 'cad' : 'pencil', rev, children })
   if (pkts.length) groups.push({ layer: 'pkt', rev, children: pkts })
   return { viewBox: L.viewBox, groups }
 }
 
-export const drawing = flowBuilder((family, rev) => orgDoc(family, rev as OrgRev), ORG_CHART_STATES)
+export const drawing = flowBuilder(
+  (family, rev) => orgDoc(family, rev as OrgRev),
+  ORG_CHART_STATES,
+  undefined,
+  ORG_GHOST,
+)
