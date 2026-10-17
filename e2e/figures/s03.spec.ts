@@ -231,6 +231,86 @@ test('the title strip is one row; Approve sits under the figure with a solid out
   await expect(btn).toHaveCSS('border-top-style', 'solid')
 })
 
+/** The sign-off bar's and the figure's heights (the bar is Approve's parent). */
+const sizes = (fig: Locator) =>
+  fig.evaluate((el) => ({
+    bar: el.querySelector('button[data-action="approve"]')!.parentElement!.getBoundingClientRect()
+      .height,
+    fig: el.getBoundingClientRect().height,
+    p: parseFloat(getComputedStyle(el).getPropertyValue('--p')),
+  }))
+
+for (const [w, h] of [
+  [1440, 900],
+  [1280, 800],
+  [390, 844],
+] as const)
+  test(`@${w} on /services: the sign-off bar keeps its height, held and approved`, async ({
+    page,
+    guard,
+  }) => {
+    test.setTimeout(120_000)
+    const scrub = w >= 1024
+    test.skip(
+      (test.info().project.name === 'desktop') !== scrub,
+      scrub ? 'desktop project only' : 'mobile project only',
+    )
+    await page.setViewportSize({ width: w, height: h })
+    await gotoTier(page, '/services', 'svg')
+    const fig = page.locator(FIG)
+    await expect(fig).toHaveAttribute('data-mode', scrub ? 'scrub' : 'play')
+    const seen: { at: string; bar: number; fig: number; p: number }[] = []
+    const note = async (at: string) => seen.push({ at, ...(await sizes(fig)) })
+    if (scrub) {
+      // walk the text column (the scrub track) and note the sizes every 5% of p
+      const { top, bottom } = await fig.evaluate((el) => {
+        const r = el.closest('section')!.getBoundingClientRect()
+        return { top: r.top + scrollY, bottom: r.bottom + scrollY }
+      })
+      let heldY = top
+      const walk = async (state: string) => {
+        let next = 0
+        for (let y = top - h; y <= bottom && next <= 20; y += 12) {
+          await page.evaluate((y) => scrollTo(0, y), y)
+          await page.evaluate(() => new Promise(requestAnimationFrame))
+          const { p } = await sizes(fig)
+          if (p >= next * 0.05 - 1e-6) {
+            await note(`${state} p ${(next * 0.05).toFixed(2)}`)
+            if (next === 18) heldY = y
+            next++
+          }
+        }
+        expect(next, `${state}: the walk reached p = 1`).toBe(21)
+      }
+      await walk('before')
+      await page.evaluate((y) => scrollTo(0, y), heldY)
+      await atHeld(page, fig)
+      await note('held')
+      await approveBtn(page).click()
+      await expect(fig).toHaveAttribute('data-rev', 'approved')
+      await note('approved')
+      await walk('approved')
+    } else {
+      await fig.scrollIntoViewIfNeeded()
+      await note('entry')
+      for (let t = 0; t < 40 && (await fig.getAttribute('data-batch')) !== 'held'; t++) {
+        await note(`run ${t}`)
+        await page.waitForTimeout(250)
+      }
+      await atHeld(page, fig)
+      await note('held')
+      await approveBtn(page).click()
+      await expect(fig).toHaveAttribute('data-rev', 'approved')
+      await note('approved')
+    }
+    const first = seen[0]!
+    for (const s of seen) {
+      expect(s.bar, `bar height at ${s.at}`).toBeCloseTo(first.bar, 2)
+      expect(s.fig, `figure height at ${s.at}`).toBeCloseTo(first.fig, 2)
+    }
+    expect(guard.errors).toEqual([])
+  })
+
 for (const tier of ['svg', 'still'] as const)
   test(`axe on the ${tier} tier, held and approved`, async ({ page, guard }) => {
     await gotoTier(page, '/kit/fig/s03', tier)
