@@ -520,6 +520,9 @@
   visibility: hidden;
 }
 
+/* Before the batch runs, the hidden chip still lays out one line (the running words), so the
+   slot reserves the chip's full height from p 0 and the bar never grows mid-scrub. */
+.root:not(:global([data-batch])) .chip > [data-when='running'],
 .root:global([data-batch='run']) .chip > [data-when='running'],
 .root:global([data-batch='held']:not([data-rev='approved'])) .chip > [data-when='held'],
 .root:global([data-batch='held'][data-rev='approved']) .chip > [data-when='approved'] {
