@@ -38,12 +38,19 @@ export function OrgChartToggle({
 }: OrgChartToggleProps) {
   const [value, setValue] = useState(initial)
   const touched = useRef(false)
+  const last = useRef<string | null>(null)
 
-  // mirror the state onto the figure: data-toggle and data-rev, the chip. Leaving the reveal's
-  // quiet start happens in the same frame as the switch, so the chain never replays its fade
+  // mirror the state onto the figure: data-toggle and data-rev, the chip. A real change (not
+  // the first render, not the reveal's quiet switch off screen) also sets data-switch, which
+  // plays the scan (org-chart.module.css). Leaving the quiet start happens in the same frame as
+  // the switch, so the chain never replays
   useEffect(() => {
     const fig = document.getElementById(figure)
     if (!fig) return
+    const quiet = 'quiet' in fig.dataset
+    if (last.current !== null && last.current !== value && !(quiet && value === from))
+      fig.dataset.switch = ''
+    last.current = value
     if (value !== from) delete fig.dataset.quiet
     fig.dataset.toggle = value
     fig.dataset.rev = value

@@ -2,34 +2,50 @@
  * The interactive schematic. States: data-toggle on the figure (asFound or
  * rewired). As found is pencil on paper; Rewired is CAD on blueprint-deep.
  *
- * As found → Rewired plays once per press, in order (W4 finish C1): the pencil
- * erases and the panel goes deep; the equipment inks in, then the conduits
- * draw on in reading order (--i), then the glyphs, flanges and instruments;
- * the labels and detail bubbles arrive with or after their objects; then the
- * packets flow, linear at FLOW speed, for FLOW loops, and stop on a clean
- * still. Base CSS is the finished frame; reduced motion and paused motion get
- * it at once.
+ * A change is a scan (W4c: nothing blank or washed out mid-change): a bright
+ * edge sweeps the panel, left to right (wide) or top to bottom (tall), at a
+ * constant speed. Behind it the new state stands on its own ground (the
+ * equipment already inked); ahead of it the old state is still whole. Each
+ * tool name and state label changes as the edge passes it. As found →
+ * Rewired then goes on, in order (W4 finish C1): the conduits draw on in
+ * reading order (--i), then the glyphs, flanges and instruments; the labels
+ * and detail bubbles arrive with or after their objects; then the packets
+ * flow, linear at FLOW speed, for FLOW loops, and stop on a clean still.
+ * data-switch (SchematicController.client.tsx, on a press, never on load)
+ * turns the scan on. Base CSS is the finished frame; reduced motion and
+ * paused motion get it at once.
  */
 
 .schematic {
   position: relative;
   /* the beats of the change, from the shared timing tokens */
-  /* 60 ms between lines (W4 finish C1: 60–120 ms); the last of about 26 starts near 1.9 s */
+  /* the scan: about 1 s across the panel, linear */
+  --sch-scan: calc(var(--dur-state, 900ms) * 1.1);
+  /* 60 ms between lines (W4 finish C1: 60–120 ms); the last of about 26 starts near 1.5 s in */
   --sch-stagger: calc(var(--pencil-stagger-min, 45ms) * 4 / 3);
   --sch-ink: var(--dur-sheet, 420ms);
-  --sch-names: calc(var(--dur-sheet, 420ms) * 0.6);
-  --sch-pipes: var(--dur-sheet, 420ms);
-  --sch-labels: calc(var(--dur-state, 900ms) * 2.6);
-  --sch-flow: calc(var(--dur-state, 900ms) * 3);
+  --sch-pipes: var(--sch-scan);
+  --sch-labels: calc(var(--sch-scan) + var(--dur-state, 900ms) * 2.6 - var(--dur-sheet, 420ms));
+  --sch-flow: calc(var(--sch-labels) + var(--dur-sheet, 420ms));
 }
 
-/* Panels and layers per state */
+/* Panels and layers per state; each layer keeps its own ground, so a tint never takes the
+   other state's color mid-scan */
 .schematic[data-toggle='rewired'] :global(.box) {
   --panel: var(--c-blueprint-deep);
 }
 
 .schematic :global(.drawing .l-pencil) {
-  transition: opacity var(--dur-state, 900ms) var(--ease-machine, ease);
+  --panel: var(--c-paper);
+}
+
+.schematic :global(.drawing :is(.l-cad, .l-pkt)) {
+  --panel: var(--c-blueprint-deep);
+}
+
+/* the panel changes under the scan, never by a cross-fade through grey */
+.schematic :global(.box) {
+  transition: none;
 }
 
 .schematic :global(.drawing :is(.l-cad, .l-pkt)) {
@@ -45,26 +61,252 @@
   opacity: 0;
 }
 
-/* the ink: equipment first, then the conduits, each drawing on in turn */
-.schematic[data-toggle='rewired'] :global(.l-cad g.k-node .draw) {
-  animation: sch-draw var(--sch-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--i, 0) * var(--sch-stagger) * 0.25);
+/* ── The scan ─────────────────────────────────────────────────────────────── */
+
+/* the old ground, still ahead of the edge */
+.schematic :global(.drawing)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 0 100%);
+  pointer-events: none;
 }
 
-/* the boxes' panel fills come in with the panel itself (it fades to deep over --dur-state) */
-.schematic[data-toggle='rewired'] :global(.l-cad g.k-node) {
-  animation: sch-fade var(--dur-state, 900ms) var(--ease-machine, ease) both;
+/* the edge */
+.schematic :global(.drawing)::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--c-label-on-deep);
+  box-shadow: 0 0 24px 6px rgb(191 230 245 / 0.45);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.schematic[data-switch][data-toggle='rewired'] :global(.drawing)::before {
+  background: var(--c-paper);
+  animation: sch-scan-out-x var(--sch-scan) linear both;
+}
+
+.schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing)::before {
+  background: var(--c-blueprint-deep);
+  animation: sch-sheet-x var(--sch-scan) linear both;
+}
+
+/* both states stand during the scan: the new one behind the edge, the old one ahead of it */
+.schematic[data-switch][data-toggle='rewired'] :global(.drawing .l-pencil),
+.schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing .l-cad) {
+  visibility: visible;
+  opacity: 1;
+  animation: sch-scan-out-x var(--sch-scan) linear both;
+}
+
+.schematic[data-switch][data-toggle='rewired'] :global(.drawing .l-cad),
+.schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing .l-pencil) {
+  animation: sch-scan-in-x var(--sch-scan) linear both;
+}
+
+.schematic[data-switch][data-toggle='rewired'] :global(.drawing)::after {
+  animation: sch-edge-x var(--sch-scan) linear both;
+}
+
+.schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing)::after {
+  animation: sch-edge-x2 var(--sch-scan) linear both;
+}
+
+@container fig (width < 560px) {
+  .schematic :global(.drawing)::after {
+    inset-inline: 0;
+    inset-block: 0 auto;
+    width: auto;
+    height: 2px;
+    margin: -1px 0 0;
+  }
+
+  .schematic[data-switch][data-toggle='rewired'] :global(.drawing)::before,
+  .schematic[data-switch][data-toggle='rewired'] :global(.drawing .l-pencil),
+  .schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing .l-cad) {
+    animation-name: sch-scan-out-y;
+  }
+
+  .schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing)::before {
+    animation-name: sch-sheet-y;
+  }
+
+  .schematic[data-switch][data-toggle='rewired'] :global(.drawing .l-cad),
+  .schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing .l-pencil) {
+    animation-name: sch-scan-in-y;
+  }
+
+  .schematic[data-switch][data-toggle='rewired'] :global(.drawing)::after {
+    animation-name: sch-edge-y;
+  }
+
+  .schematic[data-switch]:not([data-toggle='rewired']) :global(.drawing)::after {
+    animation-name: sch-edge-y2;
+  }
+}
+
+@keyframes sch-scan-in-x {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes sch-scan-out-x {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes sch-sheet-x {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes sch-scan-in-y {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes sch-scan-out-y {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes sch-sheet-y {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes sch-edge-x {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes sch-edge-x2 {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes sch-edge-y {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes sch-edge-y2 {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* names and state labels change as the edge passes them (the middle of a tool, the start of
+   a label) */
+.schematic[data-switch] .tool,
+.schematic[data-switch] .tool > [data-show],
+.schematic[data-switch] :global(.labels) > [data-show] {
+  --sch-at: calc(var(--lx, 0) + var(--lw, 0) / 4);
+  transition:
+    display 0s linear calc(var(--sch-scan) * var(--sch-at) / 100),
+    visibility 0s linear calc(var(--sch-scan) * var(--sch-at) / 100),
+    color 0s linear calc(var(--sch-scan) * var(--sch-at) / 100);
+  transition-behavior: allow-discrete;
+}
+
+/* an element coming in stays out of sight until the edge reaches it (its display turns on at
+   once, so the one going out can stay until then) */
+@starting-style {
+  .schematic[data-switch] .tool > [data-show],
+  .schematic[data-switch] :global(.labels) > [data-show] {
+    visibility: hidden;
+  }
+}
+
+@container fig (width < 560px) {
+  .schematic[data-switch] .tool,
+  .schematic[data-switch] .tool > [data-show],
+  .schematic[data-switch] :global(.labels) > [data-show] {
+    --sch-at: calc(var(--lyt, 0) + var(--lht, 0) / 4);
+  }
 }
 
 .schematic[data-toggle='rewired'] :global(.l-cad g.k-inst) {
   animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
   animation-delay: var(--sch-pipes);
-}
-
-/* a tool keeps its name through the change; a name that changes (Estimating) follows its box */
-.schematic[data-toggle='rewired'] .tool > [data-show='rewired'] {
-  animation: sch-fade var(--sch-ink) var(--ease-machine, ease) both;
-  animation-delay: var(--sch-names);
 }
 
 /* the monitor's signal lines arrive with the monitor's label */
@@ -169,7 +411,24 @@
   transition: none !important;
 }
 
-/* Elements tied to one state */
+/* paused motion: no scan, just the finished state */
+:global(html[data-motion='paused']) .schematic :global(.drawing)::before,
+:global(html[data-motion='paused']) .schematic :global(.drawing)::after {
+  display: none;
+}
+
+:global(html[data-motion='paused']) .schematic[data-toggle='rewired'] :global(.drawing .l-pencil) {
+  opacity: 0 !important;
+}
+
+:global(html[data-motion='paused'])
+  .schematic:not([data-toggle='rewired'])
+  :global(.drawing :is(.l-cad, .l-pkt)) {
+  visibility: hidden !important;
+}
+
+/* Elements tied to one state: out of the other state. In a scan each one changes as the edge
+   passes it (a discrete display transition, above), so a name never doubles or jumps. */
 .schematic:not([data-toggle='rewired']) [data-show='rewired'],
 .schematic[data-toggle='rewired'] [data-show='asFound'] {
   display: none !important;
@@ -264,10 +523,12 @@
   top: calc(var(--ly) * 1%);
   width: calc(var(--lw) * 1%);
   height: calc(var(--lh) * 1%);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
+  /* one column: the name (both states' names share its cell, so a change never shifts it),
+     then the era line */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: start;
   gap: 2px;
   padding: 2px calc(var(--pr, 0) * 1% + 4px) 2px 8px;
   border: 0;
@@ -341,6 +602,7 @@
 
 .name {
   display: block;
+  grid-area: 1 / 1;
 }
 
 .era {

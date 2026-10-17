@@ -49,13 +49,28 @@ const WIDE_ROWS = [62, 270, 478] as const
 const WIDE_TOOL: readonly [number, number] = [180, 72]
 const WIDE_H = 580
 
+/**
+ * Where Home moves a box across (W4c A1): the first and last rows hold three tools each, so
+ * their last tool moves to the right-hand column and both rows reach the frame's edges, with
+ * no empty corner as found. The new plumbing takes the cell they leave once rewired: the
+ * monitor in the top row, the data store in the bottom row. Every box keeps to the four
+ * columns, so the router's channels stay clear of the boxes.
+ */
+const WIDE_AT: Readonly<Record<string, readonly [number, number?]>> = {
+  drive: [840],
+  payroll: [840],
+  monitor: [600],
+  store: [600],
+}
+
 function wideRows(nodes: Nodes): Nodes {
   return nodes.map((n) => {
     const r = nodeRect(n, 'wide')
-    const [cx, cy] = [r.x + r.w / 2, r.y + r.h / 2]
+    const [cx0, cy] = [r.x + r.w / 2, r.y + r.h / 2]
     const row = Math.min(2, Math.max(0, Math.round((cy - 100) / 200)))
     const size = n.kind === 'tool' ? WIDE_TOOL : n.size
-    return { ...n, at: [cx - size[0] / 2, WIDE_ROWS[row]! - size[1] / 2] as Pt, size }
+    const [cx, y] = WIDE_AT[n.id] ?? [cx0]
+    return { ...n, at: [cx - size[0] / 2, (y ?? WIDE_ROWS[row]!) - size[1] / 2] as Pt, size }
   })
 }
 
@@ -113,6 +128,24 @@ const TALL_CELL: Readonly<Record<string, readonly [0 | 1 | 'mid', number]>> = {
 const PORTS: Readonly<Record<string, Nodes[number]['ports']>> = {
   timesheets: { r14: { side: 's', at: 0.86 } },
 }
+
+/**
+ * Ports the wide family fixes for itself (forFamily, below): the data store sits in the bottom
+ * row between Timesheets and Payroll (WIDE_AT), so approved hours run straight across into it,
+ * and Timesheets → Payroll and HR passes under it, out of the bottom edges.
+ */
+const PORTS_WIDE: Readonly<Record<string, Nodes[number]['ports']>> = {
+  timesheets: { r14: { side: 'e', at: 0.5 }, r13: { side: 's', at: 0.9 } },
+  payroll: { r13: { side: 's', at: 0.1 } },
+  store: {
+    r14: { side: 'w', at: 0.5 },
+    r08: { side: 'n', at: 0.5 },
+    r09: { side: 'n', at: 0.2 },
+  },
+}
+
+const withPorts = (nodes: Nodes, ports: typeof PORTS_WIDE): Nodes =>
+  nodes.map((n) => (ports[n.id] ? { ...n, ports: { ...n.ports, ...ports[n.id] } } : n))
 
 function tallRows(nodes: Nodes): Nodes {
   return nodes.map((n) => {
@@ -179,8 +212,9 @@ const SIDE = 6
 
 /**
  * Where each person stands as found: beside their own hand-off line, never on
- * a line or a box. On a level run the line is the ground they walk along (feet
- * on it); on an upright run they walk beside it, the paper side toward it. The
+ * a line or a box, never standing on one (W4c A2). On a level run they walk
+ * just above it, their feet clear of it; on an upright run they walk beside
+ * it, the paper side toward it. The
  * spot nearest HOME_PEOPLE_AT whose body is clear of every box, every other
  * line, the paper marks and the people placed before them.
  */
@@ -214,8 +248,9 @@ function standBeside(g: G, family: LayoutId): Map<string, Pt> {
       const level = Math.abs(d[0]) > 0.9
       // beside an upright run: clear of the line and of the paper on it (6 units each side)
       const side = SIDE + AIR
+      // beside a level run: just above it, feet clear of the line and its paper (W4c A2)
       const spots: Pt[] = level
-        ? [[q[0], q[1]]]
+        ? [[q[0], q[1] - side]]
         : [
             [q[0] - side - BODY.x - BODY.w, q[1] + BODY.h / 2],
             [q[0] + side - BODY.x, q[1] + BODY.h / 2],
@@ -225,8 +260,7 @@ function standBeside(g: G, family: LayoutId): Map<string, Pt> {
           x: at[0] + BODY.x - AIR,
           y: at[1] + BODY.y - AIR,
           w: BODY.w + AIR * 2,
-          // standing on a level line: the feet touch it, the body stays clear above
-          h: BODY.h + AIR * (level ? 1 : 2) - (level ? 2 : 0),
+          h: BODY.h + AIR * 2,
         }
         // hard: the frame, the boxes and the other people
         if (body.x < 0 || body.y < 0 || body.x + body.w > vw || body.y + body.h > vh) continue
@@ -315,7 +349,11 @@ function stations(g: G, ps: ScaleFigure<FirmRev>[]): ScaleFigure<FirmRev>[] {
 
 /** Rewired stations at valves, from the laid-out graph's own routing. */
 function valveStations(g: G, ps: ScaleFigure<FirmRev>[]): ScaleFigure<FirmRev>[] {
-  const wired = { wide: routeGraph(g, 'rewired', 'wide'), tall: routeGraph(g, 'rewired', 'tall') }
+  const wide: G = { ...g, nodes: withPorts(g.nodes, PORTS_WIDE) }
+  const wired = {
+    wide: routeGraph(wide, 'rewired', 'wide'),
+    tall: routeGraph(g, 'rewired', 'tall'),
+  }
   const VALVE: Readonly<Record<string, string>> = { p1: 'r02', p4: 'r04' }
   return ps.map((p) => {
     const rw = p.poses.rewired
@@ -342,6 +380,21 @@ export const homeFirmGraph: G = {
   ...laidOut,
   people: stations(laidOut, valveStations(laidOut, people(laidOut))),
   notes: (firmGraph.notes ?? []).map((n) => ({ ...n, at: NOTE_AT.wide, atTall: NOTE_AT.tall })),
+}
+
+/** Per-family variants of a graph (ports a family fixes for itself), keyed by the graph. */
+const FAMILIES = new WeakMap<object, Partial<Record<LayoutId, object>>>()
+FAMILIES.set(homeFirmGraph, {
+  wide: { ...homeFirmGraph, nodes: withPorts(homeFirmGraph.nodes, PORTS_WIDE) },
+})
+
+/**
+ * The graph to route in one family: Home's firm with the wide family's own ports
+ * (PORTS_WIDE); any other graph as it is. Everything that routes a figure's graph per family
+ * (render/firm.ts, the schematic's labels) routes this.
+ */
+export function forFamily<T extends object>(g: T, family: LayoutId): T {
+  return (FAMILIES.get(g)?.[family] as T | undefined) ?? g
 }
 
 /** For tests: a carrying person's body relative to their feet, and the hand-off each walks. */

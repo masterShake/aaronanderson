@@ -21,6 +21,7 @@ import s from './org-chart.module.css'
 const FAMILIES: readonly LayoutId[] = ['wide', 'tall']
 const INITIAL = 'ours'
 const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
+const at = (f: number) => Math.round(Math.min(1, Math.max(0, f)) * 1000) / 1000
 
 export function OrgChartFigure() {
   const W = ORG_LAYOUT.wide
@@ -42,8 +43,10 @@ export function OrgChartFigure() {
       '--lyt': pct(rt.y, th),
       '--lwt': pct(rt.w, tw),
       '--lht': pct(rt.h, th),
-      // the card's place in the drawing's order, so its title arrives with it
-      '--i': c.slot * 2,
+      // where the title's middle sits along a change's scan (0 to 1): it changes as the edge
+      // passes it (wide left to right, tall top to bottom)
+      '--sx': at((rw.x + rw.w / 2) / ww),
+      '--sxt': at((rt.y + rt.h / 2) / th),
     } as CSSProperties
     const only = c.revs.length === 1 ? c.revs[0] : undefined
     return (
@@ -66,6 +69,8 @@ export function OrgChartFigure() {
           '--ly': pct(dw[1], wh),
           '--lxt': pct(dt[0], tw),
           '--lyt': pct(dt[1], th),
+          '--sx': at(dw[0] / ww),
+          '--sxt': at(dt[1] / th),
         } as CSSProperties
       }
     >
@@ -84,6 +89,9 @@ export function OrgChartFigure() {
           '--ly': pct(W.note[1], wh),
           '--lxt': pct(T.note[0], tw),
           '--lyt': pct(T.note[1], th),
+          // the note's middle: about 90 units of hand lettering
+          '--sx': at((W.note[0] + 90) / ww),
+          '--sxt': at((T.note[1] + 10) / th),
           rotate: '-3deg',
         } as CSSProperties
       }

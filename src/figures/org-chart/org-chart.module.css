@@ -3,27 +3,39 @@
  * (CAD on blueprint-deep). Static drawings, until the layers arrive the
  * matching still stands in. Titles sit in the cards' title strips.
  *
- * Chain → ours plays once per change: the chain's pencil erases, the panel
- * goes deep, YOU and the builders' cards ink in, the one wire draws on from
- * you to them, its titles arrive with their cards, then packets run along the
- * wire for FLOW loops and stop on a clean still. Ours → chain: the pencil
- * comes back, card by card. Paused motion gets the finished frame at once.
+ * A change is a scan (W4c A3: nothing is ever blank): a bright edge sweeps the
+ * panel, left to right (wide) or top to bottom (tall), at a constant speed.
+ * Behind it the new state is already whole on its own ground; ahead of it the
+ * old state is still whole on its own. Each title changes as the edge passes
+ * it. Chain → ours then sets the wire's dimension and runs packets along the
+ * wire for FLOW loops, ending on a clean still. data-switch (set by
+ * OrgChartToggle.client.tsx on a real change, never on load) turns the scan
+ * on. Paused motion gets the finished frame at once.
  */
 
 .org {
-  --org-stagger: var(--pencil-stagger-max, 70ms);
   --org-ink: var(--dur-sheet, 420ms);
-  --org-wire: calc(var(--dur-sheet, 420ms) * 0.8);
-  --org-wire-dur: var(--dur-state, 900ms);
-  --org-flow: calc(var(--dur-state, 900ms) * 1.6);
+  /* the scan: about 1.1 s across the panel, linear */
+  --org-scan: calc(var(--dur-state, 900ms) * 1.25);
+  --org-flow: calc(var(--org-scan) + var(--org-ink));
+}
+
+/* each layer keeps its own ground, so a tint never takes the other state's color mid-scan */
+.org :global(.drawing .l-pencil) {
+  --panel: var(--c-paper);
+}
+
+.org :global(.drawing :is(.l-cad, .l-pkt)) {
+  --panel: var(--c-blueprint-deep);
 }
 
 .org[data-toggle='ours'] :global(.box) {
   --panel: var(--c-blueprint-deep);
 }
 
+/* the panel changes under the scan, never by a cross-fade through grey */
 .org :global(.box) {
-  transition: background-color var(--dur-state, 900ms) var(--ease-machine, ease);
+  transition: none;
 }
 
 .org :global(.drawing :is(.l-cad, .l-pkt)) {
@@ -34,50 +46,240 @@
   visibility: visible;
 }
 
-/* the chain erases as the panel goes deep, over the time the new cards take to ink in: the
-   two cross, so the panel is never empty mid-change (W4b: no blank frame) */
 .org[data-toggle='ours'] :global(.drawing .l-pencil) {
   opacity: 0;
-  transition: opacity var(--org-ink) var(--ease-machine, ease);
 }
 
-/* ours: the cards ink in with their people, then the wire draws on, then everything on it */
-.org[data-toggle='ours'] :global(.l-cad g.k-card .draw) {
-  animation: org-draw var(--org-ink) var(--ease-machine, ease) both;
+/* ── The scan ─────────────────────────────────────────────────────────────── */
+
+/* the old ground, still ahead of the edge */
+.org :global(.drawing)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 0 100%);
+  pointer-events: none;
 }
 
-.org[data-toggle='ours'] :global(.l-cad g.person) {
+/* the edge */
+.org :global(.drawing)::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--c-label-on-deep);
+  box-shadow: 0 0 24px 6px rgb(191 230 245 / 0.45);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.org[data-switch][data-toggle='ours'] :global(.drawing)::before {
+  background: var(--c-paper);
+}
+
+.org[data-switch][data-toggle='chain'] :global(.drawing)::before {
+  background: var(--c-blueprint-deep);
+}
+
+/* both states stand during the scan: the new one behind the edge, the old one ahead of it */
+.org[data-switch][data-toggle='ours'] :global(.drawing .l-pencil),
+.org[data-switch][data-toggle='chain'] :global(.drawing .l-cad) {
+  visibility: visible;
+  opacity: 1;
+}
+
+.org[data-switch][data-toggle='ours'] :global(.drawing .l-pencil),
+.org[data-switch][data-toggle='chain'] :global(.drawing .l-cad) {
+  animation: org-scan-out-x var(--org-scan) linear both;
+}
+
+/* the old ground: its own keyframe name per direction, so each change restarts it */
+.org[data-switch][data-toggle='ours'] :global(.drawing)::before {
+  animation: org-scan-out-x var(--org-scan) linear both;
+}
+
+.org[data-switch][data-toggle='chain'] :global(.drawing)::before {
+  animation: org-sheet-x var(--org-scan) linear both;
+}
+
+.org[data-switch][data-toggle='ours'] :global(.drawing .l-cad),
+.org[data-switch][data-toggle='chain'] :global(.drawing .l-pencil) {
+  animation: org-scan-in-x var(--org-scan) linear both;
+}
+
+.org[data-switch][data-toggle='ours'] :global(.drawing)::after {
+  animation: org-edge-x var(--org-scan) linear both;
+}
+
+/* chain → ours: an alternate keyframe name, so going back and forth restarts the edge */
+.org[data-switch][data-toggle='chain'] :global(.drawing)::after {
+  animation: org-edge-x2 var(--org-scan) linear both;
+}
+
+@container fig (width < 560px) {
+  .org :global(.drawing)::after {
+    inset-inline: 0;
+    inset-block: 0 auto;
+    width: auto;
+    height: 2px;
+    margin: -1px 0 0;
+  }
+
+  .org[data-switch][data-toggle='ours'] :global(.drawing)::before,
+  .org[data-switch][data-toggle='ours'] :global(.drawing .l-pencil),
+  .org[data-switch][data-toggle='chain'] :global(.drawing .l-cad) {
+    animation-name: org-scan-out-y;
+  }
+
+  .org[data-switch][data-toggle='chain'] :global(.drawing)::before {
+    animation-name: org-sheet-y;
+  }
+
+  .org[data-switch][data-toggle='ours'] :global(.drawing .l-cad),
+  .org[data-switch][data-toggle='chain'] :global(.drawing .l-pencil) {
+    animation-name: org-scan-in-y;
+  }
+
+  .org[data-switch][data-toggle='ours'] :global(.drawing)::after {
+    animation-name: org-edge-y;
+  }
+
+  .org[data-switch][data-toggle='chain'] :global(.drawing)::after {
+    animation-name: org-edge-y2;
+  }
+}
+
+@keyframes org-scan-in-x {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes org-scan-out-x {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes org-scan-in-y {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes org-scan-out-y {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes org-sheet-x {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes org-sheet-y {
+  from {
+    clip-path: inset(0);
+  }
+
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes org-edge-x {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes org-edge-x2 {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes org-edge-y {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes org-edge-y2 {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+
+  97% {
+    opacity: 1;
+  }
+
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* ours, once the scan has crossed: the wire's dimension sets, then packets run */
+.org[data-switch][data-toggle='ours'] :global(.l-cad g.k-dim),
+.org[data-switch][data-toggle='ours'] :global(.labels) > .dim {
   animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--org-ink) * 0.25);
-}
-
-.org[data-toggle='ours'] :global(.l-cad g.k-wire .draw) {
-  animation: org-draw var(--org-wire-dur) var(--ease-machine, ease) both;
-  animation-delay: var(--org-wire);
-}
-
-.org[data-toggle='ours'] :global(.l-cad g.k-wire path:not(.draw)),
-.org[data-toggle='ours'] :global(.l-cad g.k-wire path[data-part='wire.flange']) {
-  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--org-wire) + var(--org-wire-dur) * 0.6);
-}
-
-/* chain: each card and hand-off comes back in reading order */
-.org[data-toggle='chain'] :global(.l-pencil path) {
-  animation: org-fade var(--org-ink) var(--ease-pencil, ease) both;
-  animation-delay: calc(var(--i, 0) * var(--org-stagger));
-}
-
-/* The reveal's first switch to the chain happens off screen: no fade-in there, so the
-   chain is already whole when it scrolls in (OrgChartToggle.client.tsx, data-quiet). */
-.org.org[data-quiet] :global(.l-pencil path),
-.org.org[data-quiet] :global(.labels) > .node,
-.org.org[data-quiet] :global(.labels) > .note {
-  animation: none;
-}
-
-.org.org[data-quiet] :global(.box) {
-  transition: none;
+  animation-delay: var(--org-scan);
 }
 
 /* the packets: one stream down the wire, constant FLOW speed, FLOW loops, then a still */
@@ -89,16 +291,6 @@
 
 .org[data-toggle='ours'] :global(.l-pkt path.pk) {
   animation: org-flow var(--flow-loop, 6000ms) linear var(--org-flow) var(--flow-loops, 3) none;
-}
-
-@keyframes org-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
 }
 
 @keyframes org-fade {
@@ -124,21 +316,6 @@
   }
 }
 
-/* titles arrive with their cards */
-.org[data-toggle] :global(.labels) > .node {
-  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--org-ink) * 0.5);
-}
-
-.org[data-toggle='chain'] :global(.labels) > .node {
-  animation-delay: calc(var(--i, 0) * var(--org-stagger) + var(--org-ink) * 0.5);
-}
-
-.org[data-toggle='chain'] :global(.labels) > .note {
-  animation: org-fade var(--org-ink) var(--ease-pencil, ease) both;
-  animation-delay: calc(var(--org-ink) + var(--org-stagger) * 6);
-}
-
 :global(html[data-motion='paused']) .org :global(.l-pkt) {
   display: none;
 }
@@ -149,10 +326,37 @@
   transition: none !important;
 }
 
-/* Elements tied to one state */
+/* paused motion: no scan, just the finished state */
+:global(html[data-motion='paused']) .org :global(.drawing)::before,
+:global(html[data-motion='paused']) .org :global(.drawing)::after {
+  display: none;
+}
+
+:global(html[data-motion='paused']) .org[data-toggle='ours'] :global(.drawing .l-pencil) {
+  opacity: 0 !important;
+}
+
+:global(html[data-motion='paused']) .org[data-toggle='chain'] :global(.drawing .l-cad) {
+  visibility: hidden !important;
+}
+
+/* Elements tied to one state: hidden in the other. In a scan each one changes as the edge
+   passes it (--sx wide, --sxt tall: its place along the scan, 0 to 1), so a title never sits on the wrong ground. */
 .org:not([data-toggle='chain']) [data-show='chain'],
 .org[data-toggle='chain'] [data-show='ours'] {
-  display: none !important;
+  visibility: hidden;
+}
+
+.org[data-switch] :global(.labels) > :is(.node, .note, .dim) {
+  transition:
+    visibility 0s linear calc(var(--org-scan) * var(--sx, 0)),
+    color 0s linear calc(var(--org-scan) * var(--sx, 0));
+}
+
+@container fig (width < 560px) {
+  .org[data-switch] :global(.labels) > :is(.node, .note, .dim) {
+    transition-delay: calc(var(--org-scan) * var(--sxt, 0));
+  }
 }
 
 /* Until the layers arrive, the matching still stands in for them. */
@@ -183,13 +387,9 @@
   color: var(--c-asphalt);
 }
 
+/* a title that stays (YOU) changes ink with the ground under it, as the edge passes */
 .org[data-toggle='ours'] :global(.labels) > .node {
   color: var(--c-label-on-deep);
-}
-
-/* a title that stays (YOU) changes ink with the panel under it, so it never vanishes */
-.org :global(.labels) > .node {
-  transition: color var(--dur-state, 900ms) var(--ease-machine, ease);
 }
 
 @container fig (width < 560px) {
@@ -215,12 +415,6 @@
   .org :global(.labels) > .dim {
     translate: 6px -50%;
   }
-}
-
-.org[data-toggle='ours'] :global(.labels) > .dim,
-.org[data-toggle='ours'] :global(.l-cad g.k-dim) {
-  animation: org-fade var(--org-ink) var(--ease-machine, ease) both;
-  animation-delay: calc(var(--org-wire) + var(--org-wire-dur));
 }
 
 .org :global(.labels) > .note {
