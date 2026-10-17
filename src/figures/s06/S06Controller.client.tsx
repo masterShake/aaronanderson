@@ -14,7 +14,8 @@ import { IS_PRODUCTION } from '@/lib/env'
  * S-06's client half. Scrub (1024 px and up, fine pointer, inside a services sheet): the sheet's
  * [data-scrub-track] drives --p through useFigure, and the Stage hands off at p .15. Otherwise
  * (phones, tablets, the /kit harness) p plays 0 → 1 on entry (drivePlay) with Replay. From
- * S06.motionFromP the inspection loops run (data-mech, CSS, three sweeps then idle).
+ * S06.motionFromP the inspection loops run (data-mech, CSS, three sweeps then idle); below it
+ * they are off.
  * Non-production ?p= pins p (frames and the seam check).
  */
 
@@ -59,8 +60,11 @@ export function S06Controller() {
     const root = document.getElementById('fig-s06')
     if (!root) return
     const offs: (() => void)[] = []
+    // the loops run only from S06.motionFromP: below it (scrolled back, or before p is set) the
+    // chip, the sweep and FIXED are off, and they start again when p crosses forward
     const onP = (p: number) => {
       if (p >= S06.motionFromP) root.dataset.mech = ''
+      else delete root.dataset.mech
     }
     const play = () => {
       stop.current()

@@ -129,15 +129,25 @@
   --hot: calc(1 - clamp(0, (var(--p, 1) - var(--m) - var(--s06-hot-p)) / var(--s06-cool-p), 1));
 }
 
+/* the hero's valve on the print (aluminum with orange edges): orange from the hand-off until
+   the inspection starts, then it settles like a month's instrument (W4d) */
+.s06 :global(.drawing) :global([data-part='valve']) {
+  --hot: calc(1 - clamp(0, (var(--p, 1) - var(--s06-motion-from-p)) / var(--s06-cool-p), 1));
+}
+
 .s06.s06
   :global(.box)
-  :global(:is([data-part='m1'], [data-part='m2'], [data-part='m3']).f-alu-100) {
+  :global(
+    :is([data-part='m1'], [data-part='m2'], [data-part='m3'], [data-part='valve']).f-alu-100
+  ) {
   fill: color-mix(in srgb, var(--c-orange) calc(var(--hot) * 100%), var(--c-alu-100));
 }
 
 .s06.s06
   :global(.box)
-  :global(:is([data-part='m1'], [data-part='m2'], [data-part='m3']).f-alu-300) {
+  :global(
+    :is([data-part='m1'], [data-part='m2'], [data-part='m3'], [data-part='valve']).f-alu-300
+  ) {
   fill: color-mix(
     in srgb,
     color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt)) calc(var(--hot) * 100%),
