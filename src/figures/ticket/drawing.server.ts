@@ -1,7 +1,18 @@
 import 'server-only'
 import type { LayoutId, Prim, Pt, SvgDoc, SvgNode, SymbolId } from '@/drawings/types'
 import type { PresetId } from '@/drawings/kit/rough'
-import { docsBuilder, graphDoc, partsNodes, pencil, type DocStateSpec } from '@/drawings/render'
+import {
+  STILL_K,
+  docsBuilder,
+  graphDoc,
+  mergeDocs,
+  partsNodes,
+  pencil,
+  type DocStateSpec,
+  type DocsBuilder,
+} from '@/drawings/render'
+import { toStillSvg } from '@/drawings/lib/svg-string'
+import { ticketFigure as copy } from '@/content/figures/ticket'
 import { group, strokeCls } from '@/drawings/render/cad'
 import { primD, seedFrom } from '@/drawings/lib/geometry'
 import { primLength } from '@/drawings/lib/length'
@@ -14,7 +25,9 @@ import {
   type TicketRev,
 } from '@/drawings/graphs/ticket'
 import { TICKET_EXTRAS, ticketGeometry } from '@/drawings/views/ticket'
-import { nodeGlyph, type Glyph } from './glyphs'
+import { labelRoom, nodeGlyph, type Glyph } from './glyphs'
+import { letter, letterLines, measure, wrap } from './lettering'
+import { counts, modeCounts } from '@/drawings/lib/counts'
 
 /**
  * The ticket drawing files served by /drawings/[file] (owner: how):
@@ -210,6 +223,59 @@ export function ticketDocument(t: R, family: LayoutId): Glyph {
   return { outline, detail }
 }
 
+/**
+ * A hand-over document (REV 3): a sheet with a folded corner, a title zone at the top (the
+ * name is HTML, or lettered on the phone stills), a rule under it, lines of text, and an
+ * approval seal in the lower right that the last lines stop short of.
+ */
+export function docSheet(
+  [x, y, w, h]: readonly [number, number, number, number],
+  family: LayoutId,
+): { outline: Prim[]; detail: Prim[]; seal: Prim[] } {
+  const wide = family === 'wide'
+  const ear = wide ? 14 : 12
+  const ruleY = y + (wide ? 46 : 21)
+  const step = wide ? 8 : 7
+  const r = wide ? 11 : 8
+  const sc: Pt = [x + w - (wide ? 22 : 18), y + h - (wide ? 20 : 16)]
+  const outline: Prim[] = [
+    {
+      t: 'poly',
+      pts: [
+        [x, y],
+        [x + w - ear, y],
+        [x + w, y + ear],
+        [x + w, y + h],
+        [x, y + h],
+      ],
+      closed: true,
+    },
+    line([x + w - ear, y], [x + w - ear, y + ear]),
+    line([x + w - ear, y + ear], [x + w, y + ear]),
+  ]
+  const detail: Prim[] = [line([x + 6, ruleY], [x + w - 6, ruleY])]
+  const lens = [0.86, 0.72, 0.8, 0.5]
+  for (let i = 0, ly = ruleY + step; ly <= y + h - 7; i++, ly += step) {
+    const end = x + 8 + (w - 16) * lens[i % lens.length]!
+    // lines that reach the seal stop short of it
+    const stop = ly > sc[1] - r - 3 ? Math.min(end, sc[0] - r - 5) : end
+    if (stop > x + 20) detail.push(line([x + 8, ly], [stop, ly]))
+  }
+  const seal: Prim[] = [
+    { t: 'circle', c: sc, r },
+    { t: 'circle', c: sc, r: r * 0.7 },
+    {
+      t: 'poly',
+      pts: [
+        [sc[0] - r * 0.36, sc[1]],
+        [sc[0] - r * 0.08, sc[1] + r * 0.3],
+        [sc[0] + r * 0.38, sc[1] - r * 0.32],
+      ],
+    },
+  ]
+  return { outline, detail, seal }
+}
+
 /** The ticket graph laid out for a family, with the valve drawn by hand on its branch. */
 function ticketGraphFor(family: LayoutId) {
   const g = ticketGeometry(family).graph
@@ -358,39 +424,31 @@ function rewired(family: LayoutId, rev: TicketRev): SvgDoc {
       ),
     )
 
-  // REV 3 on: the hand-over documents
+  // REV 3 on: the hand-over documents, each a sheet with its title, a rule, lines of text
+  // and an approval seal (the title itself is HTML, or lettered on the phone stills)
   if (n >= 3)
     kids.push(
       group(
         'docs',
-        ex.docs.map(([key, [x, y, w, h], deg], i) => ({
-          el: 'g' as const,
-          part: `doc.${i}`,
-          cls: 'doc',
-          transform: `rotate(${deg} ${x + w / 2} ${y + h / 2})`,
-          children: [
-            clean(
-              [
-                {
-                  t: 'poly',
-                  pts: [
-                    [x, y],
-                    [x + w - 14, y],
-                    [x + w, y + 14],
-                    [x + w, y + h],
-                    [x, y + h],
-                  ],
-                  closed: true,
-                },
-                line([x + w - 14, y], [x + w - 14, y + 14]),
-                line([x + w - 14, y + 14], [x + w, y + 14]),
-              ],
-              String(key),
-              6 + i,
-              strokeCls({ pen: '035', ink: 'cyan', fill: 'paper' }),
-            ),
-          ],
-        })),
+        ex.docs.map(([key, [x, y, w, h], deg], i) => {
+          const d = docSheet([x, y, w, h], family)
+          return {
+            el: 'g' as const,
+            part: `doc.${i}`,
+            cls: 'doc',
+            transform: `rotate(${deg} ${x + w / 2} ${y + h / 2})`,
+            children: [
+              clean(
+                d.outline,
+                String(key),
+                6 + i,
+                strokeCls({ pen: '035', ink: 'cyan', fill: 'paper' }),
+              ),
+              clean(d.detail, `${key}.text`, 6 + i, strokeCls({ pen: '018', ink: 'cad' })),
+              clean(d.seal, `${key}.seal`, 6 + i, strokeCls({ pen: '035', ink: 'cad' })),
+            ],
+          }
+        }),
       ),
     )
 
@@ -431,10 +489,178 @@ export const TICKET_STATES: readonly DocStateSpec[] = TICKET_REVS.map((rev, i) =
   ...(i > 0 ? { ghost: 1 } : {}),
 }))
 
-export const drawing = docsBuilder(
+const base = docsBuilder(
   (family, rev) => (rev === 'rev0' ? asFound(family) : rewired(family, rev as TicketRev)),
   TICKET_STATES,
 )
+
+type Tone = 'ink' | 'old' | 'new' | 'red' | 'doc'
+
+/** The ink a label's tone letters in, per revision (the HTML label colors, as inks). */
+function toneInk(tone: Tone, rev: TicketRev): string {
+  const deep = rev !== 'rev0' && rev !== 'rev1'
+  if (tone === 'red') return 'redline'
+  if (tone === 'old') return deep ? 'cyan' : 'asphalt'
+  if (tone === 'new') return deep ? 'label' : 'cad'
+  return 'asphalt'
+}
+
+const NODE_CAP = 8
+const TAG_CAP = 7
+
+/**
+ * The phone stills' names (tall family): each label the HTML overlay shows at this revision,
+ * lettered in pen at the same place, so a step's still reads as finished without the overlay.
+ * Tags off the boxes get a backing in their ground color, as the HTML tags do.
+ */
+function lettering(rev: TicketRev): SvgDoc {
+  const fam: LayoutId = 'tall'
+  const g = ticketGraphFor(fam)
+  const ex = TICKET_EXTRAS[fam]
+  const deep = rev !== 'rev0' && rev !== 'rev1'
+  const kids: SvgNode[] = []
+  const pen = (ink: string) => strokeCls({ pen: '035', ink, draw: false })
+  const ink = (prims: readonly Prim[], part: string, color: string) =>
+    prims.length ? [clean(prims, part, 0, pen(color))] : []
+  const backing = (x: number, y: number, w: number, h: number, part: string, fill: string) =>
+    clean([rect(x, y, w, h)], `${part}.ground`, 0, strokeCls({ fill, draw: false }))
+
+  // the boxes' names, inside their boxes beside the glyph
+  for (const n of ticketGraph.nodes) {
+    const asFoundOnly = n.revs?.length === 1 && n.revs[0] === 'rev0'
+    const revs = asFoundOnly ? ['rev0', 'rev2'] : (n.revs ?? TICKET_REVS)
+    if (!revs.includes(rev)) continue
+    const tone: Tone = n.revs?.includes('rev2') ? 'new' : asFoundOnly ? 'old' : 'ink'
+    const r = nodeRect(
+      g.nodes.find((x) => x.id === n.id)!,
+      fam,
+    )
+    const room = labelRoom(n.id, r, fam)
+    const text = copy.labels[n.label]
+    let cap = NODE_CAP
+    let lines = wrap(text, room, cap)
+    if (lines.length > 2 || lines.some((l) => measure(l, cap) > room)) {
+      cap = TAG_CAP
+      lines = wrap(text, room, cap)
+    }
+    kids.push(
+      group(
+        `name.${n.id}`,
+        ink(letterLines(lines, r.x + 7, r.y + 7, cap), n.id, toneInk(tone, rev)),
+      ),
+    )
+  }
+
+  // REV 0: the tape measure and the count under the survey, in the space the new route
+  // takes later (the live tall figure has no room for it beside its labels)
+  if (rev === 'rev0') {
+    const [x, y, w, h] = [16, 398, 368, 14]
+    const ticks: Prim[] = [rect(x, y, w, h)]
+    for (let i = 1; i * 12 < w; i++)
+      ticks.push(line([x + i * 12, y], [x + i * 12, y + (i % 2 ? h / 3 : h / 2)]))
+    const t0 = counts(ticketGraph, 'rev0').handoffs
+    const r0 = modeCounts(ticketGraph, 'rev0').retype
+    const tally = copy.ui.tape.replace('{h}', String(t0)).replace('{r}', String(r0))
+    kids.push(
+      group('tape', [
+        ...rough(ticks, 'tall:tape', 'tape', 0, strokeCls({ pen: '018', ink: 'pencil' })),
+        ...ink(letter(tally, x, y + h + 10, NODE_CAP), 'tape', 'asphalt'),
+      ]),
+    )
+  }
+
+  // the tags beside the line
+  const tags: [key: string, text: string, tone: Tone, revs: readonly TicketRev[]][] = [
+    ['ai', copy.labels['route.ai'], 'new', TICKET_REVS.slice(1)],
+    ['signOff', copy.labels['route.signOff'], 'new', TICKET_REVS.slice(1)],
+    ['markup', copy.labels.markup, 'red', ['rev1']],
+    ['monitor', copy.labels.monitor, 'new', ['rev4']],
+    ['fixed', copy.labels.fixed, 'new', ['rev4']],
+  ]
+  for (const [key, text, tone, revs] of tags) {
+    const t = ex.tags[key]
+    if (!t || !revs.includes(rev)) continue
+    const [x, y, w] = t
+    const lines = wrap(text, w, TAG_CAP)
+    const lw = Math.max(...lines.map((l) => measure(l, TAG_CAP)))
+    const lh = lines.length * TAG_CAP + (lines.length - 1) * TAG_CAP * 0.6
+    kids.push(
+      group(`tag.${key}`, [
+        backing(x - 3, y - 3, lw + 6, lh + 6, key, deep ? 'deep' : 'paper'),
+        ...ink(letterLines(lines, x, y, TAG_CAP), key, toneInk(tone, rev)),
+      ]),
+    )
+  }
+
+  // REV 3 on: the punch list, a paper card with its three ticks
+  const pt = ex.tags.punch
+  if (pt && (rev === 'rev3' || rev === 'rev4')) {
+    const [x, y] = pt
+    const items = (['punch.guide', 'punch.walkthrough', 'punch.approvers'] as const).map((k) =>
+      copy.ui[k].toUpperCase(),
+    )
+    const lead = measure('✓ ', TAG_CAP) + TAG_CAP / 6
+    const lw = Math.max(
+      measure(copy.ui.punchTitle, TAG_CAP),
+      ...items.map((t) => lead + measure(t, TAG_CAP)),
+    )
+    const row = TAG_CAP * 1.7
+    const card: SvgNode[] = [
+      backing(x, y, lw + 12, row * 4 - TAG_CAP * 0.7 + 10, 'punch', 'paper'),
+      ...ink(letter(copy.ui.punchTitle, x + 6, y + 5, TAG_CAP), 'punch', 'asphalt'),
+    ]
+    items.forEach((t, i) => {
+      const ly = y + 5 + row * (i + 1)
+      card.push(...ink(letter('✓', x + 6, ly, TAG_CAP), `punch.${i}`, 'cad'))
+      card.push(...ink(letter(t, x + 6 + lead, ly, TAG_CAP), `punch.${i}`, 'asphalt'))
+    })
+    kids.push(group('punch', card))
+  }
+
+  // REV 3 on: each document's title, in the sheet's title zone (turned with the sheet)
+  if (rev === 'rev3' || rev === 'rev4')
+    ex.docs.forEach(([key, [x, y, w, h], deg], i) =>
+      kids.push({
+        el: 'g',
+        part: `doc.${i}.name`,
+        transform: `rotate(${deg} ${x + w / 2} ${y + h / 2})`,
+        children: ink(
+          letterLines(wrap(copy.labels[key], w - 30, TAG_CAP), x + 8, y + 7, TAG_CAP),
+          String(key),
+          'asphalt',
+        ),
+      }),
+    )
+
+  return { viewBox: ex.viewBox, groups: [{ layer: 'iso', rev, children: kids }] }
+}
+
+/** A tall still with its names lettered in (the phone steps show it with no HTML labels). */
+function letteredStill(rev: TicketRev): string {
+  const i = TICKET_REVS.indexOf(rev)
+  const docs = TICKET_REVS.slice(0, i + 1).map((r) => base.doc('tall', r))
+  return toStillSvg(mergeDocs([...docs, lettering(rev)]), {
+    k: STILL_K.tall,
+    ground: 'paper',
+    remap: { panel: 'paper' },
+  })
+}
+
+/**
+ * The ticket's files: every docsBuilder file, where tall.{rev}.still.svg (the phone steps)
+ * carries lettered names, plus tall.{rev}.bare.still.svg without them for the figure's own
+ * still tier, which lays the HTML labels over it.
+ */
+export const drawing: DocsBuilder = {
+  ...base,
+  files: [...base.files, ...TICKET_REVS.map((r) => `tall.${r}.bare.still.svg`)],
+  build(file) {
+    if (file.endsWith('.bare.still.svg')) return base.build(file.replace('.bare', ''))
+    const [fam, rev] = file.split('.')
+    if (fam === 'tall' && file.endsWith('.still.svg')) return letteredStill(rev as TicketRev)
+    return base.build(file)
+  },
+}
 
 /** For the unit check: the graph is the counted one, untouched by the drawing tweaks. */
 export const ticketCountsGraph = ticketGraph
