@@ -10,7 +10,7 @@ import { site } from '../site'
 export const s06Figure = {
   id: 's06',
   detail: 'DETAIL 6 / S-06',
-  title: 'THE MONTHLY INSPECTION',
+  title: 'MONTHLY CHECK',
   tag: site.exampleTag,
   caption: 'Somebody minds the machine: failures caught, fixes shipped, a report each month.',
   longDescription: [
@@ -26,7 +26,7 @@ export const s06Figure = {
     'tool.accounting': 'ACCOUNTING',
     'tool.report': "OWNER'S REPORT",
     'sym.store': 'DATA STORE',
-    inspection: 'MONTHLY INSPECTION',
+    inspection: 'INSPECTION',
     fixed: 'FIXED',
     'add.report': 'NEW REPORT',
     'add.alert': 'NEW ALERT',

@@ -7,7 +7,8 @@ import { buildHeroModel } from '@/scenes/model/spec'
  * hero wide viewBox (960 × 640); tall is 400 × 500 (the hero's tall plan, with room under it).
  *   flange   on the accounting → store inlet: where the FIXED stall happens
  *   gauge    the monitor, beside the store; it stays IN RANGE
- *   m1…m3    month instruments: a small orange enclosure on a stub off a running line
+ *   m1…m3    month instruments: a small enclosure on a stub off a running line (orange only
+ *            while it is new)
  * Isomorphic: no roughjs, no DOM, no strings beyond ids and label keys.
  */
 
@@ -138,14 +139,15 @@ export function buildS06Model(family: LayoutId): S06Model {
       material: 'aluminum',
       revs: [id],
     })
-    // the bolted-on instrument: a small orange enclosure the stub plugs into
+    // the bolted-on instrument: a small aluminum enclosure the stub plugs into (it lands orange
+    // and settles to aluminum: s06.module.css and the scene tint it while it is new)
     const [mw, mh] = wide ? [30, 24] : [22, 18]
     parts.push({
       id,
       kind: 'box',
       prims: [{ t: 'rect', at: [r2(at[0] - mw / 2), r2(at[1] - mh / 2)], size: [mw, mh] }],
       depth: wide ? 22 : 16,
-      material: 'orange',
+      material: 'aluminum',
       anchor: S06_ADDS[i],
       revs: [id],
     })

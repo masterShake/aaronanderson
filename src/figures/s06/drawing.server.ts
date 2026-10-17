@@ -1,11 +1,26 @@
 import 'server-only'
-import type { DrawingBuilder, LayoutId, Pt, SvgDoc, SvgNode } from '@/drawings/types'
+import type { DrawingBuilder, LayoutId, Pt, SvgDoc, SvgNode, ViewBox } from '@/drawings/types'
 import { cad, docsBuilder, frameNodes, isoPrintDoc, modelBounds } from '@/drawings/render'
 import { s06Glyphs } from '@/scenes/model/s06-data'
 import { planFrame } from '@/drawings/lib/frame'
 import { fitIso, isoToViewBox, planToWorld } from '@/drawings/lib/iso'
 import { num } from '@/drawings/lib/geometry'
 import { buildS06Model, partTop, S06_VIEWBOX, type S06Model } from '@/drawings/views/s06'
+import { S06 } from '@/motion/timing/s06'
+import { SCENE } from '@/styles/tokens'
+
+/** The print's fit, with S-06's own margin (S06.isoPad), as the scene's rig fits the model. */
+const fitOf = (m: S06Model, vb: ViewBox) =>
+  fitIso(vb, vb[2], vb[3], modelBounds(m.spec), S06.isoPad)
+
+/**
+ * isoPrintDoc fits with the shared SCENE.padding; a viewBox grown by k about its centre gives
+ * the same print at S06.isoPad, in the same coordinates (the doc keeps the real viewBox).
+ */
+function padBox(vb: ViewBox): ViewBox {
+  const k = (1 - 2 * S06.isoPad) / (1 - 2 * SCENE.padding)
+  return [vb[0] + (vb[2] * (1 - k)) / 2, vb[1] + (vb[3] * (1 - k)) / 2, vb[2] * k, vb[3] * k]
+}
 
 /**
  * The s06 drawing files served by /drawings/[file] (owner: hero):
@@ -20,7 +35,7 @@ import { buildS06Model, partTop, S06_VIEWBOX, type S06Model } from '@/drawings/v
 /** The dial on the gauge's top face, projected like the print. */
 function dialNodes(m: S06Model, family: LayoutId, first: number): SvgNode[] {
   const vb = S06_VIEWBOX[family]
-  const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec))
+  const fit = fitOf(m, vb)
   const gauge = m.spec.parts.find((p) => p.id === 'gauge')!
   const prim = gauge.prims[0]!
   const R = prim.t === 'circle' ? prim.r * 0.82 : 10
@@ -113,7 +128,7 @@ function planGlyphs(m: S06Model): SvgNode[] {
 /** The tool glyphs on the print's box tops (blueprint on aluminium; dark on the orange report). */
 function printGlyphs(m: S06Model, family: LayoutId, first: number): SvgNode[] {
   const vb = S06_VIEWBOX[family]
-  const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec))
+  const fit = fitOf(m, vb)
   const top = new Map(m.spec.parts.map((p) => [`glyph.${p.id}`, partTop(p).z]))
   return s06Glyphs(m.spec.parts).map((g, j) => ({
     el: 'path',
@@ -129,7 +144,7 @@ function make(family: LayoutId, rev: string): SvgDoc {
   const m = buildS06Model(family)
   const vb = S06_VIEWBOX[family]
   if (rev === 'print') {
-    const iso = isoPrintDoc(m.spec)
+    const iso = isoPrintDoc(m.spec, { viewBox: padBox(vb) })
     return {
       viewBox: vb,
       groups: iso.groups.map((g) => {

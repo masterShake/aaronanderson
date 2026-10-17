@@ -1,6 +1,6 @@
 /*
- * S-06 on --p (pages-drawings §6.6): the CAD plan draws on to p .15 (the hand-off frame), the
- * iso print (and the tool names) fades in to p .22, then from p .40 every .15 bolts on a month
+ * S-06 on --p (pages-drawings §6.6): the CAD plan holds through p .15 (the hand-off frame), the
+ * iso print (and the tool names) fades in over p .19–.26, then from p .40 every .15 bolts on a month
  * (its instrument on the plan and the print, its tick and its label). The inspection sweeps are
  * time loops under [data-mech] (set by the controller from S06.motionFromP), in both media: three, then idle; a
  * fault shows at the flange through the last sweep, then FIXED. The health card ticks as each
@@ -111,15 +111,38 @@
 /* Month instruments, on the plan and on the print: the stub fades in and the enclosure drops
    onto it (ease-out), over .03 of p. */
 .s06 :global(.drawing) :global([data-part^='m1']) {
-  --mk: clamp(0, (var(--p, 1) - var(--m1)) / 0.03, 1);
+  --m: var(--m1);
 }
 
 .s06 :global(.drawing) :global([data-part^='m2']) {
-  --mk: clamp(0, (var(--p, 1) - var(--m2)) / 0.03, 1);
+  --m: var(--m2);
 }
 
 .s06 :global(.drawing) :global([data-part^='m3']) {
-  --mk: clamp(0, (var(--p, 1) - var(--m3)) / 0.03, 1);
+  --m: var(--m3);
+}
+
+/* --hot: 1 while the instrument is new (orange), easing to 0 as it settles to aluminum, so
+   only the newest is ever orange and the owner's report stays the one constant orange */
+.s06 :global(.drawing) :global(:is([data-part^='m1'], [data-part^='m2'], [data-part^='m3'])) {
+  --mk: clamp(0, (var(--p, 1) - var(--m)) / 0.03, 1);
+  --hot: calc(1 - clamp(0, (var(--p, 1) - var(--m) - var(--s06-hot-p)) / var(--s06-cool-p), 1));
+}
+
+.s06.s06
+  :global(.box)
+  :global(:is([data-part='m1'], [data-part='m2'], [data-part='m3']).f-alu-100) {
+  fill: color-mix(in srgb, var(--c-orange) calc(var(--hot) * 100%), var(--c-alu-100));
+}
+
+.s06.s06
+  :global(.box)
+  :global(:is([data-part='m1'], [data-part='m2'], [data-part='m3']).f-alu-300) {
+  fill: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--c-orange) 82%, var(--c-asphalt)) calc(var(--hot) * 100%),
+    var(--c-alu-300)
+  );
 }
 
 .s06 :global(.drawing) :global(:is([data-part^='m1'], [data-part^='m2'], [data-part^='m3'])) {
@@ -151,11 +174,11 @@
   }
 }
 
-/* On the CAD plan the names sit in their boxes, from p = 0; they leave as the hand-off starts
-   to tilt the plan. */
+/* On the CAD plan the names sit in their boxes, from p = 0, through the hand-off; they leave
+   as the plan starts to tilt (WebGL) or the print starts to come in (SVG). */
 .s06.s06 .planName {
   background: none;
-  opacity: clamp(0, (var(--s06-handoff-p) + 0.04 - var(--p, 1)) / 0.04, 1);
+  opacity: clamp(0, (var(--s06-print-from-p) + 0.05 - var(--p, 1)) / 0.03, 1);
 }
 
 /* the owner's report box is orange on the plan: its name stays dark there */
@@ -167,15 +190,16 @@
   .s06.s06 .planName[data-wide-only] {
     display: none;
   }
+}
 
-  /* the tall store circle is narrower than its name on one line: one word per line, centred */
-  .s06.s06 .planName[data-key='sym.store'] {
-    inline-size: min-content;
-    padding: 0;
-    line-height: 1.25;
-    text-align: center;
-    white-space: normal;
-  }
+/* the store circle is narrower than its name on one line (on the services sheet and on
+   phones): one word per line, centred, inside the tank outline */
+.s06.s06 .planName[data-key='sym.store'] {
+  inline-size: min-content;
+  padding: 0;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
 }
 
 /* Tool names sit on their box tops, with the print. */
@@ -322,8 +346,9 @@
   font-size: clamp(9px, 1.15cqi, 12px);
   letter-spacing: var(--tr-label);
   text-transform: uppercase;
-  /* with the print, its rows not yet ticked (on phones it fills the band above the print) */
-  opacity: var(--print);
+  /* once the print is in (never over the plan's boxes), its rows not yet ticked (on phones it
+     fills the band above the print) */
+  opacity: clamp(0, (var(--p, 1) - var(--s06-print-to-p)) / 0.04, 1);
   pointer-events: none;
 }
 

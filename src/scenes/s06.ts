@@ -1,6 +1,7 @@
 import {
   CanvasTexture,
   CircleGeometry,
+  Color,
   Mesh,
   MeshBasicMaterial,
   NearestFilter,
@@ -104,12 +105,13 @@ const mod: SceneModule = {
     const vb = ctx.viewBox
     const q = ctx.quality
     const three = new Scene()
-    const rig = new OrthoRig('plan')
+    const rig = new OrthoRig('plan', S06.isoPad)
     const own: { geometry?: BufferGeometry; material?: Material; dispose?(): void }[] = []
     const lines: { m: LineMaterial; pen: Pen; o: Object3D }[] = []
     const edges: { m: LineMaterial; ink: string }[] = []
     const pipeLines: { m: LineMaterial; o: Object3D }[] = []
-    const solids: { mesh: Mesh; face: Solid; order: number; month: number }[] = []
+    const solids: { mesh: Mesh; face: Solid; order: number; month: number; c: Color }[] = []
+    const hot = new Color(COLOR.orange)
     const tubes: { t: Mesh<TubeGeometry>; month: number }[] = []
     const anchors = new Map<string, Object3D>()
     const months = new Map<string, number>()
@@ -265,7 +267,7 @@ const mod: SceneModule = {
           const l = partLines(p)[i]!
           for (const y of [0, top]) edges.push({ m: mkLine(l, y, order, mesh).m, ink: l.ink })
           setExtrude(mesh, 0)
-          solids.push({ mesh, face, order, month })
+          solids.push({ mesh, face, order, month, c: face.color.clone() })
           three.add(mesh)
           if (p.id === 'gauge') dial(mesh, centre(p), outline(c).pts, top, order)
           // the tool's glyph on its top face (blueprint; dark on the orange report)
@@ -342,6 +344,12 @@ const mod: SceneModule = {
           : ease.settle(span(p, PH + 0.04 + sd.order * 0.004, PH + 0.14 + sd.order * 0.004))
         setExtrude(sd.mesh, ext)
         sd.mesh.visible = !sd.month || ext > 0
+        if (sd.month) {
+          // lands orange, settles to aluminum: only the newest is ever orange
+          const k = span(p, mm + S06.hotP, mm + S06.hotP + S06.coolP)
+          sd.face.color.lerpColors(hot, sd.c, k)
+          sd.face.metalness = k * TUNING.aluminum.standard.metalness
+        }
         sd.face.uFlat.value = flat
       }
       decal.visible = p < PH + 0.07

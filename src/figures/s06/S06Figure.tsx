@@ -30,7 +30,7 @@ const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
 function isoLabels(family: LayoutId) {
   const m = buildS06Model(family)
   const vb = S06_VIEWBOX[family]
-  const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec))
+  const fit = fitIso(vb, vb[2], vb[3], modelBounds(m.spec), S06.isoPad)
   /** The anchor's print position; undefined where the family has no such part (tall: no CRM). */
   const at = (key: string): Pt | undefined => {
     const part = m.spec.parts.find((p) => p.anchor === key)
@@ -39,11 +39,18 @@ function isoLabels(family: LayoutId) {
     const q = isoToViewBox(planToWorld(c, z), vb, fit)
     return [pct(q[0], vb[2]), pct(q[1], vb[3])]
   }
-  /** The part's centre on the CAD plan (before the print), or undefined. */
+  /**
+   * The part's centre on the CAD plan (before the print), or undefined. The owner's report's
+   * name is nearly as wide as its box: it sits a little low, under the line of its chart glyph
+   * (s06Glyphs: the glyph ends 14.5 fortieths of the box's short side in), so the two never
+   * touch.
+   */
   const plan = (key: string): Pt | undefined => {
     const part = m.spec.parts.find((p) => p.anchor === key)
     if (!part) return undefined
-    const { c } = partTop(part)
+    let { c } = partTop(part)
+    const q = part.prims[0]
+    if (key === 'tool.report' && q?.t === 'rect') c = [c[0], q.at[1] + q.size[1] * 0.64]
     return [pct(c[0], vb[2]), pct(c[1], vb[3])]
   }
   return { at, plan }
