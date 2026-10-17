@@ -34,12 +34,20 @@ test('layers load and --p drives the beats', async ({ page, guard }) => {
   expect(await fig.locator('svg.l-pencil path').count()).toBeGreaterThan(20)
   expect(await fig.locator('svg.l-cad path').count()).toBeGreaterThan(10)
   await expect(fig.locator('.labels > span').filter({ hasNotText: /^$/ })).not.toHaveCount(0)
+  // p = 0: the blank survey sheet is there (W4c: no empty column), its rows not yet written
   const listOpacity = () =>
     fig.locator('.labels > div').evaluate((el) => Number(getComputedStyle(el).opacity))
-  expect(await listOpacity()).toBe(0)
+  const written = () =>
+    fig
+      .locator('.labels > div li > :not(:first-child)')
+      .evaluateAll((els) => els.map((e) => Number(getComputedStyle(e).opacity)))
+  expect(await listOpacity()).toBe(1)
+  expect(await written()).toHaveLength(6)
+  for (const o of await written()) expect(o).toBe(0)
   await gotoTier(page, '/kit/fig/s01?p=1', 'svg')
   await expect(fig).toHaveAttribute('data-layers', 'ready')
   expect(await listOpacity()).toBe(1)
+  for (const o of await written()) expect(o).toBe(1)
   // the long description has its counts filled in
   const desc = await page.locator('#fig-s01-desc').innerText()
   expect(desc).not.toMatch(/[{}]/)
@@ -104,6 +112,7 @@ test('at p = 1 the survey marks are gone and the list is whole', async ({ page }
   const items = fig.locator('.labels > div li')
   await expect(items).toHaveCount(3)
   for (const o of await opacities('.labels > div li')) expect(o).toBe(1)
+  for (const o of await opacities('.labels > div li > *')) expect(o).toBe(1)
 })
 
 test('still tier shows the final still and the finished labels', async ({ page }) => {

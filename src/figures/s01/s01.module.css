@@ -273,10 +273,17 @@
 
 /* ── The ranked list and the 90-day roadmap ─────────────────────────────── */
 /* Wide: the column under the surveyor, down to the map's bottom edge; the roadmap sits at
-   its foot. Tall: the strip under the map. */
-.list {
+   its foot. Tall: the strip under the map. The blank sheet (heading, ruled numbered rows,
+   the dimension string) sets up on the lead-in (--ps) with the surveyor, so the column is
+   never empty (W4c); the rows are written in during the sweep and the roadmap is inked at
+   the end, both on --p. */
+.fig.fig .list {
   --a: var(--s01-list-from-p);
   --b: var(--s01-list-to-p);
+  --lp: clamp(0, (var(--ps) - var(--a)) / (var(--b) - var(--a)), 1);
+}
+
+.list {
   display: flex;
   flex-direction: column;
   inline-size: 33.75%;
@@ -348,6 +355,14 @@
   display: grid;
   grid-template-columns: 1.7em minmax(0, 1fr);
   gap: 0.25em 0.4em;
+}
+
+/* The row's number is on the blank sheet in pencil; it inks when its row is written. */
+.item > .bubble {
+  color: color-mix(in srgb, var(--c-asphalt) calc(var(--lp) * 100%), var(--c-graphite));
+}
+
+.item > :not(.bubble) {
   opacity: var(--lp);
   translate: 0 calc((1 - var(--lp)) * 6px);
 }
@@ -414,14 +429,20 @@
   --a: var(--s01-roadmap-from-p);
   --b: var(--s01-roadmap-to-p);
   --lp: clamp(0, (var(--p) - var(--a)) / (var(--b) - var(--a)), 1);
+  /* the blank dimension string is pencil; the plan inks it, left to right */
+  --rk: color-mix(
+    in srgb,
+    var(--c-asphalt) calc(clamp(0, var(--lp) * 4, 1) * 100%),
+    var(--c-graphite)
+  );
   margin-block-start: auto;
   padding-block-start: 1.4em;
+  color: var(--rk);
 }
 
 .roadmapTitle {
   margin: 0 0 0.4em;
   font-weight: 600;
-  opacity: clamp(0, var(--lp) * 4, 1);
 }
 
 /* The dimension string: a run with slash ticks at 0, 30, 60 and 90 days. */
@@ -436,17 +457,20 @@
   position: absolute;
   inset-inline: 0;
   inset-block-end: 0.35em;
-  border-block-start: 1.5px solid var(--c-asphalt);
-  transform-origin: left;
-  scale: var(--lp) 1;
+  border-block-start: 1.5px solid var(--rk);
 }
 
 .span {
   position: relative;
   display: grid;
   place-items: start center;
-  border-inline-start: 1.5px solid var(--c-asphalt);
+  border-inline-start: 1.5px solid var(--rk);
+}
+
+/* Each 30-day step gets its number as the plan is inked. */
+.span > .bubble {
   opacity: clamp(0, (var(--lp) * 3 - var(--n)) * 3, 1);
+  color: var(--c-asphalt);
 }
 
 .span::after {
@@ -455,17 +479,16 @@
   inset-inline-start: -0.4em;
   inset-block-end: 0.05em;
   inline-size: 0.8em;
-  border-block-start: 1.5px solid var(--c-asphalt);
+  border-block-start: 1.5px solid var(--rk);
   rotate: -45deg;
 }
 
 .span:last-of-type {
-  border-inline-end: 1.5px solid var(--c-asphalt);
+  border-inline-end: 1.5px solid var(--rk);
 }
 
 .ticks {
   display: flex;
   justify-content: space-between;
   margin: 0.25em 0 0;
-  opacity: var(--lp);
 }

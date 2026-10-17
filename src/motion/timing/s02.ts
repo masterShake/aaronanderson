@@ -6,7 +6,8 @@
  * pages-drawings' .50); the hand-off window is [handoffP, handoffP + .04]; the 3D model
  * builds over .48–.72; time loops start at motionFromP.
  *   sketch: boxes .00–.11, hand-carry line .06–.10, glyphs .10–.20, labels from .12
- *   scan .22–.34 (the pencil ghost is gone by .42) · conduits .30–.42 · flange ticks .40–.44
+ *   scan .22–.34 (a short ghost trails the bar; none is left by .36) · conduits .30–.42 ·
+ *   flange ticks .40–.44
  *   the carrier walks .08–.22, sets the box down and steps off .23–.29
  * Loops (ms, wide family): the lead leaves the CRM at 0 at leadSpeed (units per second),
  * splits into three at the junction and arrives at each place at the same speed. On loop
@@ -33,7 +34,7 @@ export const S02 = {
   glyphStroke: 0.04,
   labelA: 0.12,
   /** The pencil ghost is gone by ghostOutB (A5: no leftovers under the finished plan). */
-  ghostOutB: 0.42,
+  ghostOutB: 0.36,
   scanA: 0.22,
   scanB: 0.34,
   conduitA: 0.3,
