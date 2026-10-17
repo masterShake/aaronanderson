@@ -7,6 +7,15 @@
   position: relative;
 }
 
+/* The section ends on a one-line link, so a full section pad under it reads as an empty
+   band before the next heading: from 1024 px the link takes the place of that pad. Below
+   1024 px the full pad stays, since the margin note hangs in it. */
+@media (width >= 1024px) {
+  .wiring {
+    padding-block-end: var(--s-5);
+  }
+}
+
 .head {
   display: grid;
   gap: 0 var(--s-8);

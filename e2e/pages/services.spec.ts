@@ -125,6 +125,60 @@ test('at 1280 × 800 each figure column is as tall as its text column', async ({
   await expect(page.locator(`nav[aria-label="${servicesPage.rail.jump}"]`)).toBeHidden()
 })
 
+// D3: the figure stays sticky for its whole scrub. Scroll each sheet to p = 0.5 and p = 1
+// (from the driver's own formula) and the whole figure is on screen, pinned at --sticky-top,
+// with --p at that value.
+for (const [width, height] of [
+  [1280, 800],
+  [1440, 900],
+] as const) {
+  test(`at ${width} each service figure is in view at p = 0.5 and p = 1`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the scrub is for desktop pointers; touch plays on entry')
+    await page.setViewportSize({ width, height })
+    await gotoTier(page, '/services', 'svg')
+    for (const s of services) {
+      for (const p of [0.5, 1]) {
+        // twice: a figure may settle its own height as it plays, which moves its p = 1 point
+        for (let pass = 0; pass < 2; pass++) {
+          await page.locator(`section#${s.slug}`).evaluate((sec, p) => {
+            const track = sec.querySelector<HTMLElement>('[data-scrub-track]')!
+            const fig = sec.querySelector<HTMLElement>('figure.fig')!
+            const top = parseFloat(getComputedStyle(fig).top) || 0
+            const span = track.getBoundingClientRect().height - fig.offsetHeight
+            const at = track.getBoundingClientRect().top + scrollY - top + p * span
+            scrollTo(0, Math.floor(at))
+          }, p)
+          await page.waitForTimeout(150)
+        }
+        const fig = page.locator(`#fig-${s.id.toLowerCase().replace('-', '')}`)
+        await expect
+          .poll(
+            async () => {
+              const v = Number(await fig.evaluate((el) => el.style.getPropertyValue('--p')))
+              return Math.abs(v - p) <= 0.02
+            },
+            { message: `${s.id} --p at ${p}` },
+          )
+          .toBe(true)
+        const m = await fig.evaluate((el) => {
+          const b = el.getBoundingClientRect()
+          return {
+            top: b.top,
+            bottom: b.bottom,
+            sticky: parseFloat(getComputedStyle(el).top) || 0,
+            vh: innerHeight,
+          }
+        })
+        expect(Math.abs(m.top - m.sticky), `${s.id} pinned at p = ${p}`).toBeLessThanOrEqual(2)
+        expect(m.bottom, `${s.id} whole figure on screen at p = ${p}`).toBeLessThanOrEqual(m.vh)
+      }
+    }
+  })
+}
+
 test('at 1024 the jump list shows, not the rail', async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 800 })
   await page.goto('/services')

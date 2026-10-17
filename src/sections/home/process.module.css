@@ -4,6 +4,13 @@
   position: relative;
 }
 
+/* Ends on a one-line link: from 1024 px a short pad, so no empty band before the next head. */
+@media (width >= 1024px) {
+  .process {
+    padding-block-end: var(--s-5);
+  }
+}
+
 .link {
   margin: var(--s-5) 0 0;
   font-family: var(--ff-ui);
