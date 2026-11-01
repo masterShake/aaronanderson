@@ -1,0 +1,16 @@
+# Render Blueprint for actualengineer.com: one Node web service running `next start`.
+services:
+  - type: web
+    name: actualengineer
+    runtime: node
+    plan: starter
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start -- -H 0.0.0.0 -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NEXT_TELEMETRY_DISABLED
+        value: '1'
