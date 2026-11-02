@@ -1,0 +1,13 @@
+.contact {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 16svh var(--margin) 20svh;
+  display: grid;
+  justify-items: start;
+  gap: 28px;
+  border-top: 1px solid var(--rule);
+}
+
+.contact h2 {
+  max-width: 12ch;
+}

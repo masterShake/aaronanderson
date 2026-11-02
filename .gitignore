@@ -24,3 +24,6 @@ next-env.d.ts
 
 # local Claude settings
 .claude/
+
+# screenshots and reports from `npm run shots`
+/artifacts

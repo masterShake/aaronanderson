@@ -1,0 +1,330 @@
+/* The stage pins for the whole story. lvh keeps the canvas from reallocating as mobile toolbars slide. */
+.stage {
+  grid-area: 1 / 1;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100lvh;
+  align-self: start;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Narrow screens: the drawing band sits above the copy, so cards slide under it as they leave. */
+.band {
+  display: none;
+}
+
+@media not ((min-width: 768px) and (min-aspect-ratio: 1/1)) {
+  .stage {
+    z-index: 2;
+  }
+  .band {
+    display: block;
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: calc(100svh - var(--strip-bottom));
+    background: var(--paper);
+  }
+}
+
+.canvasHost,
+.frame,
+.poster {
+  position: absolute;
+  top: var(--frame-top);
+  left: var(--frame-left);
+  right: var(--frame-right);
+  bottom: var(--frame-bottom);
+}
+
+.canvasHost :global(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.stage:is([data-stage-state='moving'], [data-stage-state='settled']) .canvasHost :global(canvas) {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvasHost :global(canvas) {
+    transition: none;
+  }
+}
+
+.frame {
+  border: 1px solid var(--rule);
+}
+
+/* Chapter 2 retires the sheet: the story store writes --paper-space (1 → 0). Only while the stage is
+   live; the static poster keeps its frame and title strip. The transition matches the canvas reveal. */
+.stage:is([data-stage-state='moving'], [data-stage-state='settled']) :is(.frame, .strip) {
+  opacity: var(--paper-space, 1);
+}
+
+.frame,
+.strip {
+  transition: opacity 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .strip {
+    transition: none;
+  }
+}
+
+/* Static drawing for browsers without WebGL2, or after a lost context. */
+.stage:is([data-stage-state='fallback'], [data-stage-state='lost']) .poster {
+  background: var(--paper) url('/drawings/a-101.svg') center / contain no-repeat;
+}
+
+.stage:is([data-stage-state='fallback'], [data-stage-state='lost']) .canvasHost {
+  display: none;
+}
+
+/* Title strip under the frame: the drawing's title block. */
+.strip {
+  position: absolute;
+  left: var(--frame-left);
+  right: var(--frame-right);
+  bottom: var(--strip-bottom);
+  height: var(--strip-h);
+  margin: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 2.6fr) minmax(0, 1.15fr) minmax(0, 1.05fr) minmax(0, 0.6fr) minmax(0, 0.75fr)
+    minmax(0, 0.75fr) minmax(0, 0.6fr);
+  border: 1px solid var(--rule);
+  border-top: 0;
+  background: var(--paper);
+}
+
+.strip > div {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 0 8px;
+  min-width: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.strip > div:first-child {
+  border-left: 0;
+}
+
+.strip dt,
+.strip dd {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-stretch: 112.5%;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.strip dt {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+}
+
+.strip dd {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.sheet dd {
+  font-family: var(--font-head);
+  font-stretch: 62.5%;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.ai {
+  color: var(--ai) !important;
+}
+
+.signed {
+  display: none;
+}
+
+.strip[data-checked] .pending {
+  display: none;
+}
+
+.strip[data-checked] .signed {
+  display: inline;
+}
+
+@media (max-width: 1439px) {
+  .strip {
+    grid-template-columns:
+      minmax(0, 2.6fr) minmax(0, 1.15fr) minmax(0, 1.05fr) minmax(0, 0.6fr) minmax(0, 0.75fr)
+      minmax(0, 0.6fr);
+  }
+  .date {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .strip {
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.2fr) minmax(0, 0.6fr) minmax(0, 0.8fr) minmax(0, 0.7fr);
+  }
+  .scale {
+    display: none !important;
+  }
+}
+
+/* Narrow: a compact caption under the drawing band. */
+@media not ((min-width: 768px) and (min-aspect-ratio: 1/1)) {
+  .strip {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.75fr) minmax(0, 1fr) minmax(0, 0.85fr);
+  }
+  .project {
+    display: none !important;
+  }
+}
+
+/* Paper-space overlay: chips, leaders and the pen head, created by the scene. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.overlay :global(.ae-leaders) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.overlay :global(.ae-leaders line) {
+  stroke: var(--ai);
+  stroke-width: 1;
+}
+
+.overlay :global(.ae-leaders circle) {
+  fill: var(--ai);
+}
+
+.overlay :global(.ae-chip) {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform, opacity;
+}
+
+.overlay :global(.ae-chip-body) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--ai);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ai);
+  white-space: nowrap;
+}
+
+.overlay :global(.ae-check) {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.overlay :global(.ae-pen) {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.overlay :global(.ae-pen-dot) {
+  position: absolute;
+  left: -2.5px;
+  top: -2.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ai);
+}
+
+.overlay :global(.ae-pen[data-down='false'] .ae-pen-dot) {
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
+  background: transparent;
+  border: 1px solid var(--ai);
+}
+
+/* Crosshair arms, 9 px long with a 3 px gap. */
+.overlay :global(.ae-pen-cross) {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  background:
+    linear-gradient(var(--ai), var(--ai)) left 0 top 11.5px / 9px 1px no-repeat,
+    linear-gradient(var(--ai), var(--ai)) right 0 top 11.5px / 9px 1px no-repeat,
+    linear-gradient(var(--ai), var(--ai)) left 11.5px top 0 / 1px 9px no-repeat,
+    linear-gradient(var(--ai), var(--ai)) left 11.5px bottom 0 / 1px 9px no-repeat;
+}
+
+.overlay :global(.ae-pen-readout) {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  padding: 2px 5px;
+  background: var(--paper);
+  color: var(--ai);
+  font-size: 0.6875rem;
+  font-stretch: 112.5%;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.overlay :global(.ae-pen[data-flip='true'] .ae-pen-readout) {
+  left: auto;
+  right: 12px;
+}
+
+.overlay :global(.ae-pen-extra) {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ai);
+  will-change: transform;
+}
+
+@media not ((min-width: 768px) and (min-aspect-ratio: 1/1)) {
+  .overlay :global(.ae-pen-readout) {
+    display: none;
+  }
+}

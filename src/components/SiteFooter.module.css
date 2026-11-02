@@ -1,0 +1,11 @@
+.footer {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 24px var(--margin) 40px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  border-top: 1px solid var(--rule);
+  color: var(--text-2);
+}

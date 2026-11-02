@@ -1,0 +1,180 @@
+.chapter {
+  position: relative;
+  scroll-margin-top: 0;
+}
+
+.caps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each block is at least its share of the chapter's track. The store maps scroll through each
+   block's measured height, so a block may grow without breaking sync with the drawing. */
+.block {
+  position: relative;
+  min-height: calc(var(--span) * var(--track) * 100vh);
+  min-height: calc(var(--span) * var(--track) * 100lvh);
+}
+
+@media (min-width: 768px) and (min-aspect-ratio: 1/1) {
+  .gap {
+    padding-top: 45lvh;
+  }
+}
+
+.card {
+  position: sticky;
+  top: calc(var(--nav-h) + 14svh);
+  margin-left: var(--margin);
+  width: calc(var(--frame-left) - var(--margin) - 4vw);
+  max-width: 34rem;
+  display: grid;
+  gap: 18px;
+  container-type: inline-size;
+}
+
+.intro {
+  gap: 24px;
+}
+
+.intro h2 {
+  font-size: min(var(--fs-h2), 15cqi);
+}
+
+.eyebrow {
+  color: var(--text-2);
+}
+
+.num {
+  color: var(--text-2);
+}
+
+.cap h3 {
+  max-width: 18ch;
+}
+
+.line {
+  font-size: var(--fs-body);
+  max-inline-size: 26em;
+}
+
+/* Progress hairline: fills blue as this block's part of the drawing plays. */
+.beat {
+  position: relative;
+  display: block;
+  height: 1px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.beat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ai);
+  transform-origin: left center;
+  transform: scaleX(var(--beat, 0));
+}
+
+/* CAD layer list: pencil ring = waiting, blue dot = drafting, ink tick = done. */
+.layers {
+  display: grid;
+  gap: 7px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layers li {
+  --on: clamp(0, (var(--beat, 0) - var(--s)) * 1000, 1);
+  --done: clamp(0, (var(--beat, 0) - var(--e)) * 1000, 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.6875rem;
+  font-stretch: 112.5%;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.mark {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+.ring,
+.dot {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.ring {
+  inset: 0;
+  border: 1px solid var(--pencil);
+  opacity: calc(1 - var(--on));
+}
+
+.dot {
+  inset: 2px;
+  background: var(--ai);
+  opacity: calc(var(--on) - var(--done));
+}
+
+.tick {
+  position: absolute;
+  inset: 0;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: var(--done);
+}
+
+.closing {
+  font-family: var(--font-head);
+  font-stretch: 62.5%;
+  font-weight: 600;
+  font-size: var(--fs-h3);
+  line-height: 1.1;
+  margin-top: 6px;
+  opacity: clamp(0, (var(--beat, 0) - 0.7) * 20, 1);
+}
+
+@media (max-height: 560px) {
+  .intro :global(.lead) {
+    display: none;
+  }
+  .intro h2 {
+    font-size: min(var(--fs-h2), 40px);
+  }
+}
+
+/* Narrow: opaque cards stick just under the drawing band, which sits above them (see
+   StageMount), so a leaving card slides under the drawing and the next one rises into place. */
+@media not ((min-width: 768px) and (min-aspect-ratio: 1/1)) {
+  .card {
+    top: calc(100svh - var(--strip-bottom) + 8px);
+    width: auto;
+    max-width: none;
+    margin: 0 var(--margin);
+    padding: 16px 0 24px;
+    background: var(--paper);
+    border-top: 1px solid var(--rule);
+    gap: 12px;
+  }
+  .intro {
+    gap: 14px;
+  }
+  .intro h2 {
+    font-size: min(var(--fs-h2), 11cqi);
+  }
+  .layers {
+    display: none;
+  }
+}

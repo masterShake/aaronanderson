@@ -1,14 +1,253 @@
+/*
+ * Design tokens. Paper, ink and one blue: black ink is the drawing, blue is AI at work.
+ * The hex values below are mirrored in src/lib/plan/pens.ts (a test keeps them in sync).
+ */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+  color-scheme: light;
+
+  --paper: #ffffff;
+  --ink: #1d1d1f;
+  --poche: #2b2e33;
+  --graphite: #55595f;
+  --text-2: #6e6e73;
+  --pencil: #a1a6ad;
+  --construction: #cdd1d6;
+  --rule: #e6e8eb;
+  --grid-minor: #f3f4f6;
+  --ai: #1f5bff;
+  --ai-guide: #8fadff;
+  --ai-wash: #e9efff;
+
+  --font-head: var(--font-archivo), 'Helvetica Neue', 'Arial Narrow', Arial, sans-serif;
+  --font-text: var(--font-archivo), Verdana, Arial, sans-serif;
+
+  /* Fluid type, linear from 375px to 1440px wide. */
+  --fs-h1: clamp(3.5rem, 1.563rem + 8.263vw, 9rem);
+  --fs-h2: clamp(2.75rem, 1.43rem + 5.634vw, 6.5rem);
+  --fs-h3: clamp(1.375rem, 1.199rem + 0.751vw, 1.875rem);
+  --fs-lead: clamp(1.1875rem, 1.077rem + 0.469vw, 1.5rem);
+  --fs-body: clamp(1.0625rem, 1.019rem + 0.188vw, 1.1875rem);
+  --fs-eyebrow: clamp(0.75rem, 0.706rem + 0.188vw, 0.875rem);
+  --fs-small: clamp(0.8125rem, 0.791rem + 0.094vw, 0.875rem);
+  --fs-micro: 0.6875rem;
+
+  /* Thin weights that stay legible on 1x screens; a little lighter on 2x. */
+  --w-lead: 260;
+  --w-body: 330;
+  --w-small: 420;
+  --w-eyebrow: 520;
+
+  --nav-h: 56px;
+  --margin: 64px;
+  --gutter: 24px;
+  --max: 1440px;
+
+  /* The drawing frame. The camera measures .frame, so these numbers are the single source. */
+  --frame-top: calc(var(--nav-h) + 3svh);
+  --frame-left: 42vw;
+  --frame-right: 3vw;
+  --strip-h: 44px;
+  --strip-bottom: 3svh;
+  --frame-bottom: calc(var(--strip-bottom) + var(--strip-h));
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --w-lead: 240;
+    --w-body: 300;
+    --w-small: 380;
+    --w-eyebrow: 500;
+  }
+}
+
+@media (max-width: 1279px) {
+  :root {
+    --margin: 40px;
+  }
+}
+
+/* Narrow layout: phones, tablets in portrait, anything taller than wide. */
+@media not ((min-width: 768px) and (min-aspect-ratio: 1/1)) {
+  :root {
+    --nav-h: 52px;
+    --margin: 20px;
+    --gutter: 16px;
+    --frame-top: calc(var(--nav-h) + 2svh);
+    --frame-left: 4vw;
+    --frame-right: 4vw;
+    --strip-h: 34px;
+    --strip-bottom: 44svh;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
   margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-stretch: 125%;
+  font-weight: var(--w-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  letter-spacing: 0.005em;
+  font-synthesis: none;
+  overflow-x: clip;
 }
 
-main {
-  display: grid;
-  place-items: center;
-  min-height: 100svh;
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-head);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  font-stretch: 62.5%;
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  font-stretch: 62.5%;
+  line-height: 0.98;
+  letter-spacing: -0.005em;
+}
+
+h3 {
+  font-size: var(--fs-h3);
+  font-stretch: 75%;
+  line-height: 1.1;
+}
+
+p {
+  margin: 0;
+  max-inline-size: 34em;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.eyebrow {
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--w-eyebrow);
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  font-weight: var(--w-lead);
+  line-height: 1.42;
+  max-inline-size: 30em;
+}
+
+.small {
+  font-size: var(--fs-small);
+  font-weight: var(--w-small);
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+.micro {
+  font-size: var(--fs-micro);
+  font-stretch: 112.5%;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Ink pill button. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 44px;
+  padding: 0 1.4em;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  background: #000;
+}
+
+.pill-sm {
+  min-height: 32px;
+  padding: 0 1.1em;
+}
+
+.link-arrow {
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+  font-size: var(--fs-small);
+}
+
+.skip-link:focus {
+  top: 12px;
 }

@@ -1,0 +1,12 @@
+/* The pinned stage and the scrolling chapters share one grid cell, so the stage sticks for the
+   whole story and unpins after it. No ancestor may use overflow: hidden (it would break sticky). */
+.story {
+  position: relative;
+  display: grid;
+}
+
+.chapters {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+}
